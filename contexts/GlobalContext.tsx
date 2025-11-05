@@ -1,0 +1,111 @@
+"use client";
+import { useEffect } from "react";
+import { createCustomContext } from "../helpers/createCustomContext";
+
+export type Theme = "light" | "dark";
+
+interface IGlobalState {
+  isSidebarOpen: boolean;
+  tableSearchValue: string;
+  theme: Theme;
+}
+
+const STORAGE_KEY = "globalState";
+
+// Helper function to safely get localStorage value
+function getStoredState(): Partial<IGlobalState> | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (error) {
+    console.error("Error reading from localStorage:", error);
+  }
+  return null;
+}
+
+// Helper function to safely set localStorage value
+function setStoredState(state: IGlobalState): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (error) {
+    console.error("Error writing to localStorage:", error);
+  }
+}
+
+// Get initial state from localStorage or use default
+const storedState = getStoredState();
+const initialState: IGlobalState = {
+  isSidebarOpen: true,
+  theme: (storedState?.theme as Theme) ?? "light",
+  tableSearchValue: storedState?.tableSearchValue ?? "",
+};
+
+function setState(
+  state: IGlobalState,
+  newState: Partial<IGlobalState>
+): IGlobalState {
+  return { ...state, ...newState };
+}
+
+const functions = {
+  setState,
+};
+
+const {
+  Context,
+  Provider: BaseProvider,
+  useContextHook,
+} = createCustomContext<IGlobalState, typeof functions>({
+  initialState,
+  functions,
+});
+
+// Wrapper Provider that persists state to localStorage and syncs theme
+const GlobalContextProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  return (
+    <BaseProvider>
+      <PersistState />
+      <ThemeSync />
+      {children}
+    </BaseProvider>
+  );
+};
+
+// Component that handles persisting state to localStorage
+const PersistState: React.FC = () => {
+  const [state] = useContextHook();
+
+  useEffect(() => {
+    setStoredState(state);
+  }, [state]);
+
+  return null;
+};
+
+// Component that syncs theme to document's data-theme attribute
+const ThemeSync: React.FC = () => {
+  const [state] = useContextHook();
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("data-theme", state.theme);
+    }
+  }, [state.theme]);
+
+  return null;
+};
+
+export { GlobalContextProvider };
+export const useGlobalContext = useContextHook;

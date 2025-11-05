@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+[data-theme="light"] {
+  --brand: #2563eb;
+  --bg-inner: white;
+  --bg-outer: #e5eff9;
+  --table-row: white;
+  --table-header: #f3f3f3;
+  --sidebar-sub-item-hover: #eff6ff;
+  --table-border: #e5e7eb;
+  --text-primary: #374151;
+  --text-secondary: #61728e;
+  --text-dark: #111827;
+  --text-contrast: white;
+  --border-main: #c4c4c4;
+  --border-hr: #e5e7eb;
+  --success-light: #97febd;
+  --success: #16a34a;
+  --failure-light: #f9adad;
+  --failure: #dc2626;
+  --blue-light: #c7d3ee;
+  --blue: #2563eb;
+  --icon: #6b7280;
+}
+
+[data-theme="dark"] {
+  --brand: #2563eb;
+  --bg-inner: #101936;
+  --bg-outer: #070f25;
+  --table-row: #070f25;
+  --table-header: #060c1d;
+
+  --table-border: #02081a;
+  --sidebar-sub-item-hover: #070f25;
+
+  --text-primary: white;
+  --text-secondary: #cecece;
+  --text-dark: white;
+  --text-contrast: white;
+  --border-main: #c4c4c4;
+  --border-hr: #070f25;
+
+  --success-light: #97febd;
+  --success: #16a34a;
+  --failure-light: #f9adad;
+  --failure: #dc2626;
+  --blue-light: #c7d3ee;
+  --blue: #2563eb;
+  --icon: #6b7280;
+}
+
+@theme inline {
+  --color-icon: var(--icon);
+  --color-table-row: var(--table-row);
+  --color-table-header: var(--table-header);
+  --color-table-border: var(--table-border);
+  --color-sidebar-sub-item-hover: var(--sidebar-sub-item-hover);
+  --color-border-hr: var(--border-hr);
+  --color-brand: var(--brand);
+  --color-bg-inner: var(--bg-inner);
+  --color-bg-outer: var(--bg-outer);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-dark: var(--text-dark);
+  --color-text-contrast: var(--text-contrast);
+  --color-border-main: var(--border-main);
+  --color-success-light: var(--success-light);
+  --color-success: var(--success);
+  --color-failure-light: var(--failure-light);
+  --color-failure: var(--failure);
+  --color-blue-light: var(--blue-light);
+  --color-blue: var(--blue);
+}
+html,
+body,
+#__next {
+  height: 100%;
+  width: 100%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Poppins", Arial, Helvetica, sans-serif;
+}
