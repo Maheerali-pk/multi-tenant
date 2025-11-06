@@ -8,18 +8,23 @@ import classNames from "classnames";
 interface SidebarItemMainProps {
   data: SidebarItem;
   onClick?: () => void;
+  isOpen?: boolean;
 }
 
-const SidebarItemMain: React.FC<SidebarItemMainProps> = ({ data, onClick }) => {
+const SidebarItemMain: React.FC<SidebarItemMainProps> = ({
+  data,
+  onClick,
+  isOpen: sidebarOpen = true,
+}) => {
   const pathname = usePathname();
-  
+
   // Check if any sub-item is active
   const hasActiveSubItem = data.subItems.some(
     (subItem) => pathname === subItem.href
   );
-  
+
   const [isOpen, setIsOpen] = useState(hasActiveSubItem);
-  
+
   // Update isOpen when pathname changes
   useEffect(() => {
     const hasActive = data.subItems.some(
@@ -29,20 +34,43 @@ const SidebarItemMain: React.FC<SidebarItemMainProps> = ({ data, onClick }) => {
       setIsOpen(true);
     }
   }, [pathname, data.subItems]);
+
+  // Don't show sub-items when sidebar is minimized
+  const shouldShowSubItems = sidebarOpen && isOpen;
+
   return (
     <>
       <div
         onClick={() => {
-          setIsOpen(!isOpen);
+          if (sidebarOpen) {
+            setIsOpen(!isOpen);
+          }
           onClick?.();
         }}
-        className="flex cursor-pointer text-text-primary font-medium  items-center justify-between w-full p-3"
+        className={classNames(
+          "flex cursor-pointer  font-medium items-center w-full transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
+          {
+            "justify-between p-3": sidebarOpen,
+            "text-brand": isOpen,
+            "text-text-primary": !isOpen,
+            "justify-center p-2": !sidebarOpen,
+          }
+        )}
       >
-        <div className="gap-3 flex items-center ">
+        <div
+          className={classNames("flex items-center", {
+            "gap-3": sidebarOpen,
+            "gap-0": !sidebarOpen,
+          })}
+        >
           {data.icon}
-          <span className="text-sm font-medium">{data.name}</span>
+          {sidebarOpen && (
+            <span className="text-sm font-medium transition-opacity duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]">
+              {data.name}
+            </span>
+          )}
         </div>
-        {data.subItems.length > 0 && (
+        {sidebarOpen && data.subItems.length > 0 && (
           <ChevronDown
             className={classNames(
               "w-4 h-4 transition-transform duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
@@ -54,29 +82,31 @@ const SidebarItemMain: React.FC<SidebarItemMainProps> = ({ data, onClick }) => {
           />
         )}
       </div>
-      <div
-        className={classNames(
-          "flex flex-col border-l border-l-border-hr ml-8 overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
-          {
-            "max-h-[500px] opacity-100": isOpen,
-            "max-h-0 opacity-0": !isOpen,
-          }
-        )}
-      >
+      {sidebarOpen && (
         <div
           className={classNames(
-            "transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
+            "flex flex-col border-l border-l-border-hr ml-8 overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
             {
-              "translate-x-0": isOpen,
-              "-translate-x-2": !isOpen,
+              "max-h-[500px] opacity-100": shouldShowSubItems,
+              "max-h-0 opacity-0": !shouldShowSubItems,
             }
           )}
         >
-          {data.subItems.map((subItem) => (
-            <SidebarSubItem key={subItem.name} data={subItem} />
-          ))}
+          <div
+            className={classNames(
+              "transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
+              {
+                "translate-x-0": shouldShowSubItems,
+                "-translate-x-2": !shouldShowSubItems,
+              }
+            )}
+          >
+            {data.subItems.map((subItem) => (
+              <SidebarSubItem key={subItem.name} data={subItem} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 };

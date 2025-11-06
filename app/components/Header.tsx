@@ -34,14 +34,7 @@ const Header: React.FC<HeaderProps> = () => {
 
   return (
     <div className="h-16 px-6 flex cursor-pointer justify-between items-center bg-bg-inner rounded-3xl">
-      <div
-        className="rounded-full b-white border-border-main border p-2"
-        onClick={() => {
-          dispatch({ setState: { isSidebarOpen: !state.isSidebarOpen } });
-        }}
-      >
-        <Menu height={16} width={16} className="text-text-dark"></Menu>
-      </div>
+      <div></div>
       <div className="flex items-center gap-16">
         <Search onChange={handleSearchChange} value={searchValue} />
         <div className="flex items-center gap-6">

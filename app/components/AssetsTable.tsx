@@ -1,12 +1,15 @@
 "use client";
+import { useMemo } from "react";
 import Table, { TableColumn } from "./Table";
 import { ExampleTable1, ExampleTable1Row } from "../helpers/data";
-import { useGlobalContext } from "@/contexts/GlobalContext";
+import { FilterValues } from "./TableFilter";
 
 interface AssetsTableProps {
   data?: ExampleTable1Row[];
   onEdit?: (row: ExampleTable1Row) => void;
   onDelete?: (row: ExampleTable1Row) => void;
+  filterValues?: FilterValues;
+  searchValue?: string; // Keep search for backward compatibility
 }
 
 // Example usage - you can customize columns and data as needed
@@ -14,9 +17,10 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
   data,
   onEdit,
   onDelete,
+  filterValues = {},
+  searchValue = "",
 }) => {
   // Example columns - customize based on your data structure
-  const [state] = useGlobalContext();
   const columns: TableColumn<ExampleTable1Row>[] = [
     {
       key: "name",
@@ -66,9 +70,50 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
       console.log("Delete action triggered for:", row);
       // TODO: Implement delete functionality
     });
-  const filteredData = tableData.filter((row) =>
-    row.name.toLowerCase().includes(state.tableSearchValue.toLowerCase())
-  );
+
+  // Apply filters
+  const filteredData = useMemo(() => {
+    let result = [...tableData];
+
+    // Apply search (name filter)
+    const searchFilter = filterValues.name || searchValue;
+    if (searchFilter && searchFilter.trim() !== "") {
+      result = result.filter((row) =>
+        row.name.toLowerCase().includes(searchFilter.toLowerCase())
+      );
+    }
+
+    // Apply type filter
+    if (filterValues.type && filterValues.type.trim() !== "") {
+      result = result.filter((row) => row.type === filterValues.type);
+    }
+
+    // Apply owner filter
+    if (filterValues.owner && filterValues.owner.trim() !== "") {
+      result = result.filter((row) =>
+        row.owner.toLowerCase().includes(filterValues.owner!.toLowerCase())
+      );
+    }
+
+    // Apply status filter
+    if (filterValues.status && filterValues.status.trim() !== "") {
+      result = result.filter((row) => row.status === filterValues.status);
+    }
+
+    // Apply exposure filter
+    if (filterValues.exposure && filterValues.exposure.trim() !== "") {
+      result = result.filter((row) => row.exposure === filterValues.exposure);
+    }
+
+    // Apply location filter
+    if (filterValues.location && filterValues.location.trim() !== "") {
+      result = result.filter((row) =>
+        row.location?.toLowerCase().includes(filterValues.location!.toLowerCase())
+      );
+    }
+
+    return result;
+  }, [tableData, filterValues, searchValue]);
 
   return (
     <Table

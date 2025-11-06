@@ -1,13 +1,23 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { Edit2, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Edit2,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
 
 export interface TableColumn<T = any> {
   key: string;
   header: string;
   accessor?: (row: T) => React.ReactNode;
   render?: (row: T) => React.ReactNode;
+  sortable?: boolean;
+  sortKey?: string; // Optional key to use for sorting if different from column key
+  width?: string; // Optional width for the column (e.g., "200px", "20%", "1fr")
 }
 
 export interface TableProps<T = any> {
@@ -32,6 +42,8 @@ function Table<T extends Record<string, any>>({
   const [dynamicRowsPerPage, setDynamicRowsPerPage] = useState<number | null>(
     null
   );
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
   const headerRef = useRef<HTMLTableSectionElement>(null);
@@ -109,18 +121,80 @@ function Table<T extends Record<string, any>>({
 
   // Use dynamic rows per page if available, otherwise use manual rowsPerPage
   const effectiveRowsPerPage = dynamicRowsPerPage ?? rowsPerPage;
-  const hasPagination =
-    effectiveRowsPerPage > 0 && rows.length > effectiveRowsPerPage;
 
-  // Reset to first page when rows per page changes
+  // Get raw value for sorting
+  const getSortValue = useCallback((row: T, column: TableColumn<T>): any => {
+    const sortColumnKey = column.sortKey || column.key;
+    // Try to get the raw value from the row
+    const rawValue = row[sortColumnKey];
+
+    // If we have an accessor but need the raw value, try to get it
+    // For now, we'll use the raw value from the row
+    return rawValue;
+  }, []);
+
+  // Sort rows
+  const sortedRows = useMemo(() => {
+    if (!sortKey) {
+      return rows;
+    }
+
+    const column = columns.find((col) => col.key === sortKey);
+    if (!column) {
+      return rows;
+    }
+
+    // Check if column is sortable (default to true if not specified)
+    if (column.sortable === false) {
+      return rows;
+    }
+
+    return [...rows].sort((a, b) => {
+      const aValue = getSortValue(a, column);
+      const bValue = getSortValue(b, column);
+
+      // Handle null/undefined values
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return 1;
+      if (bValue == null) return -1;
+
+      // Handle numbers
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
+      }
+
+      // Handle dates
+      if (aValue instanceof Date && bValue instanceof Date) {
+        return sortDirection === "asc"
+          ? aValue.getTime() - bValue.getTime()
+          : bValue.getTime() - aValue.getTime();
+      }
+
+      // Handle strings
+      const aString = String(aValue).toLowerCase();
+      const bString = String(bValue).toLowerCase();
+
+      if (aString < bString) {
+        return sortDirection === "asc" ? -1 : 1;
+      }
+      if (aString > bString) {
+        return sortDirection === "asc" ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [rows, sortKey, sortDirection, columns, getSortValue]);
+
+  // Calculate pagination based on sorted rows
+  const hasPagination =
+    effectiveRowsPerPage > 0 && sortedRows.length > effectiveRowsPerPage;
+  const totalPages = hasPagination
+    ? Math.ceil(sortedRows.length / effectiveRowsPerPage)
+    : 1;
+
+  // Reset to first page when rows per page changes or sort changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [effectiveRowsPerPage]);
-
-  // Calculate pagination
-  const totalPages = hasPagination
-    ? Math.ceil(rows.length / effectiveRowsPerPage)
-    : 1;
+  }, [effectiveRowsPerPage, sortKey, sortDirection]);
 
   // Reset to first page if current page is out of bounds
   useEffect(() => {
@@ -129,15 +203,15 @@ function Table<T extends Record<string, any>>({
     }
   }, [totalPages, currentPage]);
 
-  // Get paginated rows
+  // Get paginated rows from sorted data
   const paginatedRows = useMemo(() => {
     if (!hasPagination) {
-      return rows;
+      return sortedRows;
     }
     const startIndex = (currentPage - 1) * effectiveRowsPerPage;
     const endIndex = startIndex + effectiveRowsPerPage;
-    return rows.slice(startIndex, endIndex);
-  }, [rows, currentPage, effectiveRowsPerPage, hasPagination]);
+    return sortedRows.slice(startIndex, endIndex);
+  }, [sortedRows, currentPage, effectiveRowsPerPage, hasPagination]);
 
   // Default key getter - uses index if no key provided
   const getKey = (row: T, index: number): string | number => {
@@ -217,12 +291,45 @@ function Table<T extends Record<string, any>>({
     setDynamicRowsPerPage(null); // Disable dynamic pagination when manually set
   };
 
+  const handleSort = (columnKey: string) => {
+    const column = columns.find((col) => col.key === columnKey);
+    if (!column || column.sortable === false) {
+      return;
+    }
+
+    if (sortKey === columnKey) {
+      // Toggle direction if clicking the same column
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // Set new sort column and default to ascending
+      setSortKey(columnKey);
+      setSortDirection("asc");
+    }
+  };
+
   const startItem = hasPagination
     ? (currentPage - 1) * effectiveRowsPerPage + 1
     : 1;
   const endItem = hasPagination
-    ? Math.min(currentPage * effectiveRowsPerPage, rows.length)
-    : rows.length;
+    ? Math.min(currentPage * effectiveRowsPerPage, sortedRows.length)
+    : sortedRows.length;
+
+  // Calculate column widths for fixed table layout
+  // With table-layout: fixed, we need explicit widths to prevent resizing
+  const totalDataColumns = columns.length;
+
+  // Calculate width for columns without explicit width
+  const getColumnWidth = (column: TableColumn<T>, index: number) => {
+    if (column.width) {
+      return column.width;
+    }
+    // For fixed table layout, calculate percentage based on remaining space
+    // We'll use a simple approach: equal percentage distribution
+    // Subtract some space for actions column if present, then divide by number of columns
+    const remainingPercent = hasActions ? 95 : 100; // Leave some buffer for actions column
+    const percentPerColumn = remainingPercent / totalDataColumns;
+    return `${percentPerColumn}%`;
+  };
 
   return (
     <div
@@ -230,19 +337,64 @@ function Table<T extends Record<string, any>>({
       className="w-full h-full flex flex-col rounded-xl bg-table-row border border-table-border overflow-hidden"
     >
       <div className="flex-1 overflow-hidden">
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse table-fixed">
           <thead ref={headerRef} className="sticky top-0 z-10">
             <tr className="bg-table-header border-b border-table-border">
-              {columns.map((column) => (
+              {columns.map((column, index) => {
+                const isSortable = column.sortable !== false;
+                const isSorted = sortKey === column.key;
+                const columnWidth = getColumnWidth(column, index);
+
+                return (
+                  <th
+                    key={column.key}
+                    onClick={() => isSortable && handleSort(column.key)}
+                    style={{
+                      width: columnWidth,
+                      minWidth: columnWidth,
+                      maxWidth: columnWidth,
+                    }}
+                    className={`px-5 py-3 text-left text-sm font-normal text-text-secondary bg-table-header ${
+                      isSortable
+                        ? "cursor-pointer hover:bg-sidebar-sub-item-hover transition-colors select-none"
+                        : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>{column.header}</span>
+                      {isSortable && (
+                        <div className="flex flex-col">
+                          <ChevronUp
+                            size={14}
+                            className={`transition-opacity ${
+                              isSorted && sortDirection === "asc"
+                                ? "opacity-100 text-brand"
+                                : "opacity-30"
+                            }`}
+                          />
+                          <ChevronDown
+                            size={14}
+                            className={`transition-opacity -mt-1.5 ${
+                              isSorted && sortDirection === "desc"
+                                ? "opacity-100 text-brand"
+                                : "opacity-30"
+                            }`}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </th>
+                );
+              })}
+              {hasActions && (
                 <th
-                  key={column.key}
+                  style={{
+                    width: "120px",
+                    minWidth: "120px",
+                    maxWidth: "120px",
+                  }}
                   className="px-5 py-3 text-left text-sm font-normal text-text-secondary bg-table-header"
                 >
-                  {column.header}
-                </th>
-              ))}
-              {hasActions && (
-                <th className="px-5 py-3 text-left text-sm font-normal text-text-secondary bg-table-header">
                   Actions
                 </th>
               )}
@@ -265,21 +417,38 @@ function Table<T extends Record<string, any>>({
                   key={getKey(row, index)}
                   className="border-b border-table-border hover:bg-sidebar-sub-item-hover transition-colors"
                 >
-                  {columns.map((column) => (
-                    <td
-                      key={column.key}
-                      className="px-5 py-4 text-sm text-text-primary"
-                    >
-                      {getCellValue(row, column)}
-                    </td>
-                  ))}
+                  {columns.map((column, colIndex) => {
+                    const columnWidth = getColumnWidth(column, colIndex);
+                    return (
+                      <td
+                        key={column.key}
+                        style={{
+                          width: columnWidth,
+                          minWidth: columnWidth,
+                          maxWidth: columnWidth,
+                        }}
+                        className="px-5 py-4 text-sm text-text-primary overflow-hidden"
+                      >
+                        <div className="truncate">
+                          {getCellValue(row, column)}
+                        </div>
+                      </td>
+                    );
+                  })}
                   {hasActions && (
-                    <td className="px-5 py-4">
+                    <td
+                      style={{
+                        width: "120px",
+                        minWidth: "120px",
+                        maxWidth: "120px",
+                      }}
+                      className="px-5 py-4"
+                    >
                       <div className="flex items-center gap-2">
                         {onEdit && (
                           <button
                             onClick={() => onEdit(row)}
-                            className="p-1.5 rounded-lg hover:bg-blue-light transition-colors text-brand hover:text-brand"
+                            className="p-1.5 cursor-pointer rounded-lg hover:bg-blue-light transition-colors text-brand hover:text-brand"
                             aria-label="Edit"
                           >
                             <Edit2 size={16} />
@@ -288,7 +457,7 @@ function Table<T extends Record<string, any>>({
                         {onDelete && (
                           <button
                             onClick={() => onDelete(row)}
-                            className="p-1.5 rounded-lg hover:bg-failure-light transition-colors text-failure hover:text-failure"
+                            className="p-1.5 cursor-pointer rounded-lg hover:bg-failure-light transition-colors text-failure hover:text-failure"
                             aria-label="Delete"
                           >
                             <Trash2 size={16} />
@@ -312,7 +481,7 @@ function Table<T extends Record<string, any>>({
         >
           <div className="flex items-center gap-4">
             <div className="text-sm text-text-secondary">
-              Showing {startItem} to {endItem} of {rows.length} entries
+              Showing {startItem} to {endItem} of {sortedRows.length} entries
               {dynamicRowsPerPage !== null && (
                 <span className="text-xs text-text-secondary ml-2">
                   ({effectiveRowsPerPage} rows per page)

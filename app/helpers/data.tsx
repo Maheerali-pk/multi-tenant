@@ -32,30 +32,30 @@ export interface SidebarItem {
 export const SidebarItems: SidebarItem[] = [
   {
     name: "Assets Management",
-    icon: allIcons.sidebar.assetManagement,
+    icon: allIcons.sidebar.assetManagement(32, 32),
     subItems: [
       {
-        icon: <LayoutGrid size={20} />,
+        icon: <LayoutGrid size={16} />,
         name: "Applications",
         href: "/dashboard/assets/applications",
       },
       {
-        icon: <Network size={20} />,
+        icon: <Network size={16} />,
         name: "Network & Infrastructure",
         href: "/dashboard/assets/network-and-infrastructure",
       },
       {
-        icon: <Cloud size={20} />,
+        icon: <Cloud size={16} />,
         name: "Cloud Assets",
         href: "/dashboard/assets/cloud-assets",
       },
       {
-        icon: <Database size={20} />,
+        icon: <Database size={16} />,
         name: "Data and Information",
         href: "/dashboard/assets/data-and-information",
       },
       {
-        icon: <FileText size={20} />,
+        icon: <FileText size={16} />,
         name: "Documentation",
         href: "/dashboard/assets/documentation",
       },
@@ -63,20 +63,20 @@ export const SidebarItems: SidebarItem[] = [
   },
   {
     name: "Policy Management",
-    icon: allIcons.sidebar.policyManagement,
+    icon: allIcons.sidebar.policyManagement(32, 32),
     subItems: [
       {
-        icon: <Shield size={20} />,
+        icon: <Shield size={16} />,
         name: "Security Policies",
         href: "/dashboard/policy/security-policies",
       },
       {
-        icon: <ClipboardList size={20} />,
+        icon: <ClipboardList size={16} />,
         name: "Compliance Standards",
         href: "/dashboard/policy/compliance-standards",
       },
       {
-        icon: <FileCheck size={20} />,
+        icon: <FileCheck size={16} />,
         name: "Policy Templates",
         href: "/dashboard/policy/templates",
       },
@@ -84,35 +84,35 @@ export const SidebarItems: SidebarItem[] = [
   },
   {
     name: "Risk Management",
-    icon: allIcons.sidebar.riskManagement,
+    icon: allIcons.sidebar.riskManagement(32, 32),
     subItems: [
       {
-        icon: <AlertTriangle size={20} />,
+        icon: <AlertTriangle size={16} />,
         name: "Risk Assessment",
         href: "/dashboard/risk/assessment",
       },
       {
-        icon: <TrendingUp size={20} />,
+        icon: <TrendingUp size={16} />,
         name: "Risk Monitoring",
         href: "/dashboard/risk/monitoring",
       },
       {
-        icon: <BarChart3 size={20} />,
+        icon: <BarChart3 size={16} />,
         name: "Risk Analytics",
         href: "/dashboard/risk/analytics",
       },
       {
-        icon: <Shield size={20} />,
+        icon: <Shield size={16} />,
         name: "Mitigation Strategies",
         href: "/dashboard/risk/mitigation",
       },
       {
-        icon: <FileText size={20} />,
+        icon: <FileText size={16} />,
         name: "Risk Reports",
         href: "/dashboard/risk/reports",
       },
       {
-        icon: <Users size={20} />,
+        icon: <Users size={16} />,
         name: "Risk Owners",
         href: "/dashboard/risk/owners",
       },
@@ -120,20 +120,20 @@ export const SidebarItems: SidebarItem[] = [
   },
   {
     name: "Awareness Program",
-    icon: allIcons.sidebar.awarenessProgram,
+    icon: allIcons.sidebar.awarenessProgram(32, 32),
     subItems: [
       {
-        icon: <GraduationCap size={20} />,
+        icon: <GraduationCap size={16} />,
         name: "Training Modules",
         href: "/dashboard/awareness/training",
       },
       {
-        icon: <BookOpen size={20} />,
+        icon: <BookOpen size={16} />,
         name: "Resources",
         href: "/dashboard/awareness/resources",
       },
       {
-        icon: <Video size={20} />,
+        icon: <Video size={16} />,
         name: "Video Library",
         href: "/dashboard/awareness/videos",
       },

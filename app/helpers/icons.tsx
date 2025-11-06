@@ -1,9 +1,9 @@
 export const allIcons = {
   sidebar: {
-    dashboard: (
+    dashboard: (width: number, height: number) => (
       <svg
-        width="20"
-        height="24"
+        width={width}
+        height={height}
         viewBox="0 0 20 24"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -15,10 +15,10 @@ export const allIcons = {
       </svg>
     ),
 
-    assetManagement: (
+    assetManagement: (width: number, height: number) => (
       <svg
-        width="20"
-        height="24"
+        width={width}
+        height={height}
         viewBox="0 0 20 24"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -29,10 +29,10 @@ export const allIcons = {
         />
       </svg>
     ),
-    policyManagement: (
+    policyManagement: (width: number, height: number) => (
       <svg
-        width="20"
-        height="24"
+        width={width}
+        height={height}
         viewBox="0 0 20 24"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -43,10 +43,10 @@ export const allIcons = {
         />
       </svg>
     ),
-    riskManagement: (
+    riskManagement: (width: number, height: number) => (
       <svg
-        width="20"
-        height="24"
+        width={width}
+        height={height}
         viewBox="0 0 20 24"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -57,10 +57,10 @@ export const allIcons = {
         />
       </svg>
     ),
-    awarenessProgram: (
+    awarenessProgram: (width: number, height: number) => (
       <svg
-        width="20"
-        height="24"
+        width={width}
+        height={height}
         viewBox="0 0 20 24"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -72,4 +72,18 @@ export const allIcons = {
       </svg>
     ),
   },
+  closeSidebar: (width: number, height: number) => (
+    <svg
+      width={width}
+      height={height}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M2 4H8.66667V5.33333H2V4ZM2 10.6667H8.66667V12H2V10.6667ZM2 7.33333H10V8.66667H2V7.33333ZM10.6667 4.66667L9.72 5.59333L12.0933 8L9.72 10.4067L10.6667 11.3333L14 8L10.6667 4.66667Z"
+        fill="currentColor"
+      />
+    </svg>
+  ),
 };
