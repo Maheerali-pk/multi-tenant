@@ -37,7 +37,7 @@ const Header: React.FC<HeaderProps> = () => {
     <div className="h-16 px-6 flex justify-between items-center bg-bg-inner rounded-3xl">
       <div></div>
       <div className="flex items-center gap-16">
-        <Search onChange={handleSearchChange} value={searchValue} />
+        {/* <Search onChange={handleSearchChange} value={searchValue} /> */}
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2.5">
             <div className="rounded-full b-white border-border-main border p-3">

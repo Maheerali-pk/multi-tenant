@@ -18,6 +18,7 @@ const ContentWrapper: FunctionComponent<ContentWrapperProps> = ({
         <CreateAsset
           isOpen={state.modals.createAsset}
           onClose={() => dispatch({ closeModal: "createAsset" })}
+          categoryId={state.createAssetCategoryId}
         />
       )}
       <div className="flex flex-col rounded-3xl bg-bg-inner gap-6 min-h-0 flex-1">

@@ -4,8 +4,9 @@ import { useState, useEffect, useMemo } from "react";
 import { X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { DEFAULT_TENANT_ID } from "@/app/constants/tenant";
-import type { Tables, TablesInsert } from "@/app/types/database.types";
+import type { Tables, TablesUpdate } from "@/app/types/database.types";
 import { CustomSelect, SelectOption } from "@/app/components/CustomSelect";
+import type { AssetRow } from "@/app/components/AssetsTable";
 
 type AssetSubcategory = Tables<"asset_subcategories">;
 type AssetClassification = Tables<"asset_classifications">;
@@ -13,21 +14,21 @@ type AssetExposure = Tables<"asset_exposures">;
 type AssetLifecycleStatus = Tables<"asset_lifecycle_statuses">;
 type Team = Tables<"teams">;
 type User = Tables<"users">;
-type AssetInsert = TablesInsert<"assets">;
+type AssetUpdate = TablesUpdate<"assets">;
 
-interface CreateAssetProps {
+interface EditAssetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
-  categoryId?: number;
+  asset: AssetRow | null;
 }
 
-export default function CreateAsset({
+export default function EditAssetModal({
   isOpen,
   onClose,
   onSuccess,
-  categoryId,
-}: CreateAssetProps) {
+  asset,
+}: EditAssetModalProps) {
   const [formData, setFormData] = useState({
     name: "",
     subcategoryId: "",
@@ -53,23 +54,72 @@ export default function CreateAsset({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [loadingAsset, setLoadingAsset] = useState(false);
 
-  // Fetch all dropdown data on mount
+  // Fetch full asset data when modal opens and asset is provided
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && asset) {
+      fetchFullAssetData();
       fetchAllData();
     }
-  }, [isOpen]);
+  }, [isOpen, asset]);
 
-  // Fetch subcategories when categoryId prop changes
+  // Fetch subcategories when categoryId changes
   useEffect(() => {
-    if (categoryId) {
-      fetchSubcategories(categoryId);
-    } else {
-      setSubcategories([]);
-      setFormData((prev) => ({ ...prev, subcategoryId: "" }));
+    if (asset?.categoryId) {
+      fetchSubcategories(asset.categoryId);
     }
-  }, [categoryId]);
+  }, [asset?.categoryId]);
+
+  const fetchFullAssetData = async () => {
+    if (!asset) return;
+
+    setLoadingAsset(true);
+    try {
+      const { data: assetData, error: assetError } = await supabase
+        .from("assets")
+        .select("*")
+        .eq("id", asset.id)
+        .eq("tenant_id", DEFAULT_TENANT_ID)
+        .single();
+
+      if (assetError) {
+        console.error("Error fetching asset:", assetError);
+        setError("Failed to load asset data");
+        setLoadingAsset(false);
+        return;
+      }
+
+      if (assetData) {
+        // Prefill form with existing data
+        setFormData({
+          name: assetData.name || "",
+          subcategoryId: assetData.subcategory_id?.toString() || "",
+          classificationId: assetData.classification_id?.toString() || "",
+          exposureId: assetData.exposure_id?.toString() || "",
+          lifecycleStatusId: assetData.lifecycle_status_id?.toString() || "",
+          location: assetData.location || "",
+          url: assetData.url || "",
+          description: assetData.description || "",
+          owner: assetData.owner_team_id
+            ? `team:${assetData.owner_team_id}`
+            : assetData.owner_user_id
+            ? `user:${assetData.owner_user_id}`
+            : "",
+          reviewer: assetData.reviewer_team_id
+            ? `team:${assetData.reviewer_team_id}`
+            : assetData.reviewer_user_id
+            ? `user:${assetData.reviewer_user_id}`
+            : "",
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching asset:", err);
+      setError("Failed to load asset data");
+    } finally {
+      setLoadingAsset(false);
+    }
+  };
 
   const fetchAllData = async () => {
     try {
@@ -87,7 +137,7 @@ export default function CreateAsset({
         return;
       }
 
-      // Fetch all dropdown data in parallel (no need to fetch categories)
+      // Fetch all dropdown data in parallel
       const [
         classificationsResult,
         exposuresResult,
@@ -182,8 +232,8 @@ export default function CreateAsset({
       return;
     }
 
-    if (!categoryId) {
-      setError("Category is required");
+    if (!asset) {
+      setError("Asset not found");
       return;
     }
 
@@ -214,9 +264,8 @@ export default function CreateAsset({
         }
       }
 
-      const assetData: AssetInsert = {
+      const assetData: AssetUpdate = {
         name: formData.name.trim(),
-        category_id: categoryId,
         subcategory_id: formData.subcategoryId
           ? parseInt(formData.subcategoryId)
           : null,
@@ -234,38 +283,26 @@ export default function CreateAsset({
         owner_user_id: ownerUserId,
         reviewer_team_id: reviewerTeamId,
         reviewer_user_id: reviewerUserId,
-        tenant_id: DEFAULT_TENANT_ID,
       };
 
-      const { error: insertError } = await supabase
+      const { error: updateError } = await supabase
         .from("assets")
-        .insert(assetData);
+        .update(assetData)
+        .eq("id", asset.id)
+        .eq("tenant_id", DEFAULT_TENANT_ID);
 
-      if (insertError) {
-        setError(insertError.message || "Failed to create asset");
+      if (updateError) {
+        setError(updateError.message || "Failed to update asset");
         setLoading(false);
         return;
       }
 
-      // Reset form
-      setFormData({
-        name: "",
-        subcategoryId: "",
-        classificationId: "",
-        exposureId: "",
-        lifecycleStatusId: "",
-        location: "",
-        url: "",
-        description: "",
-        owner: "",
-        reviewer: "",
-      });
       setError(null);
       onSuccess?.();
       onClose();
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
-      console.error("Create asset error:", err);
+      console.error("Update asset error:", err);
     } finally {
       setLoading(false);
     }
@@ -364,11 +401,12 @@ export default function CreateAsset({
       <div className="bg-bg-inner rounded-3xl p-8 shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold text-text-dark">
-            Create New Asset
+            Edit Asset
           </h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-sidebar-sub-item-hover rounded-lg transition-colors cursor-pointer"
+            disabled={loading}
+            className="p-2 hover:bg-sidebar-sub-item-hover rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Close modal"
           >
             <X size={20} className="text-text-secondary" />
@@ -378,6 +416,12 @@ export default function CreateAsset({
         {error && (
           <div className="mb-4 p-3 rounded-lg bg-failure-light border border-failure text-failure text-sm">
             {error}
+          </div>
+        )}
+
+        {loadingAsset && (
+          <div className="mb-4 p-3 rounded-lg bg-sidebar-sub-item-hover text-text-secondary text-sm">
+            Loading asset data...
           </div>
         )}
 
@@ -399,7 +443,8 @@ export default function CreateAsset({
                 value={formData.name}
                 onChange={handleChange}
                 required
-                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary"
+                disabled={loadingAsset}
+                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary disabled:opacity-50"
                 placeholder="Enter asset name"
               />
             </div>
@@ -419,13 +464,17 @@ export default function CreateAsset({
                 value={formData.subcategoryId}
                 onChange={(value) => handleSelectChange("subcategoryId", value)}
                 placeholder={
-                  !categoryId
+                  !asset?.categoryId
                     ? "Category not set"
                     : subcategories.length === 0
                     ? "No subcategories available"
                     : "Select a subcategory (optional)"
                 }
-                isDisabled={!categoryId || subcategories.length === 0}
+                isDisabled={
+                  !asset?.categoryId ||
+                  subcategories.length === 0 ||
+                  loadingAsset
+                }
               />
             </div>
 
@@ -446,7 +495,7 @@ export default function CreateAsset({
                   handleSelectChange("classificationId", value)
                 }
                 placeholder="Select sensitivity (optional)"
-                isDisabled={loadingCategories}
+                isDisabled={loadingCategories || loadingAsset}
               />
             </div>
 
@@ -465,7 +514,7 @@ export default function CreateAsset({
                 value={formData.exposureId}
                 onChange={(value) => handleSelectChange("exposureId", value)}
                 placeholder="Select exposure (optional)"
-                isDisabled={loadingCategories}
+                isDisabled={loadingCategories || loadingAsset}
               />
             </div>
 
@@ -486,7 +535,7 @@ export default function CreateAsset({
                   handleSelectChange("lifecycleStatusId", value)
                 }
                 placeholder="Select lifecycle status (optional)"
-                isDisabled={loadingCategories}
+                isDisabled={loadingCategories || loadingAsset}
               />
             </div>
 
@@ -504,7 +553,8 @@ export default function CreateAsset({
                 name="url"
                 value={formData.url}
                 onChange={handleChange}
-                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary"
+                disabled={loadingAsset}
+                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary disabled:opacity-50"
                 placeholder="https://example.com"
               />
             </div>
@@ -524,7 +574,7 @@ export default function CreateAsset({
                 value={formData.owner}
                 onChange={(value) => handleSelectChange("owner", value)}
                 placeholder="Select owner (optional)"
-                isDisabled={loadingCategories}
+                isDisabled={loadingCategories || loadingAsset}
               />
             </div>
 
@@ -543,7 +593,7 @@ export default function CreateAsset({
                 value={formData.reviewer}
                 onChange={(value) => handleSelectChange("reviewer", value)}
                 placeholder="Select reviewer (optional)"
-                isDisabled={loadingCategories}
+                isDisabled={loadingCategories || loadingAsset}
               />
             </div>
 
@@ -561,7 +611,8 @@ export default function CreateAsset({
                 value={formData.location}
                 onChange={handleChange}
                 rows={3}
-                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none"
+                disabled={loadingAsset}
+                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none disabled:opacity-50"
                 placeholder="Enter asset location"
               />
             </div>
@@ -580,7 +631,8 @@ export default function CreateAsset({
                 value={formData.description}
                 onChange={handleChange}
                 rows={3}
-                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none"
+                disabled={loadingAsset}
+                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none disabled:opacity-50"
                 placeholder="Enter asset description"
               />
             </div>
@@ -591,16 +643,17 @@ export default function CreateAsset({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 px-4 rounded-lg border border-border-hr bg-bg-outer text-text-primary font-medium text-sm hover:bg-sidebar-sub-item-hover transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 cursor-pointer"
+              disabled={loading || loadingAsset}
+              className="flex-1 py-2.5 px-4 rounded-lg border border-border-hr bg-bg-outer text-text-primary font-medium text-sm hover:bg-sidebar-sub-item-hover transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={loading || loadingCategories}
+              disabled={loading || loadingCategories || loadingAsset}
               className="flex-1 py-2.5 px-4 rounded-lg bg-brand text-text-contrast font-medium text-sm hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              {loading ? "Creating..." : "Create Asset"}
+              {loading ? "Updating..." : "Update Asset"}
             </button>
           </div>
         </form>
@@ -608,3 +661,4 @@ export default function CreateAsset({
     </div>
   );
 }
+

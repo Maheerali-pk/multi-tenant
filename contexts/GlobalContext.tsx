@@ -10,6 +10,7 @@ interface IGlobalState {
   tableSearchValue: string;
   theme: Theme;
   modals: Record<ModalType, boolean>;
+  createAssetCategoryId?: number;
 }
 
 const STORAGE_KEY = "globalState";
@@ -51,6 +52,7 @@ const initialState: IGlobalState = {
   theme: (storedState?.theme as Theme) ?? "light",
   tableSearchValue: storedState?.tableSearchValue ?? "",
   modals: { createAsset: false },
+  createAssetCategoryId: undefined,
 };
 
 function setState(
@@ -60,8 +62,18 @@ function setState(
   return { ...state, ...newState };
 }
 
-function openModal(state: IGlobalState, modalType: ModalType): IGlobalState {
-  return { ...state, modals: { ...state.modals, [modalType]: true } };
+function openModal(
+  state: IGlobalState,
+  modalType: ModalType,
+  categoryId?: number
+): IGlobalState {
+  const updates: Partial<IGlobalState> = {
+    modals: { ...state.modals, [modalType]: true },
+  };
+  if (modalType === "createAsset" && categoryId !== undefined) {
+    updates.createAssetCategoryId = categoryId;
+  }
+  return { ...state, ...updates };
 }
 
 function closeModal(state: IGlobalState, modalType: ModalType): IGlobalState {

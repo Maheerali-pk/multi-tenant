@@ -26,26 +26,26 @@ const Applications: React.FC<ApplicationsProps> = () => {
     <div className="grid grid-cols-[min-content_auto] gap-3 p-3 bg-bg-outer h-full w-full">
       <Sidebar></Sidebar>
       <ContentWrapper>
-        <div className="flex flex-col rounded-3xl  p-6 gap-6 min-h-0 flex-1">
-          <div className="flex justify-between shrink-0">
-            <div className="font-semibold text-2xl items-center text-text-primary">
+        <div className="flex flex-col rounded-3xl  p-6 gap-3 min-h-0 flex-1">
+          <div className="flex justify-between items-center shrink-0 gap-4">
+            <div className="font-semibold text-lg items-center text-text-primary">
               Assets Management / Network and Infrastructure management
             </div>
             <div className="gap-7 flex items-center">
-              <Search
-                onChange={(value) =>
-                  dispatch({ setState: { tableSearchValue: value } })
-                }
-                value={state.tableSearchValue}
+              <TableFilter
+                filters={filterOptions}
+                values={filterValues}
+                onChange={setFilterValues}
               />
-              <CreateNewAssetButton />
+              <CreateNewAssetButton categoryId={2} />
             </div>
           </div>
           <div className="shrink-0">
-            <TableFilter
-              filters={filterOptions}
-              values={filterValues}
-              onChange={setFilterValues}
+            <Search
+              onChange={(value) =>
+                dispatch({ setState: { tableSearchValue: value } })
+              }
+              value={state.tableSearchValue}
             />
           </div>
           <div className="flex-1 min-h-0">

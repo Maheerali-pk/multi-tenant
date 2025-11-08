@@ -70,7 +70,7 @@ function Table<T extends Record<string, any>>({
     const availableHeight = containerHeight - headerHeight - paginationHeight;
 
     // Measure row height if we have a reference row
-    let rowHeight = 40; // Default estimated row height (py-2 = 8px top + 8px bottom + content)
+    let rowHeight = 32; // Default estimated row height (py-1 = 4px top + 4px bottom + content)
 
     if (rowRef.current) {
       rowHeight = rowRef.current.clientHeight;
@@ -354,7 +354,7 @@ function Table<T extends Record<string, any>>({
                       minWidth: columnWidth,
                       maxWidth: columnWidth,
                     }}
-                    className={`px-3 py-2 text-left text-xs font-normal text-text-secondary bg-table-header ${
+                    className={`px-3 py-1 text-left text-xs font-normal text-text-secondary bg-table-header ${
                       isSortable
                         ? "cursor-pointer hover:bg-sidebar-sub-item-hover transition-colors select-none"
                         : ""
@@ -393,7 +393,7 @@ function Table<T extends Record<string, any>>({
                     minWidth: "120px",
                     maxWidth: "120px",
                   }}
-                  className="px-3 py-2 text-left text-xs font-normal text-text-secondary bg-table-header"
+                  className="px-3 py-1 text-left text-xs font-normal text-text-secondary bg-table-header"
                 >
                   Actions
                 </th>
@@ -405,7 +405,7 @@ function Table<T extends Record<string, any>>({
               <tr>
                 <td
                   colSpan={columns.length + (hasActions ? 1 : 0)}
-                  className="px-3 py-4 text-center text-xs text-text-secondary"
+                  className="px-3 py-2 text-center text-xs text-text-secondary"
                 >
                   No data available
                 </td>
@@ -427,7 +427,7 @@ function Table<T extends Record<string, any>>({
                           minWidth: columnWidth,
                           maxWidth: columnWidth,
                         }}
-                        className="px-3 py-2 text-xs text-text-primary overflow-hidden"
+                        className="px-3 py-1 text-xs text-text-primary overflow-hidden"
                       >
                         <div className="truncate">
                           {getCellValue(row, column)}
@@ -442,7 +442,7 @@ function Table<T extends Record<string, any>>({
                         minWidth: "120px",
                         maxWidth: "120px",
                       }}
-                      className="px-3 py-2"
+                      className="px-3 py-1"
                     >
                       <div className="flex items-center gap-2">
                         {onEdit && (

@@ -52,21 +52,21 @@ function TableFilter({ filters, values, onChange, onClear }: TableFilterProps) {
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3 flex-wrap">
+    <div className="relative">
+      <div className="flex items-center gap-2 flex-wrap">
         {/* Filter Toggle Button */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-colors cursor-pointer ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
             hasActiveFilters
               ? "bg-brand text-text-contrast border-brand"
               : "bg-bg-inner text-text-primary border-border-main hover:bg-sidebar-sub-item-hover"
           }`}
         >
-          <Filter size={16} />
-          <span className="text-sm font-medium">Filters</span>
+          <Filter size={14} />
+          <span className="text-xs font-medium">Filters</span>
           {hasActiveFilters && (
-            <span className="bg-text-contrast text-brand rounded-full px-2 py-0.5 text-xs font-semibold">
+            <span className="bg-text-contrast text-brand rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
               {Object.values(values).filter((v) => v && v.trim() !== "").length}
             </span>
           )}
@@ -90,12 +90,12 @@ function TableFilter({ filters, values, onChange, onClear }: TableFilterProps) {
               return (
                 <div
                   key={filter.key}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sidebar-sub-item-hover border border-border-hr"
+                  className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-sidebar-sub-item-hover border border-border-hr"
                 >
-                  <span className="text-xs text-text-secondary font-medium">
+                  <span className="text-[10px] text-text-secondary font-medium">
                     {filter.label}:
                   </span>
-                  <span className="text-xs text-text-primary font-medium">
+                  <span className="text-[10px] text-text-primary font-medium">
                     {displayValue}
                   </span>
                   <button
@@ -103,7 +103,7 @@ function TableFilter({ filters, values, onChange, onClear }: TableFilterProps) {
                     className="p-0.5 hover:bg-bg-inner rounded transition-colors cursor-pointer"
                     aria-label={`Clear ${filter.label} filter`}
                   >
-                    <X size={12} className="text-text-secondary" />
+                    <X size={10} className="text-text-secondary" />
                   </button>
                 </div>
               );
@@ -112,7 +112,7 @@ function TableFilter({ filters, values, onChange, onClear }: TableFilterProps) {
             {/* Clear All Button */}
             <button
               onClick={handleClear}
-              className="px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+              className="px-2 py-1 text-[10px] font-medium text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
             >
               Clear all
             </button>
@@ -120,15 +120,12 @@ function TableFilter({ filters, values, onChange, onClear }: TableFilterProps) {
         )}
       </div>
 
-      {/* Expanded Filter Panel */}
+      {/* Expanded Filter Panel - Absolute positioned, opens to the left */}
       {isExpanded && (
-        <div className="flex flex-wrap gap-3 p-4 rounded-xl bg-bg-inner border border-border-hr">
+        <div className="absolute top-full right-0 mt-2 z-50 flex flex-wrap gap-2 p-2 rounded-lg bg-bg-inner border border-border-hr shadow-lg min-w-[400px]">
           {filters.map((filter) => (
-            <div
-              key={filter.key}
-              className="flex flex-col gap-1.5 min-w-[200px]"
-            >
-              <label className="text-xs font-medium text-text-secondary">
+            <div key={filter.key} className="flex flex-col gap-1 min-w-[180px]">
+              <label className="text-[10px] font-medium text-text-secondary">
                 {filter.label}
               </label>
               {filter.type === "text" ? (
@@ -141,7 +138,7 @@ function TableFilter({ filters, values, onChange, onClear }: TableFilterProps) {
                   onChange={(e) =>
                     handleFilterChange(filter.key, e.target.value)
                   }
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary"
+                  className="px-2 py-1.5 rounded-lg border border-border-hr bg-input text-text-primary text-xs outline-none focus:border-brand transition-colors placeholder:text-text-secondary"
                 />
               ) : filter.type === "select" ? (
                 <select
@@ -149,7 +146,7 @@ function TableFilter({ filters, values, onChange, onClear }: TableFilterProps) {
                   onChange={(e) =>
                     handleFilterChange(filter.key, e.target.value)
                   }
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors cursor-pointer"
+                  className="px-2 py-1.5 rounded-lg border border-border-hr bg-input text-text-primary text-xs outline-none focus:border-brand transition-colors cursor-pointer"
                 >
                   <option value="">All {filter.label}</option>
                   {filter.options?.map((option) => (

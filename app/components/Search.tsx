@@ -7,17 +7,17 @@ interface SearchProps {
 
 const Search: React.FC<SearchProps> = ({ onChange, value }) => {
   return (
-    <div className="rounded-full b-white border-border-main border p-2.5">
-      <div className="flex items-center gap-2.5">
+    <div className="rounded-lg border-border-main border p-1.5 w-64">
+      <div className="flex items-center gap-2">
         <SearchIcon
-          height={16}
-          width={16}
+          height={14}
+          width={14}
           className="text-border-main"
         ></SearchIcon>
         <input
           type="text"
           placeholder="Search"
-          className="outline-none text-text-primary border-none bg-transparent placeholder:text-border-main text-sm w-80"
+          className="outline-none text-text-primary border-none bg-transparent placeholder:text-border-main text-xs w-full"
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />

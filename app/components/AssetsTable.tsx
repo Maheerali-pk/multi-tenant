@@ -4,6 +4,8 @@ import Table, { TableColumn } from "./Table";
 import { supabase } from "@/lib/supabase";
 import { DEFAULT_TENANT_ID } from "@/app/constants/tenant";
 import { FilterValues } from "./TableFilter";
+import DeleteAsset from "@/app/modals/DeleteAsset";
+import EditAssetModal from "@/app/modals/EditAssetModal";
 
 export interface AssetRow {
   id: string;
@@ -34,31 +36,40 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
   filterValues = {},
   categoryId,
   refreshTrigger,
+  onEdit,
+  onDelete,
 }) => {
   const [assets, setAssets] = useState<AssetRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState<AssetRow | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedAssetForEdit, setSelectedAssetForEdit] =
+    useState<AssetRow | null>(null);
 
-  const onEdit = useCallback((row: AssetRow) => {
-    console.log("Edit action triggered for:", row);
+  const handleEditClick = useCallback((row: AssetRow) => {
+    setSelectedAssetForEdit(row);
+    setEditDialogOpen(true);
   }, []);
-  const onDelete = useCallback((row: AssetRow) => {
-    console.log("Delete action triggered for:", row);
+
+  const handleEditCancel = useCallback(() => {
+    setEditDialogOpen(false);
+    setSelectedAssetForEdit(null);
   }, []);
 
-  // Fetch assets from Supabase
-  useEffect(() => {
-    fetchAssets();
+  const handleDeleteClick = useCallback((row: AssetRow) => {
+    setSelectedAsset(row);
+    setDeleteDialogOpen(true);
   }, []);
 
-  // Refetch when refreshTrigger changes
-  useEffect(() => {
-    if (refreshTrigger !== undefined && refreshTrigger > 0) {
-      fetchAssets();
-    }
-  }, [refreshTrigger]);
+  const handleDeleteCancel = useCallback(() => {
+    setDeleteDialogOpen(false);
+    setSelectedAsset(null);
+  }, []);
 
-  const fetchAssets = async () => {
+  const fetchAssets = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -309,7 +320,55 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [categoryId]);
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!selectedAsset) return;
+
+    setDeleteLoading(true);
+    try {
+      const { error: deleteError } = await supabase
+        .from("assets")
+        .delete()
+        .eq("id", selectedAsset.id)
+        .eq("tenant_id", DEFAULT_TENANT_ID);
+
+      if (deleteError) {
+        console.error("Error deleting asset:", deleteError);
+        setError("Failed to delete asset");
+        setDeleteLoading(false);
+        return;
+      }
+
+      // Close dialog and refresh assets
+      setDeleteDialogOpen(false);
+      setSelectedAsset(null);
+      await fetchAssets();
+    } catch (err) {
+      console.error("Error deleting asset:", err);
+      setError("Failed to delete asset");
+    } finally {
+      setDeleteLoading(false);
+    }
+  }, [selectedAsset, fetchAssets]);
+
+  // Update handleEditSuccess to include fetchAssets call
+  const handleEditSuccessWithRefresh = useCallback(async () => {
+    setEditDialogOpen(false);
+    setSelectedAssetForEdit(null);
+    await fetchAssets();
+  }, [fetchAssets]);
+
+  // Fetch assets from Supabase
+  useEffect(() => {
+    fetchAssets();
+  }, [fetchAssets]);
+
+  // Refetch when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      fetchAssets();
+    }
+  }, [refreshTrigger, fetchAssets]);
 
   // Columns definition
   const columns: TableColumn<AssetRow>[] = [
@@ -410,19 +469,9 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
   }, [assets, searchValue, filterValues]);
 
   // Default handlers
-  const handleEdit =
-    onEdit ||
-    ((row: AssetRow) => {
-      console.log("Edit action triggered for:", row);
-      // TODO: Implement edit functionality
-    });
+  const handleEdit = onEdit || handleEditClick;
 
-  const handleDelete =
-    onDelete ||
-    ((row: AssetRow) => {
-      console.log("Delete action triggered for:", row);
-      // TODO: Implement delete functionality
-    });
+  const handleDelete = onDelete || handleDeleteClick;
 
   if (loading) {
     return (
@@ -441,13 +490,28 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
   }
 
   return (
-    <Table
-      columns={columns}
-      rows={filteredData}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-      getRowKey={(row) => row.id}
-    />
+    <>
+      <Table
+        columns={columns}
+        rows={filteredData}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        getRowKey={(row) => row.id}
+      />
+      <DeleteAsset
+        isOpen={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        asset={selectedAsset}
+        loading={deleteLoading}
+      />
+      <EditAssetModal
+        isOpen={editDialogOpen}
+        onClose={handleEditCancel}
+        onSuccess={handleEditSuccessWithRefresh}
+        asset={selectedAssetForEdit}
+      />
+    </>
   );
 };
 
