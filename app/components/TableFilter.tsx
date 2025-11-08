@@ -133,43 +133,70 @@ function TableFilter({ filters, values, onChange, onClear }: TableFilterProps) {
 
       {/* Expanded Filter Panel - Absolute positioned, opens to the left */}
       {isExpanded && (
-        <div className="absolute top-full right-0 mt-2 z-50 flex flex-wrap gap-2 p-2 rounded-lg bg-bg-inner border border-border-hr shadow-lg min-w-[400px]">
-          {filters.map((filter) => (
-            <div key={filter.key} className="flex flex-col gap-1 min-w-[180px]">
-              <label className="text-[10px] font-medium text-text-secondary">
-                {filter.label}
-              </label>
-              {filter.type === "text" ? (
-                <input
-                  type="text"
-                  placeholder={
-                    filter.placeholder || `Filter by ${filter.label}`
-                  }
-                  value={values[filter.key] || ""}
-                  onChange={(e) =>
-                    handleFilterChange(filter.key, e.target.value)
-                  }
-                  className="px-2 py-1.5 rounded-lg border border-border-hr bg-input text-text-primary text-xs outline-none focus:border-brand transition-colors placeholder:text-text-secondary"
-                />
-              ) : filter.type === "select" ? (
-                <select
-                  value={values[filter.key] || ""}
-                  onChange={(e) =>
-                    handleFilterChange(filter.key, e.target.value)
-                  }
-                  className="px-2 py-1.5 rounded-lg border border-border-hr bg-input text-text-primary text-xs outline-none focus:border-brand transition-colors cursor-pointer"
-                >
-                  <option value="">All {filter.label}</option>
-                  {filter.options?.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              ) : null}
+        <>
+          {/* Backdrop overlay */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setIsExpanded(false)}
+          />
+          <div className="absolute top-full right-0 mt-2 z-50 flex flex-col gap-3 p-4 rounded-xl bg-bg-inner border border-table-border shadow-2xl min-w-[450px] max-w-[600px]">
+            {/* Header with close button */}
+            <div className="flex items-center justify-between pb-2 border-b border-border-hr">
+              <h3 className="text-sm font-semibold text-text-primary">
+                Filter Options
+              </h3>
+              <button
+                onClick={() => setIsExpanded(false)}
+                className="p-1.5 hover:bg-sidebar-sub-item-hover rounded-lg transition-colors cursor-pointer"
+                aria-label="Close filters"
+              >
+                <X size={16} className="text-text-secondary" />
+              </button>
             </div>
-          ))}
-        </div>
+
+            {/* Filter inputs */}
+            <div className="flex flex-wrap gap-4">
+              {filters.map((filter) => (
+                <div
+                  key={filter.key}
+                  className="flex flex-col gap-2 min-w-[200px] flex-1"
+                >
+                  <label className="text-xs font-medium text-text-secondary">
+                    {filter.label}
+                  </label>
+                  {filter.type === "text" ? (
+                    <input
+                      type="text"
+                      placeholder={
+                        filter.placeholder || `Filter by ${filter.label}`
+                      }
+                      value={values[filter.key] || ""}
+                      onChange={(e) =>
+                        handleFilterChange(filter.key, e.target.value)
+                      }
+                      className="px-3 py-2.5 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary"
+                    />
+                  ) : filter.type === "select" ? (
+                    <select
+                      value={values[filter.key] || ""}
+                      onChange={(e) =>
+                        handleFilterChange(filter.key, e.target.value)
+                      }
+                      className="px-3 py-2.5 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors cursor-pointer"
+                    >
+                      <option value="">All {filter.label}</option>
+                      {filter.options?.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
