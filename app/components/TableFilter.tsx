@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { X, Filter } from "lucide-react";
 
-export type AssetFilterKey = "name" | "subcategory";
+export type AssetFilterKey =
+  | "name"
+  | "subcategory"
+  | "sensitivity"
+  | "exposure"
+  | "status";
 
 export interface FilterOption {
   key: AssetFilterKey;
@@ -16,6 +21,9 @@ export interface FilterOption {
 export interface FilterValues {
   name?: string;
   subcategory?: string;
+  sensitivity?: string;
+  exposure?: string;
+  status?: string;
 }
 
 interface TableFilterProps {
@@ -42,6 +50,9 @@ function TableFilter({ filters, values, onChange, onClear }: TableFilterProps) {
     const clearedValues: FilterValues = {
       name: "",
       subcategory: "",
+      sensitivity: "",
+      exposure: "",
+      status: "",
     };
     onChange(clearedValues);
     onClear?.();

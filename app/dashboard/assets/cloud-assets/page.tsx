@@ -17,6 +17,9 @@ const Applications: React.FC<ApplicationsProps> = () => {
     includeFilters: {
       name: true,
       subcategory: true,
+      sensitivity: true,
+      exposure: true,
+      status: true,
     },
     categoryId: 3,
   });

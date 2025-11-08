@@ -465,6 +465,23 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
       result = result.filter((row) => row.subcategoryId === subcategoryId);
     }
 
+    // Apply sensitivity filter
+    if (filterValues.sensitivity && filterValues.sensitivity.trim() !== "") {
+      result = result.filter(
+        (row) => row.sensitivity === filterValues.sensitivity
+      );
+    }
+
+    // Apply exposure filter
+    if (filterValues.exposure && filterValues.exposure.trim() !== "") {
+      result = result.filter((row) => row.exposure === filterValues.exposure);
+    }
+
+    // Apply status filter
+    if (filterValues.status && filterValues.status.trim() !== "") {
+      result = result.filter((row) => row.status === filterValues.status);
+    }
+
     return result;
   }, [assets, searchValue, filterValues]);
 

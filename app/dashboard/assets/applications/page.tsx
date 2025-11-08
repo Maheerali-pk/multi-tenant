@@ -18,6 +18,9 @@ const Applications: React.FC<ApplicationsProps> = () => {
     includeFilters: {
       name: true,
       subcategory: true,
+      sensitivity: true,
+      exposure: true,
+      status: true,
     },
     categoryId: 1,
   });
@@ -31,7 +34,7 @@ const Applications: React.FC<ApplicationsProps> = () => {
             <div className="font-semibold text-lg items-center text-text-primary">
               Assets Management / Application management
             </div>
-            <div className="gap-7 flex items-center">
+            <div className="gap-4 flex items-center">
               <TableFilter
                 filters={filterOptions}
                 values={filterValues}
