@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings, LogOut, Menu } from "lucide-react";
+import { Settings, LogOut, Menu, LucideMenu } from "lucide-react";
 import { SidebarItems } from "../helpers/data";
 import { allIcons } from "../helpers/icons";
 import SidebarItemMain from "./SidebarItemMain";
@@ -34,41 +34,26 @@ const Sidebar: React.FC<SidebarProps> = () => {
               }
             )}
           >
-            <div>
-              {isOpen ? (
+            {isOpen && (
+              <div>
                 <Image
                   src="/images/logo.png"
                   alt="logo"
                   width={140}
                   height={30}
                 />
-              ) : (
-                <Image
-                  onClick={() => {
-                    dispatch({
-                      setState: { isSidebarOpen: !state.isSidebarOpen },
-                    });
-                  }}
-                  className="cursor-pointer"
-                  src="/images/logo-small.png"
-                  alt="logo"
-                  width={30}
-                  height={30}
-                />
-              )}
-            </div>
+              </div>
+            )}
             <div
               className={classNames(
                 "rounded-full b-white rotate-180 hover:scale-125 transition-all duration-250 ease-in-out border-border-main border p-2 cursor-pointer",
-                {
-                  hidden: !isOpen,
-                }
+                {}
               )}
               onClick={() => {
                 dispatch({ setState: { isSidebarOpen: !state.isSidebarOpen } });
               }}
             >
-              {allIcons.closeSidebar(16, 16)}
+              <LucideMenu size={16}></LucideMenu>
             </div>
           </div>
         </div>
