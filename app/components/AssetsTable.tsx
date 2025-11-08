@@ -1,27 +1,318 @@
 "use client";
-import { useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Table, { TableColumn } from "./Table";
-import { ExampleTable1, ExampleTable1Row } from "../helpers/data";
+import { supabase } from "@/lib/supabase";
+import { DEFAULT_TENANT_ID } from "@/app/constants/tenant";
 import { FilterValues } from "./TableFilter";
 
-interface AssetsTableProps {
-  data?: ExampleTable1Row[];
-  onEdit?: (row: ExampleTable1Row) => void;
-  onDelete?: (row: ExampleTable1Row) => void;
-  filterValues?: FilterValues;
-  searchValue?: string; // Keep search for backward compatibility
+export interface AssetRow {
+  id: string;
+  name: string;
+  type: string | null; // subcategory name
+  owner: string | null;
+  reviewer: string | null;
+  sensitivity: string | null; // classification name
+  url: string | null;
+  exposure: string | null; // exposure name
+  status: string | null; // lifecycle status name
+  location: string | null;
+  categoryId: number;
+  subcategoryId: number | null;
 }
 
-// Example usage - you can customize columns and data as needed
+interface AssetsTableProps {
+  onEdit?: (row: AssetRow) => void;
+  onDelete?: (row: AssetRow) => void;
+  searchValue?: string;
+  filterValues?: FilterValues;
+  categoryId?: number;
+  refreshTrigger?: number; // Increment this to trigger refresh
+}
+
 const AssetsTable: React.FC<AssetsTableProps> = ({
-  data,
-  onEdit,
-  onDelete,
-  filterValues = {},
   searchValue = "",
+  filterValues = {},
+  categoryId,
+  refreshTrigger,
 }) => {
-  // Example columns - customize based on your data structure
-  const columns: TableColumn<ExampleTable1Row>[] = [
+  const [assets, setAssets] = useState<AssetRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const onEdit = useCallback((row: AssetRow) => {
+    console.log("Edit action triggered for:", row);
+  }, []);
+  const onDelete = useCallback((row: AssetRow) => {
+    console.log("Delete action triggered for:", row);
+  }, []);
+
+  // Fetch assets from Supabase
+  useEffect(() => {
+    fetchAssets();
+  }, []);
+
+  // Refetch when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      fetchAssets();
+    }
+  }, [refreshTrigger]);
+
+  const fetchAssets = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch assets with all required fields
+      let query = supabase
+        .from("assets")
+        .select(
+          "id, name, category_id, subcategory_id, classification_id, exposure_id, lifecycle_status_id, owner_team_id, owner_user_id, reviewer_team_id, reviewer_user_id, url, location"
+        )
+        .eq("tenant_id", DEFAULT_TENANT_ID);
+
+      // Only filter by category if categoryId is provided
+      if (categoryId) {
+        query = query.eq("category_id", categoryId);
+      }
+
+      const { data: assetsData, error: assetsError } = await query.order(
+        "created_at",
+        { ascending: false }
+      );
+
+      if (assetsError) {
+        console.error("Error fetching assets:", assetsError);
+        setError("Failed to load assets");
+        return;
+      }
+
+      if (!assetsData || assetsData.length === 0) {
+        setAssets([]);
+        return;
+      }
+
+      // Get unique category IDs
+      const categoryIds = [
+        ...new Set(assetsData.map((asset) => asset.category_id)),
+      ];
+
+      // Fetch categories
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from("asset_categories")
+        .select("id, name")
+        .in("id", categoryIds);
+
+      if (categoriesError) {
+        console.error("Error fetching categories:", categoriesError);
+        setError("Failed to load categories");
+        return;
+      }
+
+      // Get unique IDs for related data
+      const subcategoryIds = [
+        ...new Set(
+          assetsData
+            .map((asset) => asset.subcategory_id)
+            .filter((id): id is number => id !== null)
+        ),
+      ];
+
+      const classificationIds = [
+        ...new Set(
+          assetsData
+            .map((asset) => asset.classification_id)
+            .filter((id): id is number => id !== null)
+        ),
+      ];
+
+      const exposureIds = [
+        ...new Set(
+          assetsData
+            .map((asset) => asset.exposure_id)
+            .filter((id): id is number => id !== null)
+        ),
+      ];
+
+      const lifecycleStatusIds = [
+        ...new Set(
+          assetsData
+            .map((asset) => asset.lifecycle_status_id)
+            .filter((id): id is number => id !== null)
+        ),
+      ];
+
+      const ownerTeamIds = [
+        ...new Set(
+          assetsData
+            .map((asset) => asset.owner_team_id)
+            .filter((id): id is string => id !== null)
+        ),
+      ];
+
+      const ownerUserIds = [
+        ...new Set(
+          assetsData
+            .map((asset) => asset.owner_user_id)
+            .filter((id): id is string => id !== null)
+        ),
+      ];
+
+      const reviewerTeamIds = [
+        ...new Set(
+          assetsData
+            .map((asset) => asset.reviewer_team_id)
+            .filter((id): id is string => id !== null)
+        ),
+      ];
+
+      const reviewerUserIds = [
+        ...new Set(
+          assetsData
+            .map((asset) => asset.reviewer_user_id)
+            .filter((id): id is string => id !== null)
+        ),
+      ];
+
+      // Fetch all related data in parallel
+      const [
+        subcategoriesResult,
+        classificationsResult,
+        exposuresResult,
+        lifecycleStatusesResult,
+        teamsResult,
+        usersResult,
+      ] = await Promise.all([
+        subcategoryIds.length > 0
+          ? supabase
+              .from("asset_subcategories")
+              .select("id, name")
+              .in("id", subcategoryIds)
+          : Promise.resolve({ data: [], error: null }),
+        classificationIds.length > 0
+          ? supabase
+              .from("asset_classifications")
+              .select("id, name")
+              .in("id", classificationIds)
+          : Promise.resolve({ data: [], error: null }),
+        exposureIds.length > 0
+          ? supabase
+              .from("asset_exposures")
+              .select("id, name")
+              .in("id", exposureIds)
+          : Promise.resolve({ data: [], error: null }),
+        lifecycleStatusIds.length > 0
+          ? supabase
+              .from("asset_lifecycle_statuses")
+              .select("id, name")
+              .in("id", lifecycleStatusIds)
+          : Promise.resolve({ data: [], error: null }),
+        [...ownerTeamIds, ...reviewerTeamIds].length > 0
+          ? supabase
+              .from("teams")
+              .select("id, name")
+              .in("id", [...ownerTeamIds, ...reviewerTeamIds])
+          : Promise.resolve({ data: [], error: null }),
+        [...ownerUserIds, ...reviewerUserIds].length > 0
+          ? supabase
+              .from("users")
+              .select("id, name")
+              .in("id", [...ownerUserIds, ...reviewerUserIds])
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+
+      // Create lookup maps
+      const subcategoryMap = new Map(
+        (subcategoriesResult.data || []).map(
+          (sub: { id: number; name: string }) => [sub.id, sub.name]
+        )
+      );
+
+      const classificationMap = new Map(
+        (classificationsResult.data || []).map(
+          (cls: { id: number; name: string }) => [cls.id, cls.name]
+        )
+      );
+
+      const exposureMap = new Map(
+        (exposuresResult.data || []).map(
+          (exp: { id: number; name: string }) => [exp.id, exp.name]
+        )
+      );
+
+      const lifecycleStatusMap = new Map(
+        (lifecycleStatusesResult.data || []).map(
+          (status: { id: number; name: string }) => [status.id, status.name]
+        )
+      );
+
+      const teamMap = new Map(
+        (teamsResult.data || []).map((team: { id: string; name: string }) => [
+          team.id,
+          team.name,
+        ])
+      );
+
+      const userMap = new Map(
+        (usersResult.data || []).map((user: { id: string; name: string }) => [
+          user.id,
+          user.name,
+        ])
+      );
+
+      // Transform the data to match our AssetRow interface
+      const transformedData: AssetRow[] = assetsData.map((asset) => {
+        // Determine owner name
+        let ownerName: string | null = null;
+        if (asset.owner_team_id) {
+          ownerName = teamMap.get(asset.owner_team_id) || null;
+        } else if (asset.owner_user_id) {
+          ownerName = userMap.get(asset.owner_user_id) || null;
+        }
+
+        // Determine reviewer name
+        let reviewerName: string | null = null;
+        if (asset.reviewer_team_id) {
+          reviewerName = teamMap.get(asset.reviewer_team_id) || null;
+        } else if (asset.reviewer_user_id) {
+          reviewerName = userMap.get(asset.reviewer_user_id) || null;
+        }
+
+        return {
+          id: asset.id,
+          name: asset.name,
+          type: asset.subcategory_id
+            ? subcategoryMap.get(asset.subcategory_id) || null
+            : null,
+          owner: ownerName,
+          reviewer: reviewerName,
+          sensitivity: asset.classification_id
+            ? classificationMap.get(asset.classification_id) || null
+            : null,
+          url: asset.url,
+          exposure: asset.exposure_id
+            ? exposureMap.get(asset.exposure_id) || null
+            : null,
+          status: asset.lifecycle_status_id
+            ? lifecycleStatusMap.get(asset.lifecycle_status_id) || null
+            : null,
+          location: asset.location,
+          categoryId: asset.category_id,
+          subcategoryId: asset.subcategory_id,
+        };
+      });
+
+      setAssets(transformedData);
+    } catch (err) {
+      console.error("Error fetching assets:", err);
+      setError("Failed to load assets");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Columns definition
+  const columns: TableColumn<AssetRow>[] = [
     {
       key: "name",
       header: "Name",
@@ -29,91 +320,125 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
     {
       key: "type",
       header: "Type",
+      render: (row) => row.type || "-",
     },
     {
       key: "owner",
       header: "Owner",
+      render: (row) => row.owner || "-",
+    },
+    {
+      key: "reviewer",
+      header: "Reviewer",
+      render: (row) => row.reviewer || "-",
+    },
+    {
+      key: "sensitivity",
+      header: "Sensitivity",
+      render: (row) => row.sensitivity || "-",
+    },
+    {
+      key: "url",
+      header: "URL",
+      render: (row) =>
+        row.url ? (
+          <a
+            href={row.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-brand hover:underline truncate block"
+          >
+            {row.url}
+          </a>
+        ) : (
+          "-"
+        ),
+    },
+    {
+      key: "exposure",
+      header: "Exposure",
+      render: (row) => row.exposure || "-",
     },
     {
       key: "status",
       header: "Status",
-      render: (row) => (
-        <span
-          className={`px-2 py-1 rounded-full text-xs font-medium ${
-            row.status === "Active"
-              ? "bg-success-light text-success"
-              : row.status === "Rejected"
-              ? "bg-failure-light text-failure"
-              : "bg-blue-light text-blue"
-          }`}
-        >
-          {row.status}
-        </span>
-      ),
+      render: (row) => row.status || "-",
+    },
+    {
+      key: "location",
+      header: "Location",
+      render: (row) => row.location || "-",
     },
   ];
 
-  // Use provided data or fallback to ExampleTable1
-  const tableData = data && data.length > 0 ? data : ExampleTable1;
+  // Apply search and filter values
+  const filteredData = useMemo(() => {
+    let result = [...assets];
 
-  // Default handlers - placeholder functions if not provided
+    // Apply search filter
+    if (searchValue && searchValue.trim() !== "") {
+      const searchLower = searchValue.toLowerCase();
+      result = result.filter(
+        (row) =>
+          row.name.toLowerCase().includes(searchLower) ||
+          (row.type && row.type.toLowerCase().includes(searchLower)) ||
+          (row.owner && row.owner.toLowerCase().includes(searchLower)) ||
+          (row.reviewer && row.reviewer.toLowerCase().includes(searchLower)) ||
+          (row.sensitivity &&
+            row.sensitivity.toLowerCase().includes(searchLower)) ||
+          (row.exposure && row.exposure.toLowerCase().includes(searchLower)) ||
+          (row.status && row.status.toLowerCase().includes(searchLower)) ||
+          (row.location && row.location.toLowerCase().includes(searchLower))
+      );
+    }
+
+    // Apply name filter
+    if (filterValues.name && filterValues.name.trim() !== "") {
+      const nameFilter = filterValues.name.toLowerCase();
+      result = result.filter((row) =>
+        row.name.toLowerCase().includes(nameFilter)
+      );
+    }
+
+    // Apply subcategory filter
+    if (filterValues.subcategory && filterValues.subcategory.trim() !== "") {
+      const subcategoryId = parseInt(filterValues.subcategory);
+      result = result.filter((row) => row.subcategoryId === subcategoryId);
+    }
+
+    return result;
+  }, [assets, searchValue, filterValues]);
+
+  // Default handlers
   const handleEdit =
     onEdit ||
-    ((row: ExampleTable1Row) => {
+    ((row: AssetRow) => {
       console.log("Edit action triggered for:", row);
       // TODO: Implement edit functionality
     });
 
   const handleDelete =
     onDelete ||
-    ((row: ExampleTable1Row) => {
+    ((row: AssetRow) => {
       console.log("Delete action triggered for:", row);
       // TODO: Implement delete functionality
     });
 
-  // Apply filters
-  const filteredData = useMemo(() => {
-    let result = [...tableData];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8 text-text-secondary">
+        Loading assets...
+      </div>
+    );
+  }
 
-    // Apply search (name filter)
-    const searchFilter = filterValues.name || searchValue;
-    if (searchFilter && searchFilter.trim() !== "") {
-      result = result.filter((row) =>
-        row.name.toLowerCase().includes(searchFilter.toLowerCase())
-      );
-    }
-
-    // Apply type filter
-    if (filterValues.type && filterValues.type.trim() !== "") {
-      result = result.filter((row) => row.type === filterValues.type);
-    }
-
-    // Apply owner filter
-    if (filterValues.owner && filterValues.owner.trim() !== "") {
-      result = result.filter((row) =>
-        row.owner.toLowerCase().includes(filterValues.owner!.toLowerCase())
-      );
-    }
-
-    // Apply status filter
-    if (filterValues.status && filterValues.status.trim() !== "") {
-      result = result.filter((row) => row.status === filterValues.status);
-    }
-
-    // Apply exposure filter
-    if (filterValues.exposure && filterValues.exposure.trim() !== "") {
-      result = result.filter((row) => row.exposure === filterValues.exposure);
-    }
-
-    // Apply location filter
-    if (filterValues.location && filterValues.location.trim() !== "") {
-      result = result.filter((row) =>
-        row.location?.toLowerCase().includes(filterValues.location!.toLowerCase())
-      );
-    }
-
-    return result;
-  }, [tableData, filterValues, searchValue]);
+  if (error) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-failure">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <Table

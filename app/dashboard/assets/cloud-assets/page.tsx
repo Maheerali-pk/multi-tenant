@@ -6,27 +6,20 @@ import Search from "@/app/components/Search";
 import Sidebar from "@/app/components/Sidebar";
 import TableFilter from "@/app/components/TableFilter";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { useAssetsTableFilter } from "@/app/hooks/useAssetsTableFilter";
-import { ExampleTable1 } from "@/app/helpers/data";
-import { Plus } from "lucide-react";
+import { useAssetFilters } from "@/app/hooks/useAssetFilters";
+import { CreateNewAssetButton } from "@/app/components/CreateNewAssetButton";
 
 interface ApplicationsProps {}
 
 const Applications: React.FC<ApplicationsProps> = () => {
   const [state, dispatch] = useGlobalContext();
-  const { filterValues, setFilterValues, filterOptions } = useAssetsTableFilter(
-    {
-      data: ExampleTable1,
-      includeFilters: {
-        name: true,
-        type: true,
-        status: true,
-        owner: true,
-        exposure: true,
-        location: true,
-      },
-    }
-  );
+  const { filterValues, setFilterValues, filterOptions } = useAssetFilters({
+    includeFilters: {
+      name: true,
+      subcategory: true,
+    },
+    categoryId: 3,
+  });
 
   return (
     <div className="grid grid-cols-[min-content_auto] gap-3 p-3 bg-bg-outer h-full w-full">
@@ -44,10 +37,7 @@ const Applications: React.FC<ApplicationsProps> = () => {
                 }
                 value={state.tableSearchValue}
               />
-              <div className="flex gap-2 items-center text-text-contrast bg-brand rounded-xl h-full w-24 justify-center font-semibold text-xs cursor-pointer">
-                <Plus size={16} className=""></Plus>
-                New
-              </div>
+              <CreateNewAssetButton />
             </div>
           </div>
           <div className="shrink-0">
@@ -59,8 +49,9 @@ const Applications: React.FC<ApplicationsProps> = () => {
           </div>
           <div className="flex-1 min-h-0">
             <AssetsTable
-              filterValues={filterValues}
               searchValue={state.tableSearchValue}
+              filterValues={filterValues}
+              categoryId={3}
             />
           </div>
         </div>

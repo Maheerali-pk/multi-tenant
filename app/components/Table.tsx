@@ -70,7 +70,7 @@ function Table<T extends Record<string, any>>({
     const availableHeight = containerHeight - headerHeight - paginationHeight;
 
     // Measure row height if we have a reference row
-    let rowHeight = 57; // Default estimated row height (py-4 = 16px top + 16px bottom + content)
+    let rowHeight = 40; // Default estimated row height (py-2 = 8px top + 8px bottom + content)
 
     if (rowRef.current) {
       rowHeight = rowRef.current.clientHeight;
@@ -354,7 +354,7 @@ function Table<T extends Record<string, any>>({
                       minWidth: columnWidth,
                       maxWidth: columnWidth,
                     }}
-                    className={`px-5 py-3 text-left text-sm font-normal text-text-secondary bg-table-header ${
+                    className={`px-3 py-2 text-left text-xs font-normal text-text-secondary bg-table-header ${
                       isSortable
                         ? "cursor-pointer hover:bg-sidebar-sub-item-hover transition-colors select-none"
                         : ""
@@ -393,7 +393,7 @@ function Table<T extends Record<string, any>>({
                     minWidth: "120px",
                     maxWidth: "120px",
                   }}
-                  className="px-5 py-3 text-left text-sm font-normal text-text-secondary bg-table-header"
+                  className="px-3 py-2 text-left text-xs font-normal text-text-secondary bg-table-header"
                 >
                   Actions
                 </th>
@@ -405,7 +405,7 @@ function Table<T extends Record<string, any>>({
               <tr>
                 <td
                   colSpan={columns.length + (hasActions ? 1 : 0)}
-                  className="px-5 py-8 text-center text-sm text-text-secondary"
+                  className="px-3 py-4 text-center text-xs text-text-secondary"
                 >
                   No data available
                 </td>
@@ -427,7 +427,7 @@ function Table<T extends Record<string, any>>({
                           minWidth: columnWidth,
                           maxWidth: columnWidth,
                         }}
-                        className="px-5 py-4 text-sm text-text-primary overflow-hidden"
+                        className="px-3 py-2 text-xs text-text-primary overflow-hidden"
                       >
                         <div className="truncate">
                           {getCellValue(row, column)}
@@ -442,7 +442,7 @@ function Table<T extends Record<string, any>>({
                         minWidth: "120px",
                         maxWidth: "120px",
                       }}
-                      className="px-5 py-4"
+                      className="px-3 py-2"
                     >
                       <div className="flex items-center gap-2">
                         {onEdit && (
@@ -477,10 +477,10 @@ function Table<T extends Record<string, any>>({
       {(hasPagination || rows.length > 0) && (
         <div
           ref={paginationRef}
-          className="flex items-center justify-between px-5 py-4 border-t border-table-border bg-table-row shrink-0"
+          className="flex items-center justify-between px-3 py-2 border-t border-table-border bg-table-row shrink-0"
         >
           <div className="flex items-center gap-4">
-            <div className="text-sm text-text-secondary">
+            <div className="text-xs text-text-secondary">
               Showing {startItem} to {endItem} of {sortedRows.length} entries
               {dynamicRowsPerPage !== null && (
                 <span className="text-xs text-text-secondary ml-2">
@@ -520,7 +520,7 @@ function Table<T extends Record<string, any>>({
                     <button
                       key={pageNum}
                       onClick={() => handlePageChange(pageNum)}
-                      className={`px-3 cursor-pointer py-1 rounded-lg text-sm font-medium transition-colors ${
+                      className={`px-2 cursor-pointer py-1 rounded-lg text-xs font-medium transition-colors ${
                         currentPage === pageNum
                           ? "bg-brand text-text-contrast"
                           : "text-text-secondary hover:bg-sidebar-sub-item-hover hover:text-text-primary"

@@ -1,0 +1,650 @@
+"use client";
+
+import { useState, useEffect, useMemo } from "react";
+import { X } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { DEFAULT_TENANT_ID } from "@/app/constants/tenant";
+import type { Tables, TablesInsert } from "@/app/types/database.types";
+import { CustomSelect, SelectOption } from "@/app/components/CustomSelect";
+
+type AssetCategory = Tables<"asset_categories">;
+type AssetSubcategory = Tables<"asset_subcategories">;
+type AssetClassification = Tables<"asset_classifications">;
+type AssetExposure = Tables<"asset_exposures">;
+type AssetLifecycleStatus = Tables<"asset_lifecycle_statuses">;
+type Team = Tables<"teams">;
+type User = Tables<"users">;
+type AssetInsert = TablesInsert<"assets">;
+
+interface CreateAssetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess?: () => void;
+}
+
+export default function CreateAsset({
+  isOpen,
+  onClose,
+  onSuccess,
+}: CreateAssetProps) {
+  const [formData, setFormData] = useState({
+    name: "",
+    categoryId: "",
+    subcategoryId: "",
+    classificationId: "",
+    exposureId: "",
+    lifecycleStatusId: "",
+    location: "",
+    url: "",
+    description: "",
+    owner: "",
+    reviewer: "",
+  });
+  const [categories, setCategories] = useState<AssetCategory[]>([]);
+  const [subcategories, setSubcategories] = useState<AssetSubcategory[]>([]);
+  const [classifications, setClassifications] = useState<AssetClassification[]>(
+    []
+  );
+  const [exposures, setExposures] = useState<AssetExposure[]>([]);
+  const [lifecycleStatuses, setLifecycleStatuses] = useState<
+    AssetLifecycleStatus[]
+  >([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+
+  // Fetch all dropdown data on mount
+  useEffect(() => {
+    if (isOpen) {
+      fetchAllData();
+    }
+  }, [isOpen]);
+
+  // Fetch subcategories when category changes
+  useEffect(() => {
+    if (formData.categoryId) {
+      fetchSubcategories(parseInt(formData.categoryId));
+    } else {
+      setSubcategories([]);
+      setFormData((prev) => ({ ...prev, subcategoryId: "" }));
+    }
+  }, [formData.categoryId]);
+
+  const fetchAllData = async () => {
+    try {
+      setLoadingCategories(true);
+      setError(null);
+
+      // Check if user is authenticated
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setError("You must be logged in to view categories");
+        setLoadingCategories(false);
+        return;
+      }
+
+      // Fetch all dropdown data in parallel
+      const [
+        categoriesResult,
+        classificationsResult,
+        exposuresResult,
+        lifecycleStatusesResult,
+        teamsResult,
+        usersResult,
+      ] = await Promise.all([
+        supabase.from("asset_categories").select("*").order("name"),
+        supabase.from("asset_classifications").select("*").order("name"),
+        supabase.from("asset_exposures").select("*").order("name"),
+        supabase.from("asset_lifecycle_statuses").select("*").order("name"),
+        supabase
+          .from("teams")
+          .select("*")
+          .eq("tenant_id", DEFAULT_TENANT_ID)
+          .order("name"),
+        supabase
+          .from("users")
+          .select("*")
+          .eq("tenant_id", DEFAULT_TENANT_ID)
+          .order("name"),
+      ]);
+
+      if (categoriesResult.error) {
+        console.error("Error fetching categories:", categoriesResult.error);
+        setError("Failed to load categories");
+        return;
+      }
+
+      if (classificationsResult.error) {
+        console.error(
+          "Error fetching classifications:",
+          classificationsResult.error
+        );
+      }
+
+      if (exposuresResult.error) {
+        console.error("Error fetching exposures:", exposuresResult.error);
+      }
+
+      if (lifecycleStatusesResult.error) {
+        console.error(
+          "Error fetching lifecycle statuses:",
+          lifecycleStatusesResult.error
+        );
+      }
+
+      if (teamsResult.error) {
+        console.error("Error fetching teams:", teamsResult.error);
+      }
+
+      if (usersResult.error) {
+        console.error("Error fetching users:", usersResult.error);
+      }
+
+      setCategories(categoriesResult.data || []);
+      setClassifications(classificationsResult.data || []);
+      setExposures(exposuresResult.data || []);
+      setLifecycleStatuses(lifecycleStatusesResult.data || []);
+      setTeams(teamsResult.data || []);
+      setUsers(usersResult.data || []);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setError("Failed to load data");
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
+  const fetchSubcategories = async (categoryId: number) => {
+    try {
+      const { data, error: fetchError } = await supabase
+        .from("asset_subcategories")
+        .select("*")
+        .eq("category_id", categoryId)
+        .order("name");
+
+      if (fetchError) {
+        console.error("Error fetching subcategories:", fetchError);
+        setError(
+          fetchError.message ||
+            "Failed to load subcategories. Please check your permissions."
+        );
+        return;
+      }
+
+      setSubcategories(data || []);
+    } catch (err) {
+      console.error("Error fetching subcategories:", err);
+      setError("Failed to load subcategories");
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!formData.name.trim()) {
+      setError("Name is required");
+      return;
+    }
+
+    if (!formData.categoryId) {
+      setError("Category is required");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Parse owner (format: "team:id" or "user:id")
+      let ownerTeamId: string | null = null;
+      let ownerUserId: string | null = null;
+      if (formData.owner) {
+        const [type, id] = formData.owner.split(":");
+        if (type === "team") {
+          ownerTeamId = id;
+        } else if (type === "user") {
+          ownerUserId = id;
+        }
+      }
+
+      // Parse reviewer (format: "team:id" or "user:id")
+      let reviewerTeamId: string | null = null;
+      let reviewerUserId: string | null = null;
+      if (formData.reviewer) {
+        const [type, id] = formData.reviewer.split(":");
+        if (type === "team") {
+          reviewerTeamId = id;
+        } else if (type === "user") {
+          reviewerUserId = id;
+        }
+      }
+
+      const assetData: AssetInsert = {
+        name: formData.name.trim(),
+        category_id: parseInt(formData.categoryId),
+        subcategory_id: formData.subcategoryId
+          ? parseInt(formData.subcategoryId)
+          : null,
+        classification_id: formData.classificationId
+          ? parseInt(formData.classificationId)
+          : null,
+        exposure_id: formData.exposureId ? parseInt(formData.exposureId) : null,
+        lifecycle_status_id: formData.lifecycleStatusId
+          ? parseInt(formData.lifecycleStatusId)
+          : null,
+        location: formData.location.trim() || null,
+        url: formData.url.trim() || null,
+        description: formData.description.trim() || null,
+        owner_team_id: ownerTeamId,
+        owner_user_id: ownerUserId,
+        reviewer_team_id: reviewerTeamId,
+        reviewer_user_id: reviewerUserId,
+        tenant_id: DEFAULT_TENANT_ID,
+      };
+
+      const { error: insertError } = await supabase
+        .from("assets")
+        .insert(assetData);
+
+      if (insertError) {
+        setError(insertError.message || "Failed to create asset");
+        setLoading(false);
+        return;
+      }
+
+      // Reset form
+      setFormData({
+        name: "",
+        categoryId: "",
+        subcategoryId: "",
+        classificationId: "",
+        exposureId: "",
+        lifecycleStatusId: "",
+        location: "",
+        url: "",
+        description: "",
+        owner: "",
+        reviewer: "",
+      });
+      setError(null);
+      onSuccess?.();
+      onClose();
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      console.error("Create asset error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Convert arrays to SelectOption format
+  const categoryOptions: SelectOption[] = useMemo(
+    () =>
+      categories.map((cat) => ({
+        value: cat.id.toString(),
+        label: cat.name,
+      })),
+    [categories]
+  );
+
+  const subcategoryOptions: SelectOption[] = useMemo(
+    () =>
+      subcategories.map((sub) => ({
+        value: sub.id.toString(),
+        label: sub.name,
+      })),
+    [subcategories]
+  );
+
+  const classificationOptions: SelectOption[] = useMemo(
+    () =>
+      classifications.map((cls) => ({
+        value: cls.id.toString(),
+        label: cls.name,
+      })),
+    [classifications]
+  );
+
+  const exposureOptions: SelectOption[] = useMemo(
+    () =>
+      exposures.map((exp) => ({
+        value: exp.id.toString(),
+        label: exp.name,
+      })),
+    [exposures]
+  );
+
+  const lifecycleStatusOptions: SelectOption[] = useMemo(
+    () =>
+      lifecycleStatuses.map((status) => ({
+        value: status.id.toString(),
+        label: status.name,
+      })),
+    [lifecycleStatuses]
+  );
+
+  // Combined owner options (teams + users)
+  const ownerOptions: SelectOption[] = useMemo(() => {
+    const teamOptions: SelectOption[] = teams.map((team) => ({
+      value: `team:${team.id}`,
+      label: `Team: ${team.name}`,
+    }));
+
+    const userOptions: SelectOption[] = users.map((user) => ({
+      value: `user:${user.id}`,
+      label: `User: ${user.name}${user.email ? ` (${user.email})` : ""}`,
+    }));
+
+    return [...teamOptions, ...userOptions];
+  }, [teams, users]);
+
+  // Combined reviewer options (teams + users)
+  const reviewerOptions: SelectOption[] = useMemo(() => {
+    const teamOptions: SelectOption[] = teams.map((team) => ({
+      value: `team:${team.id}`,
+      label: `Team: ${team.name}`,
+    }));
+
+    const userOptions: SelectOption[] = users.map((user) => ({
+      value: `user:${user.id}`,
+      label: `User: ${user.name}${user.email ? ` (${user.email})` : ""}`,
+    }));
+
+    return [...teamOptions, ...userOptions];
+  }, [teams, users]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+      <div className="bg-bg-inner rounded-3xl p-8 shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-semibold text-text-dark">
+            Create New Asset
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-sidebar-sub-item-hover rounded-lg transition-colors cursor-pointer"
+            aria-label="Close modal"
+          >
+            <X size={20} className="text-text-secondary" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 rounded-lg bg-failure-light border border-failure text-failure text-sm">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Grid Layout for Form Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Name Field - Full Width */}
+            <div className="md:col-span-2 flex flex-col gap-1.5">
+              <label
+                htmlFor="name"
+                className="text-sm font-medium text-text-primary"
+              >
+                Name <span className="text-failure">*</span>
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary"
+                placeholder="Enter asset name"
+              />
+            </div>
+
+            {/* Category Field */}
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="categoryId"
+                className="text-sm font-medium text-text-primary"
+              >
+                Category <span className="text-failure">*</span>
+              </label>
+              <CustomSelect
+                id="categoryId"
+                name="categoryId"
+                options={categoryOptions}
+                value={formData.categoryId}
+                onChange={(value) => handleSelectChange("categoryId", value)}
+                placeholder="Select a category"
+                isDisabled={loadingCategories}
+                isRequired={true}
+              />
+            </div>
+
+            {/* Type (Subcategory) Field */}
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="subcategoryId"
+                className="text-sm font-medium text-text-primary"
+              >
+                Type
+              </label>
+              <CustomSelect
+                id="subcategoryId"
+                name="subcategoryId"
+                options={subcategoryOptions}
+                value={formData.subcategoryId}
+                onChange={(value) => handleSelectChange("subcategoryId", value)}
+                placeholder={
+                  !formData.categoryId
+                    ? "Select a category first"
+                    : subcategories.length === 0
+                    ? "No subcategories available"
+                    : "Select a subcategory (optional)"
+                }
+                isDisabled={!formData.categoryId || subcategories.length === 0}
+              />
+            </div>
+
+            {/* Sensitivity (Classification) Field */}
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="classificationId"
+                className="text-sm font-medium text-text-primary"
+              >
+                Sensitivity
+              </label>
+              <CustomSelect
+                id="classificationId"
+                name="classificationId"
+                options={classificationOptions}
+                value={formData.classificationId}
+                onChange={(value) =>
+                  handleSelectChange("classificationId", value)
+                }
+                placeholder="Select sensitivity (optional)"
+                isDisabled={loadingCategories}
+              />
+            </div>
+
+            {/* Exposure Field */}
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="exposureId"
+                className="text-sm font-medium text-text-primary"
+              >
+                Exposure
+              </label>
+              <CustomSelect
+                id="exposureId"
+                name="exposureId"
+                options={exposureOptions}
+                value={formData.exposureId}
+                onChange={(value) => handleSelectChange("exposureId", value)}
+                placeholder="Select exposure (optional)"
+                isDisabled={loadingCategories}
+              />
+            </div>
+
+            {/* Lifecycle Status Field */}
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="lifecycleStatusId"
+                className="text-sm font-medium text-text-primary"
+              >
+                Lifecycle Status
+              </label>
+              <CustomSelect
+                id="lifecycleStatusId"
+                name="lifecycleStatusId"
+                options={lifecycleStatusOptions}
+                value={formData.lifecycleStatusId}
+                onChange={(value) =>
+                  handleSelectChange("lifecycleStatusId", value)
+                }
+                placeholder="Select lifecycle status (optional)"
+                isDisabled={loadingCategories}
+              />
+            </div>
+
+            {/* Asset URL Field */}
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="url"
+                className="text-sm font-medium text-text-primary"
+              >
+                Asset URL
+              </label>
+              <input
+                type="url"
+                id="url"
+                name="url"
+                value={formData.url}
+                onChange={handleChange}
+                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary"
+                placeholder="https://example.com"
+              />
+            </div>
+
+            {/* Owner Field */}
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="owner"
+                className="text-sm font-medium text-text-primary"
+              >
+                Owner
+              </label>
+              <CustomSelect
+                id="owner"
+                name="owner"
+                options={ownerOptions}
+                value={formData.owner}
+                onChange={(value) => handleSelectChange("owner", value)}
+                placeholder="Select owner (optional)"
+                isDisabled={loadingCategories}
+              />
+            </div>
+
+            {/* Reviewer Field */}
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="reviewer"
+                className="text-sm font-medium text-text-primary"
+              >
+                Reviewer
+              </label>
+              <CustomSelect
+                id="reviewer"
+                name="reviewer"
+                options={reviewerOptions}
+                value={formData.reviewer}
+                onChange={(value) => handleSelectChange("reviewer", value)}
+                placeholder="Select reviewer (optional)"
+                isDisabled={loadingCategories}
+              />
+            </div>
+
+            {/* Location Field - Full Width Textarea */}
+            <div className="md:col-span-2 flex flex-col gap-1.5">
+              <label
+                htmlFor="location"
+                className="text-sm font-medium text-text-primary"
+              >
+                Location
+              </label>
+              <textarea
+                id="location"
+                name="location"
+                value={formData.location}
+                onChange={handleChange}
+                rows={3}
+                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none"
+                placeholder="Enter asset location"
+              />
+            </div>
+
+            {/* Description Field - Full Width Textarea */}
+            <div className="md:col-span-2 flex flex-col gap-1.5">
+              <label
+                htmlFor="description"
+                className="text-sm font-medium text-text-primary"
+              >
+                Description
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                rows={4}
+                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none"
+                placeholder="Enter asset description"
+              />
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 px-4 rounded-lg border border-border-hr bg-bg-outer text-text-primary font-medium text-sm hover:bg-sidebar-sub-item-hover transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading || loadingCategories}
+              className="flex-1 py-2.5 px-4 rounded-lg bg-brand text-text-contrast font-medium text-sm hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {loading ? "Creating..." : "Create Asset"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

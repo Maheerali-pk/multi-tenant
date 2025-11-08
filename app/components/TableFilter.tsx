@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { X, Filter } from "lucide-react";
 
+export type AssetFilterKey = "name" | "subcategory";
+
 export interface FilterOption {
-  key: string;
+  key: AssetFilterKey;
   label: string;
   type: "text" | "select";
   placeholder?: string;
@@ -12,7 +14,8 @@ export interface FilterOption {
 }
 
 export interface FilterValues {
-  [key: string]: string;
+  name?: string;
+  subcategory?: string;
 }
 
 interface TableFilterProps {
@@ -22,18 +25,13 @@ interface TableFilterProps {
   onClear?: () => void;
 }
 
-const TableFilter: React.FC<TableFilterProps> = ({
-  filters,
-  values,
-  onChange,
-  onClear,
-}) => {
+function TableFilter({ filters, values, onChange, onClear }: TableFilterProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const hasActiveFilters = Object.values(values).some(
     (value) => value && value.trim() !== ""
   );
 
-  const handleFilterChange = (key: string, value: string) => {
+  const handleFilterChange = (key: AssetFilterKey, value: string) => {
     onChange({
       ...values,
       [key]: value,
@@ -41,15 +39,15 @@ const TableFilter: React.FC<TableFilterProps> = ({
   };
 
   const handleClear = () => {
-    const clearedValues: FilterValues = {};
-    filters.forEach((filter) => {
-      clearedValues[filter.key] = "";
-    });
+    const clearedValues: FilterValues = {
+      name: "",
+      subcategory: "",
+    };
     onChange(clearedValues);
     onClear?.();
   };
 
-  const handleClearSingle = (key: string) => {
+  const handleClearSingle = (key: AssetFilterKey) => {
     handleFilterChange(key, "");
   };
 
@@ -59,7 +57,7 @@ const TableFilter: React.FC<TableFilterProps> = ({
         {/* Filter Toggle Button */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-colors ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-colors cursor-pointer ${
             hasActiveFilters
               ? "bg-brand text-text-contrast border-brand"
               : "bg-bg-inner text-text-primary border-border-main hover:bg-sidebar-sub-item-hover"
@@ -83,7 +81,9 @@ const TableFilter: React.FC<TableFilterProps> = ({
 
               let displayValue = value;
               if (filter.type === "select" && filter.options) {
-                const option = filter.options.find((opt) => opt.value === value);
+                const option = filter.options.find(
+                  (opt) => opt.value === value
+                );
                 displayValue = option?.label || value;
               }
 
@@ -100,7 +100,7 @@ const TableFilter: React.FC<TableFilterProps> = ({
                   </span>
                   <button
                     onClick={() => handleClearSingle(filter.key)}
-                    className="p-0.5 hover:bg-bg-inner rounded transition-colors"
+                    className="p-0.5 hover:bg-bg-inner rounded transition-colors cursor-pointer"
                     aria-label={`Clear ${filter.label} filter`}
                   >
                     <X size={12} className="text-text-secondary" />
@@ -112,7 +112,7 @@ const TableFilter: React.FC<TableFilterProps> = ({
             {/* Clear All Button */}
             <button
               onClick={handleClear}
-              className="px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary transition-colors"
+              className="px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
             >
               Clear all
             </button>
@@ -124,23 +124,32 @@ const TableFilter: React.FC<TableFilterProps> = ({
       {isExpanded && (
         <div className="flex flex-wrap gap-3 p-4 rounded-xl bg-bg-inner border border-border-hr">
           {filters.map((filter) => (
-            <div key={filter.key} className="flex flex-col gap-1.5 min-w-[200px]">
+            <div
+              key={filter.key}
+              className="flex flex-col gap-1.5 min-w-[200px]"
+            >
               <label className="text-xs font-medium text-text-secondary">
                 {filter.label}
               </label>
               {filter.type === "text" ? (
                 <input
                   type="text"
-                  placeholder={filter.placeholder || `Filter by ${filter.label}`}
+                  placeholder={
+                    filter.placeholder || `Filter by ${filter.label}`
+                  }
                   value={values[filter.key] || ""}
-                  onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-bg-outer text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary"
+                  onChange={(e) =>
+                    handleFilterChange(filter.key, e.target.value)
+                  }
+                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary"
                 />
               ) : filter.type === "select" ? (
                 <select
                   value={values[filter.key] || ""}
-                  onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-bg-outer text-text-primary text-sm outline-none focus:border-brand transition-colors cursor-pointer"
+                  onChange={(e) =>
+                    handleFilterChange(filter.key, e.target.value)
+                  }
+                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors cursor-pointer"
                 >
                   <option value="">All {filter.label}</option>
                   {filter.options?.map((option) => (
@@ -156,7 +165,6 @@ const TableFilter: React.FC<TableFilterProps> = ({
       )}
     </div>
   );
-};
+}
 
 export default TableFilter;
-

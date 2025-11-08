@@ -25,18 +25,18 @@
   --blue-light: #c7d3ee;
   --blue: #2563eb;
   --icon: #6b7280;
+  --input: white;
 }
 
 [data-theme="dark"] {
   --brand: #2563eb;
   --bg-inner: #101936;
   --bg-outer: #070f25;
+  --input: #070f25;
   --table-row: #070f25;
   --table-header: #060c1d;
-
   --table-border: #02081a;
   --sidebar-sub-item-hover: #070f25;
-
   --text-primary: white;
   --text-secondary: #cecece;
   --text-dark: white;
@@ -51,9 +51,11 @@
   --blue-light: #c7d3ee;
   --blue: #2563eb;
   --icon: #6b7280;
+  --input: #070f25;
 }
 
 @theme inline {
+  --color-input: var(--input);
   --color-icon: var(--icon);
   --color-table-row: var(--table-row);
   --color-table-header: var(--table-header);

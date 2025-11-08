@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Poppins } from "next/font/google";
 import "./globals.css";
 import { GlobalContextProvider } from "@/contexts/GlobalContext";
+import { AuthContextProvider } from "@/contexts/AuthContext";
+import AuthGuard from "./components/AuthGuard";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -23,7 +25,11 @@ export default function RootLayout({
   return (
     <html lang="en" data-theme="light">
       <body className={`${poppins.variable} antialiased`}>
-        <GlobalContextProvider>{children}</GlobalContextProvider>
+        <GlobalContextProvider>
+          <AuthContextProvider>
+            <AuthGuard>{children}</AuthGuard>
+          </AuthContextProvider>
+        </GlobalContextProvider>
       </body>
     </html>
   );

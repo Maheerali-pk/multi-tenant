@@ -5,6 +5,7 @@ import Search from "./Search";
 import UserDropdown from "./UserDropdown";
 import { useGlobalContext } from "@/contexts/GlobalContext";
 import { useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 interface HeaderProps {}
 
@@ -27,13 +28,13 @@ const Header: React.FC<HeaderProps> = () => {
     // TODO: Implement settings functionality
   };
 
-  const handleLogout = () => {
-    console.log("Logout clicked");
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     // TODO: Implement logout functionality
   };
 
   return (
-    <div className="h-16 px-6 flex cursor-pointer justify-between items-center bg-bg-inner rounded-3xl">
+    <div className="h-16 px-6 flex justify-between items-center bg-bg-inner rounded-3xl">
       <div></div>
       <div className="flex items-center gap-16">
         <Search onChange={handleSearchChange} value={searchValue} />
@@ -48,7 +49,7 @@ const Header: React.FC<HeaderProps> = () => {
             </div>
 
             <div
-              className="rounded-full b-white border-border-main border p-3"
+              className="rounded-full b-white border-border-main border p-3 cursor-pointer"
               onClick={() => {
                 dispatch({
                   setState: {

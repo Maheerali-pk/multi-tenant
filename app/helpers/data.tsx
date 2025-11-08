@@ -54,11 +54,6 @@ export const SidebarItems: SidebarItem[] = [
         name: "Data and Information",
         href: "/dashboard/assets/data-and-information",
       },
-      {
-        icon: <FileText size={16} />,
-        name: "Documentation",
-        href: "/dashboard/assets/documentation",
-      },
     ],
   },
   {

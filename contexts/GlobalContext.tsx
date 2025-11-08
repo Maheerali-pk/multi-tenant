@@ -4,10 +4,12 @@ import { createCustomContext } from "../helpers/createCustomContext";
 
 export type Theme = "light" | "dark";
 
+type ModalType = "createAsset";
 interface IGlobalState {
   isSidebarOpen: boolean;
   tableSearchValue: string;
   theme: Theme;
+  modals: Record<ModalType, boolean>;
 }
 
 const STORAGE_KEY = "globalState";
@@ -48,6 +50,7 @@ const initialState: IGlobalState = {
   isSidebarOpen: true,
   theme: (storedState?.theme as Theme) ?? "light",
   tableSearchValue: storedState?.tableSearchValue ?? "",
+  modals: { createAsset: false },
 };
 
 function setState(
@@ -57,8 +60,18 @@ function setState(
   return { ...state, ...newState };
 }
 
+function openModal(state: IGlobalState, modalType: ModalType): IGlobalState {
+  return { ...state, modals: { ...state.modals, [modalType]: true } };
+}
+
+function closeModal(state: IGlobalState, modalType: ModalType): IGlobalState {
+  return { ...state, modals: { ...state.modals, [modalType]: false } };
+}
+
 const functions = {
   setState,
+  openModal,
+  closeModal,
 };
 
 const {
