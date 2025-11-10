@@ -68,7 +68,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
           isOpen={isOpen}
           data={{
             icon: <Settings size={20} />,
-            name: "Settings 1",
+            name: "Settings",
             href: "/settings",
             subItems: [],
           }}
