@@ -6,7 +6,7 @@ import Search from "@/app/components/Search";
 import Sidebar from "@/app/components/Sidebar";
 import TableFilter from "@/app/components/TableFilter";
 import { useGlobalContext } from "@/contexts/GlobalContext";
-import { ExampleTable1 } from "@/app/helpers/data";
+import { commonAssetFields } from "@/app/helpers/data";
 import { useAssetFilters } from "@/app/hooks/useAssetFilters";
 import { CreateNewAssetButton } from "@/app/components/CreateNewAssetButton";
 
@@ -21,6 +21,8 @@ const Applications: React.FC<ApplicationsProps> = () => {
       sensitivity: true,
       exposure: true,
       status: true,
+      owner: true,
+      reviewer: true,
     },
     categoryId: 1,
   });
@@ -28,13 +30,19 @@ const Applications: React.FC<ApplicationsProps> = () => {
   return (
     <div className="grid grid-cols-[min-content_auto] gap-3 p-3 bg-bg-outer h-full w-full">
       <Sidebar></Sidebar>
-      <ContentWrapper>
+      <ContentWrapper filedsToInlcude={[...commonAssetFields, "url"]}>
         <div className="flex flex-col rounded-3xl  p-6 gap-3 min-h-0 flex-1">
           <div className="flex justify-between items-center shrink-0 gap-4">
-            <div className="font-semibold text-lg items-center text-text-primary">
+            <div className="font-semibold text-xl items-center text-text-primary">
               Assets Management / Application management
             </div>
             <div className="gap-4 flex items-center">
+              <Search
+                onChange={(value) =>
+                  dispatch({ setState: { tableSearchValue: value } })
+                }
+                value={state.tableSearchValue}
+              />
               <TableFilter
                 filters={filterOptions}
                 values={filterValues}
@@ -43,16 +51,9 @@ const Applications: React.FC<ApplicationsProps> = () => {
               <CreateNewAssetButton categoryId={1} />
             </div>
           </div>
-          <div className="shrink-0">
-            <Search
-              onChange={(value) =>
-                dispatch({ setState: { tableSearchValue: value } })
-              }
-              value={state.tableSearchValue}
-            />
-          </div>
           <div className="flex-1 min-h-0">
             <AssetsTable
+              refreshTrigger={state.refreshTrigger}
               filterValues={filterValues}
               searchValue={state.tableSearchValue}
               categoryId={1}

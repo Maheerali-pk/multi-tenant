@@ -17,6 +17,7 @@ export interface TableColumn<T = any> {
   render?: (row: T) => React.ReactNode;
   sortable?: boolean;
   sortKey?: string; // Optional key to use for sorting if different from column key
+  customSort?: (a: any, b: any, direction: "asc" | "desc") => number; // Custom sort function
   width?: string; // Optional width for the column (e.g., "200px", "20%", "1fr")
 }
 
@@ -152,6 +153,11 @@ function Table<T extends Record<string, any>>({
     return [...rows].sort((a, b) => {
       const aValue = getSortValue(a, column);
       const bValue = getSortValue(b, column);
+
+      // Use custom sort function if provided
+      if (column.customSort) {
+        return column.customSort(aValue, bValue, sortDirection);
+      }
 
       // Handle null/undefined values
       if (aValue == null && bValue == null) return 0;
@@ -354,7 +360,7 @@ function Table<T extends Record<string, any>>({
                       minWidth: columnWidth,
                       maxWidth: columnWidth,
                     }}
-                    className={`px-3 py-1 text-left text-xs font-normal text-text-secondary bg-table-header ${
+                    className={`px-3 py-1 text-left text-sm font-normal text-text-secondary bg-table-header ${
                       isSortable
                         ? "cursor-pointer hover:bg-sidebar-sub-item-hover transition-colors select-none"
                         : ""
@@ -393,7 +399,7 @@ function Table<T extends Record<string, any>>({
                     minWidth: "120px",
                     maxWidth: "120px",
                   }}
-                  className="px-3 py-1 text-left text-xs font-normal text-text-secondary bg-table-header"
+                  className="px-3 py-1 text-left text-sm font-normal text-text-secondary bg-table-header"
                 >
                   Actions
                 </th>
@@ -405,7 +411,7 @@ function Table<T extends Record<string, any>>({
               <tr>
                 <td
                   colSpan={columns.length + (hasActions ? 1 : 0)}
-                  className="px-3 py-2 text-center text-xs text-text-secondary"
+                  className="px-3 py-2 text-center text-sm text-text-secondary"
                 >
                   No data available
                 </td>
@@ -427,7 +433,7 @@ function Table<T extends Record<string, any>>({
                           minWidth: columnWidth,
                           maxWidth: columnWidth,
                         }}
-                        className="px-3 py-1 text-xs text-text-primary overflow-hidden"
+                        className="px-3 py-1 text-sm text-text-primary overflow-hidden"
                       >
                         <div className="truncate">
                           {getCellValue(row, column)}
@@ -480,10 +486,10 @@ function Table<T extends Record<string, any>>({
           className="flex items-center justify-between px-3 py-2 border-t border-table-border bg-table-row shrink-0"
         >
           <div className="flex items-center gap-4">
-            <div className="text-xs text-text-secondary">
+            <div className="text-sm text-text-secondary">
               Showing {startItem} to {endItem} of {sortedRows.length} entries
               {dynamicRowsPerPage !== null && (
-                <span className="text-xs text-text-secondary ml-2">
+                <span className="text-sm text-text-secondary ml-2">
                   ({effectiveRowsPerPage} rows per page)
                 </span>
               )}
@@ -520,7 +526,7 @@ function Table<T extends Record<string, any>>({
                     <button
                       key={pageNum}
                       onClick={() => handlePageChange(pageNum)}
-                      className={`px-2 cursor-pointer py-1 rounded-lg text-xs font-medium transition-colors ${
+                      className={`px-2 cursor-pointer py-1 rounded-lg text-sm font-medium transition-colors ${
                         currentPage === pageNum
                           ? "bg-brand text-text-contrast"
                           : "text-text-secondary hover:bg-sidebar-sub-item-hover hover:text-text-primary"

@@ -6,6 +6,8 @@ import { DEFAULT_TENANT_ID } from "@/app/constants/tenant";
 import { FilterValues } from "./TableFilter";
 import DeleteAsset from "@/app/modals/DeleteAsset";
 import EditAssetModal from "@/app/modals/EditAssetModal";
+import { Trash2 } from "lucide-react";
+import { assetTypes } from "@/app/helpers/data";
 
 export interface AssetRow {
   id: string;
@@ -58,6 +60,68 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
     setEditDialogOpen(false);
     setSelectedAssetForEdit(null);
   }, []);
+
+  // Helper function to get status badge styles
+  const getStatusBadgeStyles = (status: string | null): React.CSSProperties => {
+    if (!status) {
+      return {
+        backgroundColor: "var(--color-status-retired-bg)",
+        color: "var(--color-status-retired-text)",
+      };
+    }
+
+    const statusLower = status.toLowerCase();
+    switch (statusLower) {
+      case "active":
+        return {
+          backgroundColor: "var(--color-status-active-bg)",
+          color: "var(--color-status-active-text)",
+        };
+      case "planned":
+        return {
+          backgroundColor: "var(--color-status-planned-bg)",
+          color: "var(--color-status-planned-text)",
+        };
+      case "inactive":
+        return {
+          backgroundColor: "var(--color-status-inactive-bg)",
+          color: "var(--color-status-inactive-text)",
+        };
+      case "retired":
+        return {
+          backgroundColor: "var(--color-status-retired-bg)",
+          color: "var(--color-status-retired-text)",
+        };
+      case "disposed":
+        return {
+          backgroundColor: "var(--color-status-disposed-bg)",
+          color: "var(--color-status-disposed-text)",
+        };
+      default:
+        return {
+          backgroundColor: "var(--color-status-retired-bg)",
+          color: "var(--color-status-retired-text)",
+        };
+    }
+  };
+
+  // Helper function to render status badge
+  const renderStatusBadge = (status: string | null) => {
+    if (!status) return "-";
+
+    const statusLower = status.toLowerCase();
+    const isDisposed = statusLower === "disposed";
+
+    return (
+      <span
+        className="px-2 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1"
+        style={getStatusBadgeStyles(status)}
+      >
+        {/* {isDisposed && <Trash2 size={12} />} */}
+        {status}
+      </span>
+    );
+  };
 
   const handleDeleteClick = useCallback((row: AssetRow) => {
     setSelectedAsset(row);
@@ -360,8 +424,9 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
 
   // Fetch assets from Supabase
   useEffect(() => {
+    console.log("Fetch assets called");
     fetchAssets();
-  }, [fetchAssets]);
+  }, [refreshTrigger, fetchAssets]);
 
   // Refetch when refreshTrigger changes
   useEffect(() => {
@@ -380,6 +445,28 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
       key: "type",
       header: "Type",
       render: (row) => row.type || "-",
+      customSort: (
+        a: string | null,
+        b: string | null,
+        direction: "asc" | "desc"
+      ) => {
+        // Handle null/undefined values
+        if (!a && !b) return 0;
+        if (!a) return 1;
+        if (!b) return -1;
+
+        // Get index in assetTypes array
+        const aIndex = assetTypes.indexOf(a);
+        const bIndex = assetTypes.indexOf(b);
+
+        // If not found in array, treat as last
+        const aSortIndex = aIndex === -1 ? assetTypes.length : aIndex;
+        const bSortIndex = bIndex === -1 ? assetTypes.length : bIndex;
+
+        // Compare indices
+        const comparison = aSortIndex - bSortIndex;
+        return direction === "asc" ? comparison : -comparison;
+      },
     },
     {
       key: "owner",
@@ -396,23 +483,23 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
       header: "Sensitivity",
       render: (row) => row.sensitivity || "-",
     },
-    {
-      key: "url",
-      header: "URL",
-      render: (row) =>
-        row.url ? (
-          <a
-            href={row.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-brand hover:underline truncate block"
-          >
-            {row.url}
-          </a>
-        ) : (
-          "-"
-        ),
-    },
+    // {
+    //   key: "url",
+    //   header: "URL",
+    //   render: (row) =>
+    //     row.url ? (
+    //       <a
+    //         href={row.url}
+    //         target="_blank"
+    //         rel="noopener noreferrer"
+    //         className="text-brand hover:underline truncate block"
+    //       >
+    //         {row.url}
+    //       </a>
+    //     ) : (
+    //       "-"
+    //     ),
+    // },
     {
       key: "exposure",
       header: "Exposure",
@@ -421,13 +508,13 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
     {
       key: "status",
       header: "Status",
-      render: (row) => row.status || "-",
+      render: (row) => renderStatusBadge(row.status),
     },
-    {
-      key: "location",
-      header: "Location",
-      render: (row) => row.location || "-",
-    },
+    // {
+    //   key: "location",
+    //   header: "Location",
+    //   render: (row) => row.location || "-",
+    // },
   ];
 
   // Apply search and filter values
@@ -480,6 +567,16 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
     // Apply status filter
     if (filterValues.status && filterValues.status.trim() !== "") {
       result = result.filter((row) => row.status === filterValues.status);
+    }
+
+    // Apply owner filter
+    if (filterValues.owner && filterValues.owner.trim() !== "") {
+      result = result.filter((row) => row.owner === filterValues.owner);
+    }
+
+    // Apply reviewer filter
+    if (filterValues.reviewer && filterValues.reviewer.trim() !== "") {
+      result = result.filter((row) => row.reviewer === filterValues.reviewer);
     }
 
     return result;

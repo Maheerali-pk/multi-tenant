@@ -8,7 +8,9 @@ export type AssetFilterKey =
   | "subcategory"
   | "sensitivity"
   | "exposure"
-  | "status";
+  | "status"
+  | "owner"
+  | "reviewer";
 
 export interface FilterOption {
   key: AssetFilterKey;
@@ -24,6 +26,8 @@ export interface FilterValues {
   sensitivity?: string;
   exposure?: string;
   status?: string;
+  owner?: string;
+  reviewer?: string;
 }
 
 interface TableFilterProps {
@@ -53,6 +57,8 @@ function TableFilter({ filters, values, onChange, onClear }: TableFilterProps) {
       sensitivity: "",
       exposure: "",
       status: "",
+      owner: "",
+      reviewer: "",
     };
     onChange(clearedValues);
     onClear?.();
@@ -75,9 +81,9 @@ function TableFilter({ filters, values, onChange, onClear }: TableFilterProps) {
           }`}
         >
           <Filter size={14} />
-          <span className="text-xs font-medium">Filters</span>
+          <span className="text-sm font-medium">Filters</span>
           {hasActiveFilters && (
-            <span className="bg-text-contrast text-brand rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
+            <span className="bg-text-contrast text-brand rounded-full px-1.5 py-0.5 text-xs font-semibold">
               {Object.values(values).filter((v) => v && v.trim() !== "").length}
             </span>
           )}
@@ -103,10 +109,10 @@ function TableFilter({ filters, values, onChange, onClear }: TableFilterProps) {
                   key={filter.key}
                   className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-sidebar-sub-item-hover border border-border-hr"
                 >
-                  <span className="text-[10px] text-text-secondary font-medium">
+                  <span className="text-xs text-text-secondary font-medium">
                     {filter.label}:
                   </span>
-                  <span className="text-[10px] text-text-primary font-medium">
+                  <span className="text-xs text-text-primary font-medium">
                     {displayValue}
                   </span>
                   <button
@@ -123,7 +129,7 @@ function TableFilter({ filters, values, onChange, onClear }: TableFilterProps) {
             {/* Clear All Button */}
             <button
               onClick={handleClear}
-              className="px-2 py-1 text-[10px] font-medium text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+              className="px-2 py-1 text-xs font-medium text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
             >
               Clear all
             </button>
@@ -142,7 +148,7 @@ function TableFilter({ filters, values, onChange, onClear }: TableFilterProps) {
           <div className="absolute top-full right-0 mt-2 z-50 flex flex-col gap-3 p-4 rounded-xl bg-bg-inner border border-table-border shadow-2xl min-w-[450px] max-w-[600px]">
             {/* Header with close button */}
             <div className="flex items-center justify-between pb-2 border-b border-border-hr">
-              <h3 className="text-sm font-semibold text-text-primary">
+              <h3 className="text-base font-semibold text-text-primary">
                 Filter Options
               </h3>
               <button
@@ -161,7 +167,7 @@ function TableFilter({ filters, values, onChange, onClear }: TableFilterProps) {
                   key={filter.key}
                   className="flex flex-col gap-2 min-w-[200px] flex-1"
                 >
-                  <label className="text-xs font-medium text-text-secondary">
+                  <label className="text-sm font-medium text-text-secondary">
                     {filter.label}
                   </label>
                   {filter.type === "text" ? (

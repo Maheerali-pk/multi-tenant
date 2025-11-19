@@ -17,7 +17,7 @@ const Search: React.FC<SearchProps> = ({ onChange, value }) => {
         <input
           type="text"
           placeholder="Search"
-          className="outline-none text-text-primary border-none bg-transparent placeholder:text-border-main text-xs w-full"
+          className="outline-none text-text-primary border-none bg-transparent placeholder:text-border-main text-sm w-full"
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />

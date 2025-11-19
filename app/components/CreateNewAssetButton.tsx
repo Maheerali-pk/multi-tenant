@@ -17,7 +17,7 @@ export const CreateNewAssetButton = ({
         dispatch({ setState: { createAssetCategoryId: categoryId } });
         dispatch({ openModal: "createAsset" });
       }}
-      className="flex gap-2 items-center h-full text-text-contrast bg-brand rounded-lg h-10  py-1.5 px-3 justify-center font-semibold text-xs cursor-pointer"
+      className="flex gap-2 items-center h-full text-text-contrast bg-brand rounded-lg h-10  py-1.5 px-3 justify-center font-semibold text-sm cursor-pointer"
     >
       <Plus size={16} className=""></Plus>
       New

@@ -11,6 +11,7 @@ interface IGlobalState {
   theme: Theme;
   modals: Record<ModalType, boolean>;
   createAssetCategoryId?: number;
+  refreshTrigger: number;
 }
 
 const STORAGE_KEY = "globalState";
@@ -48,6 +49,7 @@ function setStoredState(state: IGlobalState): void {
 // Get initial state from localStorage or use default
 const storedState = getStoredState();
 const initialState: IGlobalState = {
+  refreshTrigger: 0,
   isSidebarOpen: true,
   theme: (storedState?.theme as Theme) ?? "light",
   tableSearchValue: storedState?.tableSearchValue ?? "",

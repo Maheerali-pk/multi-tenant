@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { FilterOption, FilterValues } from "@/app/components/TableFilter";
 import { supabase } from "@/lib/supabase";
+import { DEFAULT_TENANT_ID } from "@/app/constants/tenant";
 
 interface SubcategoryOption {
   id: number;
@@ -17,6 +18,8 @@ interface UseAssetFiltersOptions {
     sensitivity?: boolean;
     exposure?: boolean;
     status?: boolean;
+    owner?: boolean;
+    reviewer?: boolean;
   };
   categoryId?: number; // Category ID to filter subcategories
 }
@@ -28,6 +31,8 @@ export const useAssetFilters = ({
     sensitivity: true,
     exposure: true,
     status: true,
+    owner: true,
+    reviewer: true,
   },
   categoryId,
 }: UseAssetFiltersOptions = {}) => {
@@ -42,6 +47,8 @@ export const useAssetFilters = ({
   const [lifecycleStatuses, setLifecycleStatuses] = useState<
     { id: number; name: string }[]
   >([]);
+  const [teams, setTeams] = useState<{ id: string; name: string }[]>([]);
+  const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
 
   // Fetch filter data
@@ -56,6 +63,8 @@ export const useAssetFilters = ({
           classificationsResult,
           exposuresResult,
           lifecycleStatusesResult,
+          teamsResult,
+          usersResult,
         ] = await Promise.all([
           supabase
             .from("asset_subcategories")
@@ -74,6 +83,20 @@ export const useAssetFilters = ({
             ? supabase
                 .from("asset_lifecycle_statuses")
                 .select("id, name")
+                .order("name")
+            : Promise.resolve({ data: [], error: null }),
+          includeFilters.owner || includeFilters.reviewer
+            ? supabase
+                .from("teams")
+                .select("id, name")
+                .eq("tenant_id", DEFAULT_TENANT_ID)
+                .order("name")
+            : Promise.resolve({ data: [], error: null }),
+          includeFilters.owner || includeFilters.reviewer
+            ? supabase
+                .from("users")
+                .select("id, name")
+                .eq("tenant_id", DEFAULT_TENANT_ID)
                 .order("name")
             : Promise.resolve({ data: [], error: null }),
         ]);
@@ -113,6 +136,18 @@ export const useAssetFilters = ({
         } else {
           setLifecycleStatuses(lifecycleStatusesResult.data || []);
         }
+
+        if (teamsResult.error) {
+          console.error("Error fetching teams for filters:", teamsResult.error);
+        } else {
+          setTeams(teamsResult.data || []);
+        }
+
+        if (usersResult.error) {
+          console.error("Error fetching users for filters:", usersResult.error);
+        } else {
+          setUsers(usersResult.data || []);
+        }
       } catch (err) {
         console.error("Error fetching filter data:", err);
       } finally {
@@ -125,6 +160,8 @@ export const useAssetFilters = ({
     includeFilters.sensitivity,
     includeFilters.exposure,
     includeFilters.status,
+    includeFilters.owner,
+    includeFilters.reviewer,
   ]);
 
   // Get subcategories filtered by categoryId
@@ -199,6 +236,54 @@ export const useAssetFilters = ({
       });
     }
 
+    if (includeFilters.owner && (teams.length > 0 || users.length > 0)) {
+      // Combine teams and users for owner filter
+      const ownerOptions: { value: string; label: string }[] = [];
+      teams.forEach((team) => {
+        ownerOptions.push({ value: team.name, label: team.name });
+      });
+      users.forEach((user) => {
+        // Only add if not already in the list (avoid duplicates)
+        if (!ownerOptions.find((opt) => opt.value === user.name)) {
+          ownerOptions.push({ value: user.name, label: user.name });
+        }
+      });
+
+      if (ownerOptions.length > 0) {
+        options.push({
+          key: "owner",
+          label: "Owner",
+          type: "select",
+          options: ownerOptions.sort((a, b) => a.label.localeCompare(b.label)),
+        });
+      }
+    }
+
+    if (includeFilters.reviewer && (teams.length > 0 || users.length > 0)) {
+      // Combine teams and users for reviewer filter
+      const reviewerOptions: { value: string; label: string }[] = [];
+      teams.forEach((team) => {
+        reviewerOptions.push({ value: team.name, label: team.name });
+      });
+      users.forEach((user) => {
+        // Only add if not already in the list (avoid duplicates)
+        if (!reviewerOptions.find((opt) => opt.value === user.name)) {
+          reviewerOptions.push({ value: user.name, label: user.name });
+        }
+      });
+
+      if (reviewerOptions.length > 0) {
+        options.push({
+          key: "reviewer",
+          label: "Reviewer",
+          type: "select",
+          options: reviewerOptions.sort((a, b) =>
+            a.label.localeCompare(b.label)
+          ),
+        });
+      }
+    }
+
     return options;
   }, [
     includeFilters,
@@ -207,6 +292,8 @@ export const useAssetFilters = ({
     classifications,
     exposures,
     lifecycleStatuses,
+    teams,
+    users,
   ]);
 
   // Reset subcategory when categoryId changes

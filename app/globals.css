@@ -26,6 +26,16 @@
   --blue: #2563eb;
   --icon: #6b7280;
   --input: white;
+  --status-active-bg: rgba(16, 185, 129, 0.15);
+  --status-active-text: #059669;
+  --status-planned-bg: rgba(99, 102, 241, 0.15);
+  --status-planned-text: #4338ca;
+  --status-inactive-bg: rgba(245, 158, 11, 0.1);
+  --status-inactive-text: #b45309;
+  --status-retired-bg: rgba(100, 116, 139, 0.2);
+  --status-retired-text: #475569;
+  --status-disposed-bg: rgba(71, 85, 105, 0.3);
+  --status-disposed-text: #334155;
 }
 
 [data-theme="dark"] {
@@ -34,7 +44,7 @@
   --bg-outer: #070f25;
   --input: #070f25;
   --table-row: #070f25;
-  --table-header: #060c1d;
+  --table-header: #000000;
   --table-border: #02081a;
   --sidebar-sub-item-hover: #070f25;
   --text-primary: white;
@@ -52,6 +62,16 @@
   --blue: #2563eb;
   --icon: #6b7280;
   --input: #070f25;
+  --status-active-bg: rgba(16, 185, 129, 0.15);
+  --status-active-text: #6ee7b7;
+  --status-planned-bg: rgba(99, 102, 241, 0.15);
+  --status-planned-text: #a5b4fc;
+  --status-inactive-bg: rgba(245, 158, 11, 0.1);
+  --status-inactive-text: #fcd34d;
+  --status-retired-bg: rgba(100, 116, 139, 0.2);
+  --status-retired-text: #cbd5e1;
+  --status-disposed-bg: rgba(71, 85, 105, 0.3);
+  --status-disposed-text: #cbd5e1;
 }
 
 @theme inline {
@@ -76,6 +96,16 @@
   --color-failure: var(--failure);
   --color-blue-light: var(--blue-light);
   --color-blue: var(--blue);
+  --color-status-active-bg: var(--status-active-bg);
+  --color-status-active-text: var(--status-active-text);
+  --color-status-planned-bg: var(--status-planned-bg);
+  --color-status-planned-text: var(--status-planned-text);
+  --color-status-inactive-bg: var(--status-inactive-bg);
+  --color-status-inactive-text: var(--status-inactive-text);
+  --color-status-retired-bg: var(--status-retired-bg);
+  --color-status-retired-text: var(--status-retired-text);
+  --color-status-disposed-bg: var(--status-disposed-bg);
+  --color-status-disposed-text: var(--status-disposed-text);
 }
 html,
 body,
