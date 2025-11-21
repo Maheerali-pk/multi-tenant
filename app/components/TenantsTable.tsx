@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { Tables } from "@/app/types/database.types";
 import DeleteTenant from "@/app/modals/DeleteTenant";
 import EditTenantModal from "@/app/modals/EditTenantModal";
+import { FilterValues } from "./TableFilter";
 
 type Tenant = Tables<"tenants">;
 
@@ -15,11 +16,13 @@ interface TenantsTableProps {
   onEdit?: (row: TenantRow) => void;
   onDelete?: (row: TenantRow) => void;
   searchValue?: string;
+  filterValues?: FilterValues;
   refreshTrigger?: number; // Increment this to trigger refresh
 }
 
 const TenantsTable: React.FC<TenantsTableProps> = ({
   searchValue = "",
+  filterValues = {},
   refreshTrigger,
   onEdit,
   onDelete,
@@ -127,7 +130,7 @@ const TenantsTable: React.FC<TenantsTableProps> = ({
     }
   };
 
-  // Apply search filter
+  // Apply search and filter values
   const filteredData = useMemo(() => {
     let result = [...tenants];
 
@@ -147,8 +150,28 @@ const TenantsTable: React.FC<TenantsTableProps> = ({
       );
     }
 
+    // Apply status filter
+    if (filterValues.status && filterValues.status.trim() !== "") {
+      result = result.filter((row) => row.status === filterValues.status);
+    }
+
+    // Apply country filter
+    if (filterValues.country && filterValues.country.trim() !== "") {
+      result = result.filter((row) => row.country === filterValues.country);
+    }
+
+    // Apply contact_name filter
+    if (filterValues.contact_name && filterValues.contact_name.trim() !== "") {
+      const contactNameFilter = filterValues.contact_name.toLowerCase();
+      result = result.filter(
+        (row) =>
+          row.contact_name &&
+          row.contact_name.toLowerCase().includes(contactNameFilter)
+      );
+    }
+
     return result;
-  }, [tenants, searchValue]);
+  }, [tenants, searchValue, filterValues]);
 
   const columns: TableColumn<TenantRow>[] = [
     {

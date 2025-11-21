@@ -5,6 +5,7 @@ import Table, { TableColumn } from "./Table";
 import { supabase } from "@/lib/supabase";
 import { Tables } from "@/app/types/database.types";
 import EditUserModal from "@/app/modals/EditUserModal";
+import { FilterValues } from "./TableFilter";
 
 type User = Tables<"users">;
 type Tenant = Tables<"tenants">;
@@ -16,11 +17,13 @@ export interface UserRow extends User {
 interface UsersTableProps {
   onEdit?: (row: UserRow) => void;
   searchValue?: string;
+  filterValues?: FilterValues;
   refreshTrigger?: number;
 }
 
 const UsersTable: React.FC<UsersTableProps> = ({
   searchValue = "",
+  filterValues = {},
   refreshTrigger,
   onEdit,
 }) => {
@@ -114,10 +117,11 @@ const UsersTable: React.FC<UsersTableProps> = ({
     await fetchUsers();
   }, [fetchUsers]);
 
-  // Apply search filter
+  // Apply search and filter values
   const filteredData = useMemo(() => {
     let result = [...users];
 
+    // Apply search filter
     if (searchValue && searchValue.trim() !== "") {
       const searchLower = searchValue.toLowerCase();
       result = result.filter(
@@ -131,8 +135,26 @@ const UsersTable: React.FC<UsersTableProps> = ({
       );
     }
 
+    // Apply role filter
+    if (filterValues.role && filterValues.role.trim() !== "") {
+      result = result.filter((row) => row.role === filterValues.role);
+    }
+
+    // Apply tenant filter
+    if (filterValues.tenant && filterValues.tenant.trim() !== "") {
+      result = result.filter((row) => row.tenant_id === filterValues.tenant);
+    }
+
+    // Apply title filter
+    if (filterValues.title && filterValues.title.trim() !== "") {
+      const titleFilter = filterValues.title.toLowerCase();
+      result = result.filter(
+        (row) => row.title && row.title.toLowerCase().includes(titleFilter)
+      );
+    }
+
     return result;
-  }, [users, searchValue]);
+  }, [users, searchValue, filterValues]);
 
   const columns: TableColumn<UserRow>[] = [
     {

@@ -5,13 +5,22 @@ import ContentWrapper from "@/app/components/ContentWrapper";
 import DashboardWrapper from "@/app/components/DashboardWrapper";
 import UsersTable from "@/app/components/UsersTable";
 import Search from "@/app/components/Search";
+import TableFilter from "@/app/components/TableFilter";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
+import { useUserFilters } from "@/app/hooks/useUserFilters";
 
 interface UsersManagementProps {}
 
 const UsersManagement: React.FC<UsersManagementProps> = () => {
   const [state, dispatch] = useGlobalContext();
   const [searchValue, setSearchValue] = useState("");
+  const { filterValues, setFilterValues, filterOptions } = useUserFilters({
+    includeFilters: {
+      role: true,
+      tenant: true,
+      title: true,
+    },
+  });
 
   const handleSearchChange = useCallback(
     (value: string) => {
@@ -33,11 +42,17 @@ const UsersManagement: React.FC<UsersManagementProps> = () => {
                 onChange={handleSearchChange}
                 value={searchValue}
               />
+              <TableFilter
+                filters={filterOptions}
+                values={filterValues}
+                onChange={setFilterValues}
+              />
             </div>
           </div>
           <div className="flex-1 min-h-0">
             <UsersTable
               searchValue={searchValue}
+              filterValues={filterValues}
               refreshTrigger={state.refreshTrigger}
             />
           </div>

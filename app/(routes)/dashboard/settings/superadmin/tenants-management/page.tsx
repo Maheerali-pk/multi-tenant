@@ -1,17 +1,35 @@
 "use client";
 
-import { useCallback } from "react";
+import { useState, useCallback } from "react";
 import ContentWrapper from "@/app/components/ContentWrapper";
 import DashboardWrapper from "@/app/components/DashboardWrapper";
 import TenantsTable from "@/app/components/TenantsTable";
 import { CreateNewTenantButton } from "@/app/components/CreateNewTenantButton";
 import CreateTenant from "@/app/modals/CreateTenant";
+import Search from "@/app/components/Search";
+import TableFilter from "@/app/components/TableFilter";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
+import { useTenantFilters } from "@/app/hooks/useTenantFilters";
 
 interface TenantsManagementProps {}
 
 const TenantsManagement: React.FC<TenantsManagementProps> = () => {
   const [state, dispatch] = useGlobalContext();
+  const [searchValue, setSearchValue] = useState("");
+  const { filterValues, setFilterValues, filterOptions } = useTenantFilters({
+    includeFilters: {
+      status: true,
+      country: true,
+      contact_name: true,
+    },
+  });
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchValue(value);
+    },
+    []
+  );
 
   const handleCreateSuccess = useCallback(async () => {
     dispatch({ closeModal: "createTenant" });
@@ -27,10 +45,25 @@ const TenantsManagement: React.FC<TenantsManagementProps> = () => {
               <div className="font-semibold text-xl items-center text-text-primary">
                 Tenants Management
               </div>
-              <CreateNewTenantButton />
+              <div className="gap-4 flex items-center">
+                <Search
+                  onChange={handleSearchChange}
+                  value={searchValue}
+                />
+                <TableFilter
+                  filters={filterOptions}
+                  values={filterValues}
+                  onChange={setFilterValues}
+                />
+                <CreateNewTenantButton />
+              </div>
             </div>
             <div className="flex-1 min-h-0">
-              <TenantsTable refreshTrigger={state.refreshTrigger} />
+              <TenantsTable
+                searchValue={searchValue}
+                filterValues={filterValues}
+                refreshTrigger={state.refreshTrigger}
+              />
             </div>
           </div>
         </ContentWrapper>

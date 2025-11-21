@@ -10,7 +10,12 @@ export type AssetFilterKey =
   | "exposure"
   | "status"
   | "owner"
-  | "reviewer";
+  | "reviewer"
+  | "role"
+  | "tenant"
+  | "title"
+  | "country"
+  | "contact_name";
 
 export interface FilterOption {
   key: AssetFilterKey;
@@ -28,6 +33,11 @@ export interface FilterValues {
   status?: string;
   owner?: string;
   reviewer?: string;
+  role?: string;
+  tenant?: string;
+  title?: string;
+  country?: string;
+  contact_name?: string;
 }
 
 interface TableFilterProps {
@@ -59,6 +69,11 @@ function TableFilter({ filters, values, onChange, onClear }: TableFilterProps) {
       status: "",
       owner: "",
       reviewer: "",
+      role: "",
+      tenant: "",
+      title: "",
+      country: "",
+      contact_name: "",
     };
     onChange(clearedValues);
     onClear?.();
