@@ -367,15 +367,13 @@ export type Database = {
           country: string | null
           created_at: string
           id: string
-          is_active: boolean | null
           last_login_date: string | null
           last_login_user: string | null
           logo: string | null
-          metadata: Json | null
           name: string
           notes: string | null
-          plan: string | null
           slug: string | null
+          status: string | null
           updated_at: string | null
         }
         Insert: {
@@ -386,15 +384,13 @@ export type Database = {
           country?: string | null
           created_at?: string
           id?: string
-          is_active?: boolean | null
           last_login_date?: string | null
           last_login_user?: string | null
           logo?: string | null
-          metadata?: Json | null
           name: string
           notes?: string | null
-          plan?: string | null
           slug?: string | null
+          status?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -405,15 +401,13 @@ export type Database = {
           country?: string | null
           created_at?: string
           id?: string
-          is_active?: boolean | null
           last_login_date?: string | null
           last_login_user?: string | null
           logo?: string | null
-          metadata?: Json | null
           name?: string
           notes?: string | null
-          plan?: string | null
           slug?: string | null
+          status?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -657,8 +651,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-
-type AssetsTable = Tables<"assets">
-type AssetsTableInsert = TablesInsert<"assets">
-type AssetsTableUpdate = TablesUpdate<"assets">
-

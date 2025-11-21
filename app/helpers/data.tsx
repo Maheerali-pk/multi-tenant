@@ -1,4 +1,4 @@
-import { AssetField } from "../types/assets";
+import { AssetField } from "../types/assets.types";
 import { allIcons } from "./icons";
 import {
   LayoutGrid,

@@ -1,16 +1,25 @@
 "use client";
 
-import { Settings, LogOut, Menu, LucideMenu } from "lucide-react";
+import {
+  Settings,
+  LogOut,
+  Menu,
+  LucideMenu,
+  UsersRound,
+  KeyRound,
+} from "lucide-react";
 import { SidebarItems } from "../helpers/data";
 import { allIcons } from "../helpers/icons";
 import SidebarItemMain from "./SidebarItemMain";
-import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import Image from "next/image";
 import classNames from "classnames";
+import { useAuthContext } from "@/app/contexts/AuthContext";
 
 interface SidebarProps {}
 
 const Sidebar: React.FC<SidebarProps> = () => {
+  const [auth, dispatchAuth] = useAuthContext();
   const [state, dispatch] = useGlobalContext();
   const isOpen = state.isSidebarOpen;
 
@@ -64,6 +73,53 @@ const Sidebar: React.FC<SidebarProps> = () => {
         </div>
       </div>
       <div className="flex flex-col gap-0 pb-5">
+        {auth.userData?.role === "superadmin" && (
+          <SidebarItemMain
+            isOpen={isOpen}
+            data={{
+              icon: <Settings size={20} />,
+              name: "Settings (Super Admin)",
+              href: "/settings",
+              subItems: [
+                {
+                  name: "Tenant Management",
+                  href: "/dashboard/settings/superadmin/tenants-management",
+                  icon: <UsersRound size={20} />,
+                },
+
+                {
+                  name: "Users and Access",
+                  href: "/dashboard/settings/superadmin/users-management",
+                  icon: <KeyRound size={20} />,
+                },
+              ],
+            }}
+          />
+        )}
+
+        {auth.userData?.role === "tenant_admin" && (
+          <SidebarItemMain
+            isOpen={isOpen}
+            data={{
+              icon: <Settings size={20} />,
+              name: "Settings (Tenant Admin)",
+              href: "/settings",
+              subItems: [
+                {
+                  name: "Company Profile",
+                  href: "/dashboard/settings/tenant-admin/tenant-profile",
+                  icon: <UsersRound size={20} />,
+                },
+
+                {
+                  name: "Users and Access",
+                  href: "/dashboard/settings/tenant-admin/users-management",
+                  icon: <KeyRound size={20} />,
+                },
+              ],
+            }}
+          />
+        )}
         <SidebarItemMain
           isOpen={isOpen}
           data={{

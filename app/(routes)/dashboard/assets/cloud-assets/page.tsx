@@ -5,10 +5,11 @@ import Header from "@/app/components/Header";
 import Search from "@/app/components/Search";
 import Sidebar from "@/app/components/Sidebar";
 import TableFilter from "@/app/components/TableFilter";
-import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import { useAssetFilters } from "@/app/hooks/useAssetFilters";
-import { commonAssetFields } from "@/app/helpers/data";
 import { CreateNewAssetButton } from "@/app/components/CreateNewAssetButton";
+import { commonAssetFields } from "@/app/helpers/data";
+import DashboardWrapper from "@/app/components/DashboardWrapper";
 
 interface ApplicationsProps {}
 
@@ -24,17 +25,16 @@ const Applications: React.FC<ApplicationsProps> = () => {
       owner: true,
       reviewer: true,
     },
-    categoryId: 4,
+    categoryId: 3,
   });
 
   return (
-    <div className="grid grid-cols-[min-content_auto] gap-3 p-3 bg-bg-outer h-full w-full">
-      <Sidebar></Sidebar>
+    <DashboardWrapper>
       <ContentWrapper filedsToInlcude={[...commonAssetFields]}>
         <div className="flex flex-col rounded-3xl  p-6 gap-3 min-h-0 flex-1">
           <div className="flex justify-between items-center shrink-0 gap-4">
             <div className="font-semibold text-xl items-center text-text-primary">
-              Assets Management / Data and Information management
+              Assets Management / Cloud Assets management
             </div>
             <div className="gap-7 flex items-center">
               <Search
@@ -48,20 +48,21 @@ const Applications: React.FC<ApplicationsProps> = () => {
                 values={filterValues}
                 onChange={setFilterValues}
               />
-              <CreateNewAssetButton categoryId={4} />
+              <CreateNewAssetButton categoryId={3} />
             </div>
           </div>
           <div className="flex-1 min-h-0">
             <AssetsTable
               refreshTrigger={state.refreshTrigger}
-              filterValues={filterValues}
               searchValue={state.tableSearchValue}
-              categoryId={4}
+              filterValues={filterValues}
+              categoryId={3}
+              filedsToInlcude={[...commonAssetFields]}
             />
           </div>
         </div>
       </ContentWrapper>
-    </div>
+    </DashboardWrapper>
   );
 };
 

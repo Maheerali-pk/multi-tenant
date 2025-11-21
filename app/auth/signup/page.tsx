@@ -54,6 +54,21 @@ export default function SignUpPage() {
       }
 
       if (data.user) {
+        // Create user record in users table
+        const { error: userInsertError } = await supabase.from("users").insert({
+          id: data.user.id,
+          auth_user_id: data.user.id,
+          email: formData.email,
+          name: formData.name,
+          role: "tenant_user", // Default role for new users
+        });
+
+        if (userInsertError) {
+          console.error("Error creating user record:", userInsertError);
+          // Don't fail the signup if user record creation fails
+          // The user can still sign in, and we can handle this edge case later
+        }
+
         setSuccess(true);
         // Reset form
         setFormData({

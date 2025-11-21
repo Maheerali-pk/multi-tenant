@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { FilterOption, FilterValues } from "@/app/components/TableFilter";
 import { supabase } from "@/lib/supabase";
-import { DEFAULT_TENANT_ID } from "@/app/constants/tenant";
+import { useAuthContext } from "@/app/contexts/AuthContext";
 
 interface SubcategoryOption {
   id: number;
@@ -36,6 +36,7 @@ export const useAssetFilters = ({
   },
   categoryId,
 }: UseAssetFiltersOptions = {}) => {
+  const [auth] = useAuthContext();
   const [filterValues, setFilterValues] = useState<FilterValues>({});
   const [subcategories, setSubcategories] = useState<SubcategoryOption[]>([]);
   const [classifications, setClassifications] = useState<
@@ -86,18 +87,22 @@ export const useAssetFilters = ({
                 .order("name")
             : Promise.resolve({ data: [], error: null }),
           includeFilters.owner || includeFilters.reviewer
-            ? supabase
-                .from("teams")
-                .select("id, name")
-                .eq("tenant_id", DEFAULT_TENANT_ID)
-                .order("name")
+            ? auth.userData?.tenant_id
+              ? supabase
+                  .from("teams")
+                  .select("id, name")
+                  .eq("tenant_id", auth.userData.tenant_id)
+                  .order("name")
+              : Promise.resolve({ data: [], error: null })
             : Promise.resolve({ data: [], error: null }),
           includeFilters.owner || includeFilters.reviewer
-            ? supabase
-                .from("users")
-                .select("id, name")
-                .eq("tenant_id", DEFAULT_TENANT_ID)
-                .order("name")
+            ? auth.userData?.tenant_id
+              ? supabase
+                  .from("users")
+                  .select("id, name")
+                  .eq("tenant_id", auth.userData.tenant_id)
+                  .order("name")
+              : Promise.resolve({ data: [], error: null })
             : Promise.resolve({ data: [], error: null }),
         ]);
 

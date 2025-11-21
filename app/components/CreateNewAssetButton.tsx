@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useGlobalContext } from "@/app/contexts/GlobalContext";
 
 interface CreateNewAssetButtonProps {
   categoryId: number;

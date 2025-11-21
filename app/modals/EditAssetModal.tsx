@@ -3,10 +3,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { DEFAULT_TENANT_ID } from "@/app/constants/tenant";
 import type { Tables, TablesUpdate } from "@/app/types/database.types";
 import { CustomSelect, SelectOption } from "@/app/components/CustomSelect";
 import type { AssetRow } from "@/app/components/AssetsTable";
+import { AssetField } from "../types/assets.types";
+import { useAuthContext } from "@/app/contexts/AuthContext";
 
 type AssetSubcategory = Tables<"asset_subcategories">;
 type AssetClassification = Tables<"asset_classifications">;
@@ -21,6 +22,7 @@ interface EditAssetModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   asset: AssetRow | null;
+  filedsToInlcude: AssetField[]; // Note: keeping typo to match ContentWrapper for now
 }
 
 export default function EditAssetModal({
@@ -28,7 +30,9 @@ export default function EditAssetModal({
   onClose,
   onSuccess,
   asset,
+  filedsToInlcude,
 }: EditAssetModalProps) {
+  const [auth] = useAuthContext();
   const [formData, setFormData] = useState({
     name: "",
     subcategoryId: "",
@@ -40,6 +44,7 @@ export default function EditAssetModal({
     description: "",
     owner: "",
     reviewer: "",
+    ip_address: "",
   });
   const [subcategories, setSubcategories] = useState<AssetSubcategory[]>([]);
   const [classifications, setClassifications] = useState<AssetClassification[]>(
@@ -76,11 +81,18 @@ export default function EditAssetModal({
 
     setLoadingAsset(true);
     try {
+      const tenantId = auth.userData?.tenant_id;
+      if (!tenantId) {
+        setError("User tenant not found");
+        setLoadingAsset(false);
+        return;
+      }
+
       const { data: assetData, error: assetError } = await supabase
         .from("assets")
         .select("*")
         .eq("id", asset.id)
-        .eq("tenant_id", DEFAULT_TENANT_ID)
+        .eq("tenant_id", tenantId)
         .single();
 
       if (assetError) {
@@ -111,6 +123,7 @@ export default function EditAssetModal({
             : assetData.reviewer_user_id
             ? `user:${assetData.reviewer_user_id}`
             : "",
+          ip_address: assetData.ip_address || "",
         });
       }
     } catch (err) {
@@ -148,16 +161,20 @@ export default function EditAssetModal({
         supabase.from("asset_classifications").select("*").order("name"),
         supabase.from("asset_exposures").select("*").order("name"),
         supabase.from("asset_lifecycle_statuses").select("*").order("name"),
-        supabase
-          .from("teams")
-          .select("*")
-          .eq("tenant_id", DEFAULT_TENANT_ID)
-          .order("name"),
-        supabase
-          .from("users")
-          .select("*")
-          .eq("tenant_id", DEFAULT_TENANT_ID)
-          .order("name"),
+        auth.userData?.tenant_id
+          ? supabase
+              .from("teams")
+              .select("*")
+              .eq("tenant_id", auth.userData.tenant_id)
+              .order("name")
+          : Promise.resolve({ data: [], error: null }),
+        auth.userData?.tenant_id
+          ? supabase
+              .from("users")
+              .select("*")
+              .eq("tenant_id", auth.userData.tenant_id)
+              .order("name")
+          : Promise.resolve({ data: [], error: null }),
       ]);
 
       if (classificationsResult.error) {
@@ -279,17 +296,25 @@ export default function EditAssetModal({
         location: formData.location.trim() || null,
         url: formData.url.trim() || null,
         description: formData.description.trim() || null,
+        ip_address: formData.ip_address.trim() || null,
         owner_team_id: ownerTeamId,
         owner_user_id: ownerUserId,
         reviewer_team_id: reviewerTeamId,
         reviewer_user_id: reviewerUserId,
       };
 
+      const tenantId = auth.userData?.tenant_id;
+      if (!tenantId) {
+        setError("User tenant not found");
+        setLoading(false);
+        return;
+      }
+
       const { error: updateError } = await supabase
         .from("assets")
         .update(assetData)
         .eq("id", asset.id)
-        .eq("tenant_id", DEFAULT_TENANT_ID);
+        .eq("tenant_id", tenantId);
 
       if (updateError) {
         setError(updateError.message || "Failed to update asset");
@@ -400,9 +425,7 @@ export default function EditAssetModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
       <div className="bg-bg-inner rounded-3xl p-8 shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-text-dark">
-            Edit Asset
-          </h2>
+          <h2 className="text-2xl font-semibold text-text-dark">Edit Asset</h2>
           <button
             onClick={onClose}
             disabled={loading}
@@ -428,214 +451,260 @@ export default function EditAssetModal({
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Grid Layout for Form Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Name Field - Full Width */}
-            <div className="md:col-span-2 flex flex-col gap-1.5">
-              <label
-                htmlFor="name"
-                className="text-sm font-medium text-text-primary"
-              >
-                Name <span className="text-failure">*</span>
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                disabled={loadingAsset}
-                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary disabled:opacity-50"
-                placeholder="Enter asset name"
-              />
-            </div>
+            {/* Name Field - Full Width (always shown if in fieldsToInclude) */}
+            {filedsToInlcude.includes("name") && (
+              <div className="md:col-span-2 flex flex-col gap-1.5">
+                <label
+                  htmlFor="name"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  Name <span className="text-failure">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                  disabled={loadingAsset}
+                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary disabled:opacity-50"
+                  placeholder="Enter asset name"
+                />
+              </div>
+            )}
 
             {/* Type (Subcategory) Field */}
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="subcategoryId"
-                className="text-sm font-medium text-text-primary"
-              >
-                Type
-              </label>
-              <CustomSelect
-                id="subcategoryId"
-                name="subcategoryId"
-                options={subcategoryOptions}
-                value={formData.subcategoryId}
-                onChange={(value) => handleSelectChange("subcategoryId", value)}
-                placeholder={
-                  !asset?.categoryId
-                    ? "Category not set"
-                    : subcategories.length === 0
-                    ? "No subcategories available"
-                    : "Select a subcategory (optional)"
-                }
-                isDisabled={
-                  !asset?.categoryId ||
-                  subcategories.length === 0 ||
-                  loadingAsset
-                }
-              />
-            </div>
+            {filedsToInlcude.includes("subcategory_id") && (
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="subcategoryId"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  Type
+                </label>
+                <CustomSelect
+                  id="subcategoryId"
+                  name="subcategoryId"
+                  options={subcategoryOptions}
+                  value={formData.subcategoryId}
+                  onChange={(value) =>
+                    handleSelectChange("subcategoryId", value)
+                  }
+                  placeholder={
+                    !asset?.categoryId
+                      ? "Category not set"
+                      : subcategories.length === 0
+                      ? "No subcategories available"
+                      : "Select a subcategory (optional)"
+                  }
+                  isDisabled={
+                    !asset?.categoryId ||
+                    subcategories.length === 0 ||
+                    loadingAsset
+                  }
+                />
+              </div>
+            )}
 
             {/* Sensitivity (Classification) Field */}
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="classificationId"
-                className="text-sm font-medium text-text-primary"
-              >
-                Sensitivity
-              </label>
-              <CustomSelect
-                id="classificationId"
-                name="classificationId"
-                options={classificationOptions}
-                value={formData.classificationId}
-                onChange={(value) =>
-                  handleSelectChange("classificationId", value)
-                }
-                placeholder="Select sensitivity (optional)"
-                isDisabled={loadingCategories || loadingAsset}
-              />
-            </div>
+            {filedsToInlcude.includes("classification_id") && (
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="classificationId"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  Sensitivity
+                </label>
+                <CustomSelect
+                  id="classificationId"
+                  name="classificationId"
+                  options={classificationOptions}
+                  value={formData.classificationId}
+                  onChange={(value) =>
+                    handleSelectChange("classificationId", value)
+                  }
+                  placeholder="Select sensitivity (optional)"
+                  isDisabled={loadingCategories || loadingAsset}
+                />
+              </div>
+            )}
 
             {/* Exposure Field */}
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="exposureId"
-                className="text-sm font-medium text-text-primary"
-              >
-                Exposure
-              </label>
-              <CustomSelect
-                id="exposureId"
-                name="exposureId"
-                options={exposureOptions}
-                value={formData.exposureId}
-                onChange={(value) => handleSelectChange("exposureId", value)}
-                placeholder="Select exposure (optional)"
-                isDisabled={loadingCategories || loadingAsset}
-              />
-            </div>
+            {filedsToInlcude.includes("exposure_id") && (
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="exposureId"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  Exposure
+                </label>
+                <CustomSelect
+                  id="exposureId"
+                  name="exposureId"
+                  options={exposureOptions}
+                  value={formData.exposureId}
+                  onChange={(value) => handleSelectChange("exposureId", value)}
+                  placeholder="Select exposure (optional)"
+                  isDisabled={loadingCategories || loadingAsset}
+                />
+              </div>
+            )}
 
             {/* Lifecycle Status Field */}
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="lifecycleStatusId"
-                className="text-sm font-medium text-text-primary"
-              >
-                Lifecycle Status
-              </label>
-              <CustomSelect
-                id="lifecycleStatusId"
-                name="lifecycleStatusId"
-                options={lifecycleStatusOptions}
-                value={formData.lifecycleStatusId}
-                onChange={(value) =>
-                  handleSelectChange("lifecycleStatusId", value)
-                }
-                placeholder="Select lifecycle status (optional)"
-                isDisabled={loadingCategories || loadingAsset}
-              />
-            </div>
+            {filedsToInlcude.includes("lifecycle_status_id") && (
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="lifecycleStatusId"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  Lifecycle Status
+                </label>
+                <CustomSelect
+                  id="lifecycleStatusId"
+                  name="lifecycleStatusId"
+                  options={lifecycleStatusOptions}
+                  value={formData.lifecycleStatusId}
+                  onChange={(value) =>
+                    handleSelectChange("lifecycleStatusId", value)
+                  }
+                  placeholder="Select lifecycle status (optional)"
+                  isDisabled={loadingCategories || loadingAsset}
+                />
+              </div>
+            )}
 
             {/* Asset URL Field */}
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="url"
-                className="text-sm font-medium text-text-primary"
-              >
-                Asset URL
-              </label>
-              <input
-                type="url"
-                id="url"
-                name="url"
-                value={formData.url}
-                onChange={handleChange}
-                disabled={loadingAsset}
-                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary disabled:opacity-50"
-                placeholder="https://example.com"
-              />
-            </div>
+            {filedsToInlcude.includes("url") && (
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="url"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  Asset URL
+                </label>
+                <input
+                  type="url"
+                  id="url"
+                  name="url"
+                  value={formData.url}
+                  onChange={handleChange}
+                  disabled={loadingAsset}
+                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary disabled:opacity-50"
+                  placeholder="https://example.com"
+                />
+              </div>
+            )}
+
+            {/* IP Address Field */}
+            {filedsToInlcude.includes("ip_address") && (
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="ip_address"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  IP Address
+                </label>
+                <input
+                  type="text"
+                  id="ip_address"
+                  name="ip_address"
+                  value={formData.ip_address}
+                  onChange={handleChange}
+                  disabled={loadingAsset}
+                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary disabled:opacity-50"
+                  placeholder="192.168.1.1"
+                />
+              </div>
+            )}
 
             {/* Owner Field */}
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="owner"
-                className="text-sm font-medium text-text-primary"
-              >
-                Owner
-              </label>
-              <CustomSelect
-                id="owner"
-                name="owner"
-                options={ownerOptions}
-                value={formData.owner}
-                onChange={(value) => handleSelectChange("owner", value)}
-                placeholder="Select owner (optional)"
-                isDisabled={loadingCategories || loadingAsset}
-              />
-            </div>
+            {(filedsToInlcude.includes("owner_team_id") ||
+              filedsToInlcude.includes("owner_user_id")) && (
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="owner"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  Owner
+                </label>
+                <CustomSelect
+                  id="owner"
+                  name="owner"
+                  options={ownerOptions}
+                  value={formData.owner}
+                  onChange={(value) => handleSelectChange("owner", value)}
+                  placeholder="Select owner (optional)"
+                  isDisabled={loadingCategories || loadingAsset}
+                />
+              </div>
+            )}
 
             {/* Reviewer Field */}
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="reviewer"
-                className="text-sm font-medium text-text-primary"
-              >
-                Reviewer
-              </label>
-              <CustomSelect
-                id="reviewer"
-                name="reviewer"
-                options={reviewerOptions}
-                value={formData.reviewer}
-                onChange={(value) => handleSelectChange("reviewer", value)}
-                placeholder="Select reviewer (optional)"
-                isDisabled={loadingCategories || loadingAsset}
-              />
-            </div>
+            {(filedsToInlcude.includes("reviewer_team_id") ||
+              filedsToInlcude.includes("reviewer_user_id")) && (
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="reviewer"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  Reviewer
+                </label>
+                <CustomSelect
+                  id="reviewer"
+                  name="reviewer"
+                  options={reviewerOptions}
+                  value={formData.reviewer}
+                  onChange={(value) => handleSelectChange("reviewer", value)}
+                  placeholder="Select reviewer (optional)"
+                  isDisabled={loadingCategories || loadingAsset}
+                />
+              </div>
+            )}
 
-            {/* Location Field - Side by side with Description */}
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="location"
-                className="text-sm font-medium text-text-primary"
-              >
-                Location
-              </label>
-              <textarea
-                id="location"
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                rows={3}
-                disabled={loadingAsset}
-                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none disabled:opacity-50"
-                placeholder="Enter asset location"
-              />
-            </div>
+            {/* Location Field */}
+            {filedsToInlcude.includes("location") && (
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="location"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  Location
+                </label>
+                <textarea
+                  id="location"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  rows={3}
+                  disabled={loadingAsset}
+                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none disabled:opacity-50"
+                  placeholder="Enter asset location"
+                />
+              </div>
+            )}
 
-            {/* Description Field - Side by side with Location */}
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="description"
-                className="text-sm font-medium text-text-primary"
-              >
-                Description
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={3}
-                disabled={loadingAsset}
-                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none disabled:opacity-50"
-                placeholder="Enter asset description"
-              />
-            </div>
+            {/* Description Field */}
+            {filedsToInlcude.includes("description") && (
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="description"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows={3}
+                  disabled={loadingAsset}
+                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none disabled:opacity-50"
+                  placeholder="Enter asset description"
+                />
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}
@@ -661,4 +730,3 @@ export default function EditAssetModal({
     </div>
   );
 }
-

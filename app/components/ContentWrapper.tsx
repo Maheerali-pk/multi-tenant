@@ -1,6 +1,7 @@
+"use client";
 import { FunctionComponent } from "react";
 import Header from "./Header";
-import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import CreateAsset from "../modals/CreateAsset";
 import { Tables } from "../types/database.types";
 

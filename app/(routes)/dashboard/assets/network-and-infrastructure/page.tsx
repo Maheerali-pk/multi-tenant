@@ -5,10 +5,11 @@ import Header from "@/app/components/Header";
 import Search from "@/app/components/Search";
 import Sidebar from "@/app/components/Sidebar";
 import TableFilter from "@/app/components/TableFilter";
-import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import { commonAssetFields } from "@/app/helpers/data";
 import { useAssetFilters } from "@/app/hooks/useAssetFilters";
 import { CreateNewAssetButton } from "@/app/components/CreateNewAssetButton";
+import DashboardWrapper from "@/app/components/DashboardWrapper";
 
 interface ApplicationsProps {}
 
@@ -28,8 +29,7 @@ const Applications: React.FC<ApplicationsProps> = () => {
   });
 
   return (
-    <div className="grid grid-cols-[min-content_auto] gap-3 p-3 bg-bg-outer h-full w-full">
-      <Sidebar></Sidebar>
+    <DashboardWrapper>
       <ContentWrapper filedsToInlcude={[...commonAssetFields, "ip_address"]}>
         <div className="flex flex-col rounded-3xl  p-6 gap-3 min-h-0 flex-1">
           <div className="flex justify-between items-center shrink-0 gap-4">
@@ -57,11 +57,12 @@ const Applications: React.FC<ApplicationsProps> = () => {
               filterValues={filterValues}
               searchValue={state.tableSearchValue}
               categoryId={2}
+              filedsToInlcude={[...commonAssetFields, "ip_address"]}
             />
           </div>
         </div>
       </ContentWrapper>
-    </div>
+    </DashboardWrapper>
   );
 };
 

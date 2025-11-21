@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Poppins } from "next/font/google";
 import "./globals.css";
-import { GlobalContextProvider } from "@/contexts/GlobalContext";
-import { AuthContextProvider } from "@/contexts/AuthContext";
+import { GlobalContextProvider } from "@/app/contexts/GlobalContext";
+import { AuthContextProvider } from "@/app/contexts/AuthContext";
 import AuthGuard from "./components/AuthGuard";
 
 const poppins = Poppins({

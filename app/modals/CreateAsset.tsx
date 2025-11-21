@@ -3,10 +3,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { DEFAULT_TENANT_ID } from "@/app/constants/tenant";
 import type { Tables, TablesInsert } from "@/app/types/database.types";
 import { CustomSelect, SelectOption } from "@/app/components/CustomSelect";
-import { AssetField } from "../types/assets";
+import { AssetField } from "../types/assets.types";
+import { useAuthContext } from "@/app/contexts/AuthContext";
 
 type AssetSubcategory = Tables<"asset_subcategories">;
 type AssetClassification = Tables<"asset_classifications">;
@@ -31,6 +31,7 @@ export default function CreateAsset({
   categoryId,
   filedsToInlcude,
 }: CreateAssetProps) {
+  const [auth] = useAuthContext();
   const [formData, setFormData] = useState({
     name: "",
     subcategoryId: "",
@@ -102,16 +103,20 @@ export default function CreateAsset({
         supabase.from("asset_classifications").select("*").order("name"),
         supabase.from("asset_exposures").select("*").order("name"),
         supabase.from("asset_lifecycle_statuses").select("*").order("name"),
-        supabase
-          .from("teams")
-          .select("*")
-          .eq("tenant_id", DEFAULT_TENANT_ID)
-          .order("name"),
-        supabase
-          .from("users")
-          .select("*")
-          .eq("tenant_id", DEFAULT_TENANT_ID)
-          .order("name"),
+        auth.userData?.tenant_id
+          ? supabase
+              .from("teams")
+              .select("*")
+              .eq("tenant_id", auth.userData.tenant_id)
+              .order("name")
+          : Promise.resolve({ data: [], error: null }),
+        auth.userData?.tenant_id
+          ? supabase
+              .from("users")
+              .select("*")
+              .eq("tenant_id", auth.userData.tenant_id)
+              .order("name")
+          : Promise.resolve({ data: [], error: null }),
       ]);
 
       if (classificationsResult.error) {
@@ -239,7 +244,7 @@ export default function CreateAsset({
         owner_user_id: ownerUserId,
         reviewer_team_id: reviewerTeamId,
         reviewer_user_id: reviewerUserId,
-        tenant_id: DEFAULT_TENANT_ID,
+        tenant_id: auth.userData?.tenant_id || null,
       };
 
       const { error: insertError } = await supabase

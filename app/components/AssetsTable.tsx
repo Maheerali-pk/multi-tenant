@@ -2,12 +2,13 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Table, { TableColumn } from "./Table";
 import { supabase } from "@/lib/supabase";
-import { DEFAULT_TENANT_ID } from "@/app/constants/tenant";
 import { FilterValues } from "./TableFilter";
 import DeleteAsset from "@/app/modals/DeleteAsset";
 import EditAssetModal from "@/app/modals/EditAssetModal";
 import { Trash2 } from "lucide-react";
 import { assetTypes } from "@/app/helpers/data";
+import { AssetField } from "@/app/types/assets.types";
+import { useAuthContext } from "@/app/contexts/AuthContext";
 
 export interface AssetRow {
   id: string;
@@ -31,6 +32,7 @@ interface AssetsTableProps {
   filterValues?: FilterValues;
   categoryId?: number;
   refreshTrigger?: number; // Increment this to trigger refresh
+  filedsToInlcude?: AssetField[]; // Note: keeping typo to match ContentWrapper for now
 }
 
 const AssetsTable: React.FC<AssetsTableProps> = ({
@@ -40,7 +42,9 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
   refreshTrigger,
   onEdit,
   onDelete,
+  filedsToInlcude = [],
 }) => {
+  const [auth] = useAuthContext();
   const [assets, setAssets] = useState<AssetRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -138,13 +142,21 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
       setLoading(true);
       setError(null);
 
+      // Get tenant_id from user data
+      const tenantId = auth.userData?.tenant_id;
+      if (!tenantId) {
+        setError("User tenant not found");
+        setLoading(false);
+        return;
+      }
+
       // Fetch assets with all required fields
       let query = supabase
         .from("assets")
         .select(
           "id, name, category_id, subcategory_id, classification_id, exposure_id, lifecycle_status_id, owner_team_id, owner_user_id, reviewer_team_id, reviewer_user_id, url, location"
         )
-        .eq("tenant_id", DEFAULT_TENANT_ID);
+        .eq("tenant_id", tenantId);
 
       // Only filter by category if categoryId is provided
       if (categoryId) {
@@ -384,9 +396,15 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [categoryId]);
+  }, [categoryId, auth.userData?.tenant_id]);
   const handleDeleteConfirm = useCallback(async () => {
     if (!selectedAsset) return;
+
+    const tenantId = auth.userData?.tenant_id;
+    if (!tenantId) {
+      setError("User tenant not found");
+      return;
+    }
 
     setDeleteLoading(true);
     try {
@@ -394,7 +412,7 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
         .from("assets")
         .delete()
         .eq("id", selectedAsset.id)
-        .eq("tenant_id", DEFAULT_TENANT_ID);
+        .eq("tenant_id", tenantId);
 
       if (deleteError) {
         console.error("Error deleting asset:", deleteError);
@@ -413,7 +431,7 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
     } finally {
       setDeleteLoading(false);
     }
-  }, [selectedAsset, fetchAssets]);
+  }, [selectedAsset, fetchAssets, auth.userData?.tenant_id]);
 
   // Update handleEditSuccess to include fetchAssets call
   const handleEditSuccessWithRefresh = useCallback(async () => {
@@ -624,6 +642,7 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
         onClose={handleEditCancel}
         onSuccess={handleEditSuccessWithRefresh}
         asset={selectedAssetForEdit}
+        filedsToInlcude={filedsToInlcude}
       />
     </>
   );

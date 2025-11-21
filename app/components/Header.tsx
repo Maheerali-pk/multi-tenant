@@ -3,21 +3,18 @@
 import { Bell, Menu, Moon } from "lucide-react";
 import Search from "./Search";
 import UserDropdown from "./UserDropdown";
-import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuthContext } from "@/app/contexts/AuthContext";
 
 interface HeaderProps {}
 
 const Header: React.FC<HeaderProps> = () => {
   const [state, dispatch] = useGlobalContext();
+  const [auth, dispatchAuth] = useAuthContext();
   const [searchValue, setSearchValue] = useState("");
   // Mock user data - replace with actual user data from your auth system
-  const user = {
-    name: "John William",
-    role: "Project Manager",
-    avatar: undefined, // You can add avatar URL here
-  };
 
   const handleSearchChange = (value: string) => {
     setSearchValue(value);
@@ -66,7 +63,12 @@ const Header: React.FC<HeaderProps> = () => {
             </div>
           </div>
           <UserDropdown
-            user={user}
+            user={{
+              userData: auth.userData,
+              name: auth.name ?? "Unknown User",
+              role: auth.user?.role || " ",
+              avatar: auth.user?.user_metadata?.avatar_url || undefined,
+            }}
             onSettingsClick={handleSettings}
             onLogoutClick={handleLogout}
           />

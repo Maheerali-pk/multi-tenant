@@ -5,10 +5,10 @@ import Header from "@/app/components/Header";
 import Search from "@/app/components/Search";
 import Sidebar from "@/app/components/Sidebar";
 import TableFilter from "@/app/components/TableFilter";
-import { useGlobalContext } from "@/contexts/GlobalContext";
+import { useGlobalContext } from "@/app/contexts/GlobalContext";
+import { commonAssetFields } from "@/app/helpers/data";
 import { useAssetFilters } from "@/app/hooks/useAssetFilters";
 import { CreateNewAssetButton } from "@/app/components/CreateNewAssetButton";
-import { commonAssetFields } from "@/app/helpers/data";
 
 interface ApplicationsProps {}
 
@@ -24,19 +24,19 @@ const Applications: React.FC<ApplicationsProps> = () => {
       owner: true,
       reviewer: true,
     },
-    categoryId: 3,
+    categoryId: 1,
   });
 
   return (
     <div className="grid grid-cols-[min-content_auto] gap-3 p-3 bg-bg-outer h-full w-full">
       <Sidebar></Sidebar>
-      <ContentWrapper filedsToInlcude={[...commonAssetFields]}>
+      <ContentWrapper filedsToInlcude={[...commonAssetFields, "url"]}>
         <div className="flex flex-col rounded-3xl  p-6 gap-3 min-h-0 flex-1">
           <div className="flex justify-between items-center shrink-0 gap-4">
             <div className="font-semibold text-xl items-center text-text-primary">
-              Assets Management / Cloud Assets management
+              Assets Management / Application management
             </div>
-            <div className="gap-7 flex items-center">
+            <div className="gap-4 flex items-center">
               <Search
                 onChange={(value) =>
                   dispatch({ setState: { tableSearchValue: value } })
@@ -48,15 +48,16 @@ const Applications: React.FC<ApplicationsProps> = () => {
                 values={filterValues}
                 onChange={setFilterValues}
               />
-              <CreateNewAssetButton categoryId={3} />
+              <CreateNewAssetButton categoryId={1} />
             </div>
           </div>
           <div className="flex-1 min-h-0">
             <AssetsTable
               refreshTrigger={state.refreshTrigger}
-              searchValue={state.tableSearchValue}
               filterValues={filterValues}
-              categoryId={3}
+              searchValue={state.tableSearchValue}
+              categoryId={1}
+              filedsToInlcude={[...commonAssetFields, "url"]}
             />
           </div>
         </div>

@@ -2,11 +2,14 @@
 
 import { useState, useEffect, useRef } from "react";
 import { ChevronDown, Settings, LogOut } from "lucide-react";
+import { UserData, UserRole } from "../types/user.types";
+import { formatUserRole } from "../helpers/utils";
 
 interface User {
   name: string;
   role: string;
   avatar?: string;
+  userData: UserData;
 }
 
 interface UserDropdownProps {
@@ -84,6 +87,7 @@ const UserDropdown: React.FC<UserDropdownProps> = ({
     setIsDropdownOpen(false);
   };
 
+  console.log(user.userData);
   return (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -106,7 +110,9 @@ const UserDropdown: React.FC<UserDropdownProps> = ({
             />
           </div>
           <span className="text-xs font-medium text-text-secondary truncate ">
-            {user.role}
+            {user.userData?.role
+              ? formatUserRole(user.userData.role as unknown as UserRole)
+              : ""}
           </span>
         </div>
       </button>
