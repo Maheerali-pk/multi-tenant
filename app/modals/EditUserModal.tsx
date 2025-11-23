@@ -60,7 +60,7 @@ export default function EditUserModal({
         console.error("Error fetching tenants:", tenantsError);
         setError("Failed to load tenants");
       } else {
-        setTenants(data || []);
+        setTenants((data as Tenant[]) || []);
       }
     } catch (err) {
       console.error("Error fetching tenants:", err);
@@ -114,7 +114,7 @@ export default function EditUserModal({
   // Role options
   const roleOptions: SelectOption[] = useMemo(
     () => [
-      { value: "super_admin", label: "Super Admin" },
+      { value: "superadmin", label: "Super Admin" },
       { value: "tenant_admin", label: "Tenant Admin" },
       { value: "tenant_user", label: "Tenant User" },
     ],
@@ -136,7 +136,7 @@ export default function EditUserModal({
       const userData: UserUpdate = {
         title: formData.title.trim() || null,
         tenant_id: formData.tenant_id || null,
-        role: formData.role || null,
+        role: formData.role || "",
       };
 
       const { error: updateError } = await supabase
@@ -284,4 +284,3 @@ export default function EditUserModal({
     </div>
   );
 }
-

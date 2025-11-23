@@ -62,7 +62,7 @@ export const useUserFilters = ({
         label: "Role",
         type: "select",
         options: [
-          { value: "super_admin", label: "Super Admin" },
+          { value: "superadmin", label: "Super Admin" },
           { value: "tenant_admin", label: "Tenant Admin" },
           { value: "tenant_user", label: "Tenant User" },
         ],
@@ -100,4 +100,3 @@ export const useUserFilters = ({
     loadingFilters,
   };
 };
-

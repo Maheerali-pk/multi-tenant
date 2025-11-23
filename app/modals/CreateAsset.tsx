@@ -244,7 +244,7 @@ export default function CreateAsset({
         owner_user_id: ownerUserId,
         reviewer_team_id: reviewerTeamId,
         reviewer_user_id: reviewerUserId,
-        tenant_id: auth.userData?.tenant_id || null,
+        tenant_id: auth.userData?.tenant_id || "",
       };
 
       const { error: insertError } = await supabase
