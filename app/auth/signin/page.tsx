@@ -135,17 +135,6 @@ export default function SignInPage() {
           </form>
 
           {/* Sign Up Link */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-text-secondary">
-              Don't have an account?{" "}
-              <Link
-                href="/auth/signup"
-                className="text-brand font-medium hover:underline cursor-pointer"
-              >
-                Sign up
-              </Link>
-            </p>
-          </div>
         </div>
       </div>
     </div>

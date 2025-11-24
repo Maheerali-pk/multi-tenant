@@ -4,7 +4,7 @@ import { createCustomContext } from "../helpers/createCustomContext";
 
 export type Theme = "light" | "dark";
 
-type ModalType = "createAsset" | "createTenant";
+type ModalType = "createAsset" | "createTenant" | "createUser";
 interface IGlobalState {
   isSidebarOpen: boolean;
   tableSearchValue: string;
@@ -53,7 +53,7 @@ const initialState: IGlobalState = {
   isSidebarOpen: true,
   theme: (storedState?.theme as Theme) ?? "light",
   tableSearchValue: storedState?.tableSearchValue ?? "",
-  modals: { createAsset: false, createTenant: false },
+  modals: { createAsset: false, createTenant: false, createUser: false },
   createAssetCategoryId: undefined,
 };
 

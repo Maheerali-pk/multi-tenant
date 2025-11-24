@@ -65,7 +65,7 @@ const Header: React.FC<HeaderProps> = () => {
           <UserDropdown
             user={{
               userData: auth.userData,
-              name: auth.name ?? "Unknown User",
+              name: auth.userData?.name ?? "Unknown User",
               role: auth.user?.role || " ",
               avatar: auth.user?.user_metadata?.avatar_url || undefined,
             }}

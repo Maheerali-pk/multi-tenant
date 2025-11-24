@@ -105,6 +105,7 @@ export default function SignUpPage() {
       [name]: value,
     }));
   };
+  return null;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg-outer p-4">

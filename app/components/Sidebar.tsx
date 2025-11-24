@@ -1,5 +1,4 @@
 "use client";
-
 import {
   Settings,
   LogOut,
@@ -15,14 +14,15 @@ import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import Image from "next/image";
 import classNames from "classnames";
 import { useAuthContext } from "@/app/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 
 interface SidebarProps {}
 
 const Sidebar: React.FC<SidebarProps> = () => {
   const [auth, dispatchAuth] = useAuthContext();
   const [state, dispatch] = useGlobalContext();
+  const router = useRouter();
   const isOpen = state.isSidebarOpen;
-
   return (
     <div
       className={`flex flex-col justify-between bg-bg-inner rounded-3xl overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${
@@ -121,11 +121,14 @@ const Sidebar: React.FC<SidebarProps> = () => {
           />
         )}
         <SidebarItemMain
+          onClick={() => {
+            router.push("/dashboard/profile-settings");
+          }}
           isOpen={isOpen}
           data={{
             icon: <Settings size={20} />,
             name: "Settings",
-            href: "/settings",
+            href: "/dashboard/profile-settings",
             subItems: [],
           }}
         />

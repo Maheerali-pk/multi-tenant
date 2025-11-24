@@ -39,10 +39,11 @@ const UsersTable: React.FC<UsersTableProps> = ({
       setLoading(true);
       setError(null);
 
-      // Fetch users with tenant information
+      // Fetch users with tenant information (exclude tenant_user role)
       const { data: usersData, error: usersError } = await supabase
         .from("users")
         .select("*")
+        .in("role", ["superadmin", "tenant_admin"])
         .order("created_at", { ascending: false });
 
       if (usersError) {

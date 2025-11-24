@@ -10,3 +10,6 @@ export interface AuthUser {
 }
 
 export type UserData = Tables<"users"> | null;
+
+
+

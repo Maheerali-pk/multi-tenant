@@ -4,6 +4,7 @@ import SidebarSubItem from "./SidebarSubItem";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import classNames from "classnames";
+import { useRouter } from "next/router";
 
 interface SidebarItemMainProps {
   data: SidebarItem;
