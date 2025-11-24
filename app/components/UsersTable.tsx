@@ -68,7 +68,9 @@ const UsersTable: React.FC<UsersTableProps> = ({
           setLoading(false);
           return;
         }
-        query = query.eq("tenant_id", tenantId);
+        query = query
+          .eq("tenant_id", tenantId)
+          .in("role", ["tenant_admin", "tenant_user"]);
       }
 
       const { data: usersData, error: usersError } = await query.order(
