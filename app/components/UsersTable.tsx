@@ -5,6 +5,7 @@ import Table, { TableColumn } from "./Table";
 import { supabase } from "@/lib/supabase";
 import { Tables } from "@/app/types/database.types";
 import EditUserModal from "@/app/modals/EditUserModal";
+import DeleteUser from "@/app/modals/DeleteUser";
 import { FilterValues } from "./TableFilter";
 
 type User = Tables<"users">;
@@ -16,6 +17,7 @@ export interface UserRow extends User {
 
 interface UsersTableProps {
   onEdit?: (row: UserRow) => void;
+  onDelete?: (row: UserRow) => void;
   searchValue?: string;
   filterValues?: FilterValues;
   refreshTrigger?: number;
@@ -26,6 +28,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
   filterValues = {},
   refreshTrigger,
   onEdit,
+  onDelete,
 }) => {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +36,10 @@ const UsersTable: React.FC<UsersTableProps> = ({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUserForEdit, setSelectedUserForEdit] =
     useState<UserRow | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedUserForDelete, setSelectedUserForDelete] =
+    useState<UserRow | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -118,6 +125,54 @@ const UsersTable: React.FC<UsersTableProps> = ({
     await fetchUsers();
   }, [fetchUsers]);
 
+  const handleDeleteClick = useCallback((row: UserRow) => {
+    setSelectedUserForDelete(row);
+    setDeleteDialogOpen(true);
+  }, []);
+
+  const handleDeleteCancel = useCallback(() => {
+    setDeleteDialogOpen(false);
+    setSelectedUserForDelete(null);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!selectedUserForDelete) return;
+
+    setDeleteLoading(true);
+    try {
+      // Call API route to delete user (handles both auth and database deletion)
+      const response = await fetch("/api/delete-user", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: selectedUserForDelete.id,
+          authUserId: selectedUserForDelete.auth_user_id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Error deleting user:", data);
+        setError(data.error || "Failed to delete user");
+        setDeleteLoading(false);
+        return;
+      }
+
+      // Close dialog and refresh users
+      setDeleteDialogOpen(false);
+      setSelectedUserForDelete(null);
+      await fetchUsers();
+    } catch (err) {
+      console.error("Error deleting user:", err);
+      setError("Failed to delete user");
+    } finally {
+      setDeleteLoading(false);
+    }
+  }, [selectedUserForDelete, fetchUsers]);
+
   // Apply search and filter values
   const filteredData = useMemo(() => {
     let result = [...users];
@@ -200,8 +255,9 @@ const UsersTable: React.FC<UsersTableProps> = ({
     },
   ];
 
-  // Default handler
+  // Default handlers
   const handleEdit = onEdit || handleEditClick;
+  const handleDelete = onDelete || handleDeleteClick;
 
   if (loading) {
     return (
@@ -225,6 +281,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
         columns={columns}
         rows={filteredData}
         onEdit={handleEdit}
+        onDelete={handleDelete}
         getRowKey={(row) => row.id}
         itemsPerPage={10}
       />
@@ -233,6 +290,13 @@ const UsersTable: React.FC<UsersTableProps> = ({
         onClose={handleEditCancel}
         onSuccess={handleEditSuccessWithRefresh}
         user={selectedUserForEdit}
+      />
+      <DeleteUser
+        isOpen={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        user={selectedUserForDelete}
+        loading={deleteLoading}
       />
     </>
   );
