@@ -4,6 +4,8 @@ import "./globals.css";
 import { GlobalContextProvider } from "@/app/contexts/GlobalContext";
 import { AuthContextProvider } from "@/app/contexts/AuthContext";
 import AuthGuard from "./components/AuthGuard";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -30,6 +32,18 @@ export default function RootLayout({
             <AuthGuard>{children}</AuthGuard>
           </AuthContextProvider>
         </GlobalContextProvider>
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+        />
       </body>
     </html>
   );

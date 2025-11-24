@@ -3,43 +3,32 @@
 import { useState, useEffect, useMemo } from "react";
 import { X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import type { Tables, TablesUpdate } from "@/app/types/database.types";
+import type { TablesUpdate } from "@/app/types/database.types";
 import { CustomSelect, SelectOption } from "@/app/components/CustomSelect";
 import type { UserRow } from "@/app/components/UsersTable";
 
 type UserUpdate = TablesUpdate<"users">;
-type Tenant = Tables<"tenants">;
 
-interface EditUserModalProps {
+interface EditUserModalForTenantAdminProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
   user: UserRow | null;
 }
 
-export default function EditUserModal({
+export default function EditUserModalForTenantAdmin({
   isOpen,
   onClose,
   onSuccess,
   user,
-}: EditUserModalProps) {
+}: EditUserModalForTenantAdminProps) {
   const [formData, setFormData] = useState({
     title: "",
-    tenant_id: "",
     role: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingUser, setLoadingUser] = useState(false);
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [loadingTenants, setLoadingTenants] = useState(false);
-
-  // Fetch tenants when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      fetchTenants();
-    }
-  }, [isOpen]);
 
   // Fetch user data when modal opens
   useEffect(() => {
@@ -47,28 +36,6 @@ export default function EditUserModal({
       fetchUserData();
     }
   }, [isOpen, user]);
-
-  const fetchTenants = async () => {
-    setLoadingTenants(true);
-    try {
-      const { data, error: tenantsError } = await supabase
-        .from("tenants")
-        .select("id, name")
-        .order("name");
-
-      if (tenantsError) {
-        console.error("Error fetching tenants:", tenantsError);
-        setError("Failed to load tenants");
-      } else {
-        setTenants((data as Tenant[]) || []);
-      }
-    } catch (err) {
-      console.error("Error fetching tenants:", err);
-      setError("Failed to load tenants");
-    } finally {
-      setLoadingTenants(false);
-    }
-  };
 
   const fetchUserData = async () => {
     if (!user) return;
@@ -91,7 +58,6 @@ export default function EditUserModal({
       if (userData) {
         setFormData({
           title: userData.title || "",
-          tenant_id: userData.tenant_id || "",
           role: userData.role || "",
         });
       }
@@ -103,19 +69,11 @@ export default function EditUserModal({
     }
   };
 
-  // Convert tenants to SelectOption format
-  const tenantOptions: SelectOption[] = useMemo(() => {
-    return tenants.map((tenant) => ({
-      value: tenant.id,
-      label: tenant.name,
-    }));
-  }, [tenants]);
-
-  // Role options
+  // Role options - tenant_admin and tenant_user only
   const roleOptions: SelectOption[] = useMemo(
     () => [
-      { value: "superadmin", label: "Super Admin" },
       { value: "tenant_admin", label: "Tenant Admin" },
+      { value: "tenant_user", label: "Tenant User" },
     ],
     []
   );
@@ -134,8 +92,8 @@ export default function EditUserModal({
     try {
       const userData: UserUpdate = {
         title: formData.title.trim() || null,
-        tenant_id: formData.tenant_id || null,
         role: formData.role || "",
+        // Don't update tenant_id - keep it as is
       };
 
       const { error: updateError } = await supabase
@@ -164,6 +122,13 @@ export default function EditUserModal({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -220,28 +185,6 @@ export default function EditUserModal({
 
               <div className="flex flex-col gap-1.5">
                 <label
-                  htmlFor="tenant_id"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Tenant
-                </label>
-                <CustomSelect
-                  id="tenant_id"
-                  name="tenant_id"
-                  options={tenantOptions}
-                  value={formData.tenant_id}
-                  onChange={(value) =>
-                    setFormData((prev) => ({ ...prev, tenant_id: value }))
-                  }
-                  placeholder={
-                    loadingTenants ? "Loading tenants..." : "Select tenant"
-                  }
-                  isDisabled={loadingTenants}
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label
                   htmlFor="role"
                   className="text-sm font-medium text-text-primary"
                 >
@@ -252,9 +195,7 @@ export default function EditUserModal({
                   name="role"
                   options={roleOptions}
                   value={formData.role}
-                  onChange={(value) =>
-                    setFormData((prev) => ({ ...prev, role: value }))
-                  }
+                  onChange={(value) => handleSelectChange("role", value)}
                   placeholder="Select role"
                 />
               </div>
@@ -283,3 +224,4 @@ export default function EditUserModal({
     </div>
   );
 }
+

@@ -54,6 +54,7 @@ const UsersManagement: React.FC<UsersManagementProps> = () => {
             </div>
             <div className="flex-1 min-h-0">
               <UsersTable
+                mode="superadmin"
                 searchValue={searchValue}
                 filterValues={filterValues}
                 refreshTrigger={state.refreshTrigger}

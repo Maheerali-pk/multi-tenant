@@ -2,35 +2,30 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { X } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import type { Tables } from "@/app/types/database.types";
-import { CustomSelect, SelectOption } from "@/app/components/CustomSelect";
 import { toast } from "react-toastify";
+import { CustomSelect, SelectOption } from "@/app/components/CustomSelect";
+import { useAuthContext } from "@/app/contexts/AuthContext";
 
-type Tenant = Tables<"tenants">;
-
-interface CreateNewUserModalProps {
+interface CreateUserModalForTenantAdminProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
 }
 
-export default function CreateNewUserModal({
+export default function CreateUserModalForTenantAdmin({
   isOpen,
   onClose,
   onSuccess,
-}: CreateNewUserModalProps) {
+}: CreateUserModalForTenantAdminProps) {
+  const [auth] = useAuthContext();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     title: "",
-    tenant_id: "",
     role: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [loadingTenants, setLoadingTenants] = useState(false);
 
   // Reset form when modal closes
   useEffect(() => {
@@ -39,54 +34,16 @@ export default function CreateNewUserModal({
         name: "",
         email: "",
         title: "",
-        tenant_id: "",
         role: "",
       });
       setError(null);
     }
   }, [isOpen]);
 
-  // Fetch tenants when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      fetchTenants();
-    }
-  }, [isOpen]);
-
-  const fetchTenants = async () => {
-    setLoadingTenants(true);
-    try {
-      const { data, error: tenantsError } = await supabase
-        .from("tenants")
-        .select("id, name")
-        .order("name");
-
-      if (tenantsError) {
-        console.error("Error fetching tenants:", tenantsError);
-        setError("Failed to load tenants");
-      } else {
-        setTenants((data as Tenant[]) || []);
-      }
-    } catch (err) {
-      console.error("Error fetching tenants:", err);
-      setError("Failed to load tenants");
-    } finally {
-      setLoadingTenants(false);
-    }
-  };
-
-  // Convert tenants to SelectOption format
-  const tenantOptions: SelectOption[] = useMemo(() => {
-    return tenants.map((tenant) => ({
-      value: tenant.id,
-      label: tenant.name,
-    }));
-  }, [tenants]);
-
-  // Role options
+  // Role options - tenant_admin can only create tenant_user
   const roleOptions: SelectOption[] = useMemo(
     () => [
-      { value: "superadmin", label: "Super Admin" },
+      { value: "tenant_user", label: "Tenant User" },
       { value: "tenant_admin", label: "Tenant Admin" },
     ],
     []
@@ -118,9 +75,10 @@ export default function CreateNewUserModal({
       return;
     }
 
-    // If role is tenant_admin, tenant is required
-    if (formData.role === "tenant_admin" && !formData.tenant_id) {
-      setError("Tenant is required for Tenant Admin role");
+    // Get tenant_id from auth context
+    const tenantId = auth.userData?.tenant_id;
+    if (!tenantId) {
+      setError("Tenant ID not found. Please contact support.");
       return;
     }
 
@@ -137,7 +95,7 @@ export default function CreateNewUserModal({
           email: formData.email.trim(),
           full_name: formData.name.trim(),
           title: formData.title.trim() || undefined,
-          tenant_id: formData.tenant_id || undefined,
+          tenant_id: tenantId, // Use tenant_id from auth context
           role: formData.role,
         }),
       });
@@ -152,7 +110,9 @@ export default function CreateNewUserModal({
       }
 
       // Show success toast
-      toast.success(`User added and invitation email sent to user ${formData.email.trim()}`);
+      toast.success(
+        `User added and invitation email sent to user ${formData.email.trim()}`
+      );
 
       if (onSuccess) {
         onSuccess();
@@ -269,34 +229,6 @@ export default function CreateNewUserModal({
               />
             </div>
 
-            {/* Tenant Field */}
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="tenant_id"
-                className="text-sm font-medium text-text-primary"
-              >
-                Tenant
-                {formData.role === "tenant_admin" && (
-                  <span className="text-failure"> *</span>
-                )}
-              </label>
-              <CustomSelect
-                id="tenant_id"
-                name="tenant_id"
-                options={tenantOptions}
-                value={formData.tenant_id}
-                onChange={(value) => handleSelectChange("tenant_id", value)}
-                placeholder={
-                  loadingTenants
-                    ? "Loading tenants..."
-                    : formData.role === "tenant_admin"
-                    ? "Select tenant (required)"
-                    : "Select tenant (optional)"
-                }
-                isDisabled={loadingTenants}
-              />
-            </div>
-
             {/* Role Field */}
             <div className="flex flex-col gap-1.5">
               <label
@@ -327,7 +259,7 @@ export default function CreateNewUserModal({
             </button>
             <button
               type="submit"
-              disabled={loading || loadingTenants}
+              disabled={loading}
               className="flex-1 py-2.5 px-4 rounded-lg bg-brand text-text-contrast font-medium text-sm hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? "Creating..." : "Create User"}

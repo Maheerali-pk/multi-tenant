@@ -5,8 +5,11 @@ import Table, { TableColumn } from "./Table";
 import { supabase } from "@/lib/supabase";
 import { Tables } from "@/app/types/database.types";
 import EditUserModal from "@/app/modals/EditUserModal";
+import EditUserModalForTenantAdmin from "@/app/modals/EditUserModalForTenantAdmin";
 import DeleteUser from "@/app/modals/DeleteUser";
 import { FilterValues } from "./TableFilter";
+import { toast } from "react-toastify";
+import { useAuthContext } from "@/app/contexts/AuthContext";
 
 type User = Tables<"users">;
 type Tenant = Tables<"tenants">;
@@ -15,7 +18,10 @@ export interface UserRow extends User {
   tenant_name?: string | null;
 }
 
+type UserTableMode = "superadmin" | "tenant_admin";
+
 interface UsersTableProps {
+  mode?: UserTableMode;
   onEdit?: (row: UserRow) => void;
   onDelete?: (row: UserRow) => void;
   searchValue?: string;
@@ -24,12 +30,14 @@ interface UsersTableProps {
 }
 
 const UsersTable: React.FC<UsersTableProps> = ({
+  mode = "superadmin",
   searchValue = "",
   filterValues = {},
   refreshTrigger,
   onEdit,
   onDelete,
 }) => {
+  const [auth] = useAuthContext();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,12 +54,27 @@ const UsersTable: React.FC<UsersTableProps> = ({
       setLoading(true);
       setError(null);
 
-      // Fetch users with tenant information (exclude tenant_user role)
-      const { data: usersData, error: usersError } = await supabase
-        .from("users")
-        .select("*")
-        .in("role", ["superadmin", "tenant_admin"])
-        .order("created_at", { ascending: false });
+      let query = supabase.from("users").select("*");
+
+      // Apply filters based on mode
+      if (mode === "superadmin") {
+        // Superadmin sees all superadmins and tenant_admins
+        query = query.in("role", ["superadmin", "tenant_admin"]);
+      } else if (mode === "tenant_admin") {
+        // Tenant admin sees only users from their tenant
+        const tenantId = auth.userData?.tenant_id;
+        if (!tenantId) {
+          setError("Tenant ID not found. Please contact support.");
+          setLoading(false);
+          return;
+        }
+        query = query.eq("tenant_id", tenantId);
+      }
+
+      const { data: usersData, error: usersError } = await query.order(
+        "created_at",
+        { ascending: false }
+      );
 
       if (usersError) {
         console.error("Error fetching users:", usersError);
@@ -103,7 +126,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [mode, auth.userData?.tenant_id]);
 
   useEffect(() => {
     fetchUsers();
@@ -160,6 +183,11 @@ const UsersTable: React.FC<UsersTableProps> = ({
         setDeleteLoading(false);
         return;
       }
+
+      // Show success toast
+      const userName =
+        selectedUserForDelete.name || selectedUserForDelete.email || "User";
+      toast.success(`User ${userName} has been deleted successfully`);
 
       // Close dialog and refresh users
       setDeleteDialogOpen(false);
@@ -285,12 +313,21 @@ const UsersTable: React.FC<UsersTableProps> = ({
         getRowKey={(row) => row.id}
         itemsPerPage={10}
       />
-      <EditUserModal
-        isOpen={editDialogOpen}
-        onClose={handleEditCancel}
-        onSuccess={handleEditSuccessWithRefresh}
-        user={selectedUserForEdit}
-      />
+      {mode === "tenant_admin" ? (
+        <EditUserModalForTenantAdmin
+          isOpen={editDialogOpen}
+          onClose={handleEditCancel}
+          onSuccess={handleEditSuccessWithRefresh}
+          user={selectedUserForEdit}
+        />
+      ) : (
+        <EditUserModal
+          isOpen={editDialogOpen}
+          onClose={handleEditCancel}
+          onSuccess={handleEditSuccessWithRefresh}
+          user={selectedUserForEdit}
+        />
+      )}
       <DeleteUser
         isOpen={deleteDialogOpen}
         onClose={handleDeleteCancel}

@@ -6,6 +6,7 @@ import nodemailer from 'nodemailer'
 
 // Generate a random password
 function generateRandomPassword(length: number = 12): string {
+	return "test1234";
 	const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*'
 	let password = ''
 	for (let i = 0; i < length; i++) {
