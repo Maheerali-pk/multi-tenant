@@ -7,6 +7,7 @@ import type { Tables, TablesInsert } from "@/app/types/database.types";
 import { CustomSelect, SelectOption } from "@/app/components/CustomSelect";
 import { AssetField } from "../types/assets.types";
 import { useAuthContext } from "@/app/contexts/AuthContext";
+import { useGlobalContext } from "@/app/contexts/GlobalContext";
 
 type AssetSubcategory = Tables<"asset_subcategories">;
 type AssetClassification = Tables<"asset_classifications">;
@@ -32,6 +33,7 @@ export default function CreateAsset({
   filedsToInlcude,
 }: CreateAssetProps) {
   const [auth] = useAuthContext();
+  const [state] = useGlobalContext();
   const [formData, setFormData] = useState({
     name: "",
     subcategoryId: "",
@@ -92,6 +94,13 @@ export default function CreateAsset({
         return;
       }
 
+      // For superadmin, use selectedTenantId from GlobalContext
+      // For other users, use their tenant_id from user data
+      const isSuperAdmin = auth.userData?.role === "superadmin";
+      const tenantId = isSuperAdmin
+        ? state.selectedTenantId
+        : auth.userData?.tenant_id;
+
       // Fetch all dropdown data in parallel (no need to fetch categories)
       const [
         classificationsResult,
@@ -103,18 +112,18 @@ export default function CreateAsset({
         supabase.from("asset_classifications").select("*").order("name"),
         supabase.from("asset_exposures").select("*").order("name"),
         supabase.from("asset_lifecycle_statuses").select("*").order("name"),
-        auth.userData?.tenant_id
+        tenantId
           ? supabase
               .from("teams")
               .select("*")
-              .eq("tenant_id", auth.userData.tenant_id)
+              .eq("tenant_id", tenantId)
               .order("name")
           : Promise.resolve({ data: [], error: null }),
-        auth.userData?.tenant_id
+        tenantId
           ? supabase
               .from("users")
               .select("*")
-              .eq("tenant_id", auth.userData.tenant_id)
+              .eq("tenant_id", tenantId)
               .order("name")
           : Promise.resolve({ data: [], error: null }),
       ]);
@@ -196,6 +205,19 @@ export default function CreateAsset({
       return;
     }
 
+    // For superadmin, check if tenant is selected
+    const isSuperAdmin = auth.userData?.role === "superadmin";
+    const tenantId = isSuperAdmin
+      ? state.selectedTenantId
+      : auth.userData?.tenant_id;
+
+    if (!tenantId) {
+      setError(
+        isSuperAdmin ? "Please select a tenant" : "User tenant not found"
+      );
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -244,7 +266,7 @@ export default function CreateAsset({
         owner_user_id: ownerUserId,
         reviewer_team_id: reviewerTeamId,
         reviewer_user_id: reviewerUserId,
-        tenant_id: auth.userData?.tenant_id || "",
+        tenant_id: tenantId,
       };
 
       const { error: insertError } = await supabase

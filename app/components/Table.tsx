@@ -26,6 +26,7 @@ export interface TableProps<T = any> {
   rows: T[];
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
+  customActions?: (row: T) => React.ReactNode;
   getRowKey?: (row: T) => string | number;
   itemsPerPage?: number;
 }
@@ -35,6 +36,7 @@ function Table<T extends Record<string, any>>({
   rows,
   onEdit,
   onDelete,
+  customActions,
   getRowKey,
   itemsPerPage = 10,
 }: TableProps<T>) {
@@ -51,7 +53,10 @@ function Table<T extends Record<string, any>>({
   const paginationRef = useRef<HTMLDivElement>(null);
   const rowRef = useRef<HTMLTableRowElement>(null);
 
-  const hasActions = onEdit !== undefined || onDelete !== undefined;
+  const hasActions =
+    onEdit !== undefined ||
+    onDelete !== undefined ||
+    customActions !== undefined;
 
   // Calculate available height and determine rows per page dynamically
   const calculateRowsPerPage = useCallback(() => {
@@ -469,6 +474,7 @@ function Table<T extends Record<string, any>>({
                             <Trash2 size={16} />
                           </button>
                         )}
+                        {customActions && customActions(row)}
                       </div>
                     </td>
                   )}

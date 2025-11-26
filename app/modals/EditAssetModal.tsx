@@ -8,6 +8,7 @@ import { CustomSelect, SelectOption } from "@/app/components/CustomSelect";
 import type { AssetRow } from "@/app/components/AssetsTable";
 import { AssetField } from "../types/assets.types";
 import { useAuthContext } from "@/app/contexts/AuthContext";
+import { useGlobalContext } from "@/app/contexts/GlobalContext";
 
 type AssetSubcategory = Tables<"asset_subcategories">;
 type AssetClassification = Tables<"asset_classifications">;
@@ -33,6 +34,7 @@ export default function EditAssetModal({
   filedsToInlcude,
 }: EditAssetModalProps) {
   const [auth] = useAuthContext();
+  const [state] = useGlobalContext();
   const [formData, setFormData] = useState({
     name: "",
     subcategoryId: "",
@@ -81,9 +83,14 @@ export default function EditAssetModal({
 
     setLoadingAsset(true);
     try {
-      const tenantId = auth.userData?.tenant_id;
+      const isSuperAdmin = auth.userData?.role === "superadmin";
+      const tenantId = isSuperAdmin
+        ? state.selectedTenantId
+        : auth.userData?.tenant_id;
       if (!tenantId) {
-        setError("User tenant not found");
+        setError(
+          isSuperAdmin ? "Please select a tenant" : "User tenant not found"
+        );
         setLoadingAsset(false);
         return;
       }
@@ -161,20 +168,32 @@ export default function EditAssetModal({
         supabase.from("asset_classifications").select("*").order("name"),
         supabase.from("asset_exposures").select("*").order("name"),
         supabase.from("asset_lifecycle_statuses").select("*").order("name"),
-        auth.userData?.tenant_id
-          ? supabase
-              .from("teams")
-              .select("*")
-              .eq("tenant_id", auth.userData.tenant_id)
-              .order("name")
-          : Promise.resolve({ data: [], error: null }),
-        auth.userData?.tenant_id
-          ? supabase
-              .from("users")
-              .select("*")
-              .eq("tenant_id", auth.userData.tenant_id)
-              .order("name")
-          : Promise.resolve({ data: [], error: null }),
+        (() => {
+          const isSuperAdmin = auth.userData?.role === "superadmin";
+          const tenantId = isSuperAdmin
+            ? state.selectedTenantId
+            : auth.userData?.tenant_id;
+          return tenantId
+            ? supabase
+                .from("teams")
+                .select("*")
+                .eq("tenant_id", tenantId)
+                .order("name")
+            : Promise.resolve({ data: [], error: null });
+        })(),
+        (() => {
+          const isSuperAdmin = auth.userData?.role === "superadmin";
+          const tenantId = isSuperAdmin
+            ? state.selectedTenantId
+            : auth.userData?.tenant_id;
+          return tenantId
+            ? supabase
+                .from("users")
+                .select("*")
+                .eq("tenant_id", tenantId)
+                .order("name")
+            : Promise.resolve({ data: [], error: null });
+        })(),
       ]);
 
       if (classificationsResult.error) {
@@ -303,9 +322,14 @@ export default function EditAssetModal({
         reviewer_user_id: reviewerUserId,
       };
 
-      const tenantId = auth.userData?.tenant_id;
+      const isSuperAdmin = auth.userData?.role === "superadmin";
+      const tenantId = isSuperAdmin
+        ? state.selectedTenantId
+        : auth.userData?.tenant_id;
       if (!tenantId) {
-        setError("User tenant not found");
+        setError(
+          isSuperAdmin ? "Please select a tenant" : "User tenant not found"
+        );
         setLoading(false);
         return;
       }

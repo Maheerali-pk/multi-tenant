@@ -4,17 +4,97 @@ import { Bell, Menu, Moon } from "lucide-react";
 import Search from "./Search";
 import UserDropdown from "./UserDropdown";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuthContext } from "@/app/contexts/AuthContext";
+import CustomSelect, { SelectOption } from "./CustomSelect";
+import type { Tables } from "@/app/types/database.types";
+
+type Tenant = Tables<"tenants">;
 
 interface HeaderProps {}
 
 const Header: React.FC<HeaderProps> = () => {
   const [state, dispatch] = useGlobalContext();
-  const [auth, dispatchAuth] = useAuthContext();
+  const [auth] = useAuthContext();
   const [searchValue, setSearchValue] = useState("");
-  // Mock user data - replace with actual user data from your auth system
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [loadingTenants, setLoadingTenants] = useState(false);
+
+  const isSuperAdmin = auth.userData?.role === "superadmin";
+
+  // Fetch tenants for superadmin
+  useEffect(() => {
+    if (isSuperAdmin && auth.userData?.id) {
+      fetchSuperAdminTenants();
+    }
+  }, [isSuperAdmin, auth.userData?.id]);
+
+  const fetchSuperAdminTenants = async () => {
+    if (!auth.userData?.id) return;
+
+    setLoadingTenants(true);
+    try {
+      // First, get tenant IDs from internal_user_tenant_access
+      const { data: accessData, error: accessError } = await supabase
+        .from("internal_user_tenant_access")
+        .select("tenant_id")
+        .eq("user_id", auth.userData.id);
+
+      if (accessError) {
+        console.error("Error fetching tenant access:", accessError);
+        setLoadingTenants(false);
+        return;
+      }
+
+      if (!accessData || accessData.length === 0) {
+        setTenants([]);
+        setLoadingTenants(false);
+        return;
+      }
+
+      // Then, fetch tenant details
+      const tenantIds = accessData.map((a) => a.tenant_id);
+      const { data: tenantsData, error: tenantsError } = await supabase
+        .from("tenants")
+        .select("id, name")
+        .in("id", tenantIds)
+        .order("name");
+
+      if (tenantsError) {
+        console.error("Error fetching tenants:", tenantsError);
+      } else {
+        setTenants((tenantsData as Tenant[]) || []);
+        // Auto-select first tenant if none selected
+        if (!state.selectedTenantId && tenantsData && tenantsData.length > 0) {
+          dispatch({
+            setState: {
+              selectedTenantId: tenantsData[0].id,
+            },
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching superadmin tenants:", err);
+    } finally {
+      setLoadingTenants(false);
+    }
+  };
+
+  const tenantOptions: SelectOption[] = useMemo(() => {
+    return tenants.map((tenant) => ({
+      value: tenant.id,
+      label: tenant.name,
+    }));
+  }, [tenants]);
+
+  const handleTenantChange = (tenantId: string) => {
+    dispatch({
+      setState: {
+        selectedTenantId: tenantId || null,
+      },
+    });
+  };
 
   const handleSearchChange = (value: string) => {
     setSearchValue(value);
@@ -32,7 +112,28 @@ const Header: React.FC<HeaderProps> = () => {
 
   return (
     <div className="h-16 px-6 flex justify-between items-center bg-bg-inner rounded-3xl">
-      <div></div>
+      <div className="flex items-center">
+        {isSuperAdmin && (
+          <div className="w-64">
+            {loadingTenants ? (
+              <div className="text-sm text-text-secondary">
+                Loading tenants...
+              </div>
+            ) : tenantOptions.length > 0 ? (
+              <CustomSelect
+                options={tenantOptions}
+                value={state.selectedTenantId || ""}
+                onChange={handleTenantChange}
+                placeholder="Select tenant"
+              />
+            ) : (
+              <div className="text-sm text-text-secondary">
+                No tenant access
+              </div>
+            )}
+          </div>
+        )}
+      </div>
       <div className="flex items-center gap-16">
         {/* <Search onChange={handleSearchChange} value={searchValue} /> */}
         <div className="flex items-center gap-6">

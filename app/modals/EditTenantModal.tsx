@@ -34,6 +34,9 @@ export default function EditTenantModal({
     status: "",
     notes: "",
   });
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [currentLogoUrl, setCurrentLogoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingTenant, setLoadingTenant] = useState(false);
@@ -83,6 +86,9 @@ export default function EditTenantModal({
           status: tenantData.status || "",
           notes: tenantData.notes || "",
         });
+        setCurrentLogoUrl(tenantData.logo || null);
+        setLogoPreview(tenantData.logo || null);
+        setLogoFile(null); // Reset new file selection
       }
     } catch (err) {
       console.error("Error fetching tenant:", err);
@@ -109,6 +115,34 @@ export default function EditTenantModal({
     setLoading(true);
 
     try {
+      let logoUrl = currentLogoUrl;
+
+      // Upload new logo if provided
+      if (logoFile && tenant) {
+        const fileExt = logoFile.name.split(".").pop();
+        const filePath = `${tenant.id}/logo.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("tenant_logos")
+          .upload(filePath, logoFile, {
+            cacheControl: "3600",
+            upsert: true, // Replace if exists
+          });
+
+        if (uploadError) {
+          console.error("Error uploading logo:", uploadError);
+          setError("Failed to upload logo. Please try again.");
+          setLoading(false);
+          return;
+        }
+
+        // Get public URL
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("tenant_logos").getPublicUrl(filePath);
+        logoUrl = publicUrl;
+      }
+
       const tenantData: TenantUpdate = {
         name: formData.name.trim(),
         slug: formData.slug.trim() || null,
@@ -119,6 +153,7 @@ export default function EditTenantModal({
         address: formData.address.trim() || null,
         status: formData.status.trim() || null,
         notes: formData.notes.trim() || null,
+        logo: logoUrl,
         updated_at: new Date().toISOString(),
       };
 
@@ -155,6 +190,30 @@ export default function EditTenantModal({
       [name]:
         type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
+  };
+
+  // Handle logo file selection
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        setError("Please select an image file");
+        return;
+      }
+      // Validate file size (e.g., max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Image size should be less than 5MB");
+        return;
+      }
+      setLogoFile(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   if (!isOpen) return null;
@@ -317,6 +376,32 @@ export default function EditTenantModal({
                   }
                   placeholder="Select status"
                 />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="logo"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  Logo
+                </label>
+                <input
+                  type="file"
+                  id="logo"
+                  name="logo"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand file:text-text-contrast file:cursor-pointer hover:file:opacity-90"
+                />
+                {logoPreview && (
+                  <div className="mt-2">
+                    <img
+                      src={logoPreview}
+                      alt="Logo preview"
+                      className="w-32 h-32 object-contain border border-border-hr rounded-lg"
+                    />
+                  </div>
+                )}
               </div>
             </div>
 

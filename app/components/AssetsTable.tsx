@@ -9,6 +9,7 @@ import { Trash2 } from "lucide-react";
 import { assetTypes } from "@/app/helpers/data";
 import { AssetField } from "@/app/types/assets.types";
 import { useAuthContext } from "@/app/contexts/AuthContext";
+import { useGlobalContext } from "@/app/contexts/GlobalContext";
 
 export interface AssetRow {
   id: string;
@@ -45,6 +46,7 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
   filedsToInlcude = [],
 }) => {
   const [auth] = useAuthContext();
+  const [state] = useGlobalContext();
   const [assets, setAssets] = useState<AssetRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -142,10 +144,19 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
       setLoading(true);
       setError(null);
 
-      // Get tenant_id from user data
-      const tenantId = auth.userData?.tenant_id;
+      // For superadmin, use selectedTenantId from GlobalContext
+      // For other users, use their tenant_id from user data
+      const isSuperAdmin = auth.userData?.role === "superadmin";
+      const tenantId = isSuperAdmin
+        ? state.selectedTenantId
+        : auth.userData?.tenant_id;
+
       if (!tenantId) {
-        setError("User tenant not found");
+        if (isSuperAdmin) {
+          setError("Please select a tenant");
+        } else {
+          setError("User tenant not found");
+        }
         setLoading(false);
         return;
       }
@@ -396,13 +407,23 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [categoryId, auth.userData?.tenant_id]);
+  }, [
+    categoryId,
+    auth.userData?.tenant_id,
+    auth.userData?.role,
+    state.selectedTenantId,
+  ]);
   const handleDeleteConfirm = useCallback(async () => {
     if (!selectedAsset) return;
 
-    const tenantId = auth.userData?.tenant_id;
+    const isSuperAdmin = auth.userData?.role === "superadmin";
+    const tenantId = isSuperAdmin
+      ? state.selectedTenantId
+      : auth.userData?.tenant_id;
     if (!tenantId) {
-      setError("User tenant not found");
+      setError(
+        isSuperAdmin ? "Please select a tenant" : "User tenant not found"
+      );
       return;
     }
 
@@ -431,7 +452,13 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
     } finally {
       setDeleteLoading(false);
     }
-  }, [selectedAsset, fetchAssets, auth.userData?.tenant_id]);
+  }, [
+    selectedAsset,
+    fetchAssets,
+    auth.userData?.tenant_id,
+    auth.userData?.role,
+    state.selectedTenantId,
+  ]);
 
   // Update handleEditSuccess to include fetchAssets call
   const handleEditSuccessWithRefresh = useCallback(async () => {

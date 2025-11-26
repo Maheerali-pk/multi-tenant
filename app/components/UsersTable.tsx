@@ -7,9 +7,11 @@ import { Tables } from "@/app/types/database.types";
 import EditUserModal from "@/app/modals/EditUserModal";
 import EditUserModalForTenantAdmin from "@/app/modals/EditUserModalForTenantAdmin";
 import DeleteUser from "@/app/modals/DeleteUser";
+import ManageSuperAdminTenantsModals from "@/app/modals/ManageSuperAdminTenantsModals";
 import { FilterValues } from "./TableFilter";
 import { toast } from "react-toastify";
 import { useAuthContext } from "@/app/contexts/AuthContext";
+import { Settings } from "lucide-react";
 
 type User = Tables<"users">;
 type Tenant = Tables<"tenants">;
@@ -48,6 +50,9 @@ const UsersTable: React.FC<UsersTableProps> = ({
   const [selectedUserForDelete, setSelectedUserForDelete] =
     useState<UserRow | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [manageTenantsDialogOpen, setManageTenantsDialogOpen] = useState(false);
+  const [selectedUserForManageTenants, setSelectedUserForManageTenants] =
+    useState<UserRow | null>(null);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -134,6 +139,59 @@ const UsersTable: React.FC<UsersTableProps> = ({
     fetchUsers();
   }, [fetchUsers, refreshTrigger]);
 
+  // Helper function to get role badge styles
+  const getRoleBadgeStyles = (role: string | null): React.CSSProperties => {
+    if (!role) {
+      return {
+        backgroundColor: "rgba(100, 116, 139, 0.2)",
+        color: "#475569",
+      };
+    }
+
+    const roleLower = role.toLowerCase();
+    switch (roleLower) {
+      case "superadmin":
+        return {
+          backgroundColor: "rgba(139, 92, 246, 0.15)",
+          color: "#7c3aed",
+        };
+      case "tenant_admin":
+        return {
+          backgroundColor: "rgba(59, 130, 246, 0.15)",
+          color: "#2563eb",
+        };
+      case "tenant_user":
+        return {
+          backgroundColor: "rgba(16, 185, 129, 0.15)",
+          color: "#059669",
+        };
+      default:
+        return {
+          backgroundColor: "rgba(100, 116, 139, 0.2)",
+          color: "#475569",
+        };
+    }
+  };
+
+  // Helper function to render role badge
+  const renderRoleBadge = (role: string | null) => {
+    if (!role) return "-";
+
+    const roleDisplay = role
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+
+    return (
+      <span
+        className="px-2 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1"
+        style={getRoleBadgeStyles(role)}
+      >
+        {roleDisplay}
+      </span>
+    );
+  };
+
   const handleEditClick = useCallback((row: UserRow) => {
     setSelectedUserForEdit(row);
     setEditDialogOpen(true);
@@ -203,6 +261,22 @@ const UsersTable: React.FC<UsersTableProps> = ({
     }
   }, [selectedUserForDelete, fetchUsers]);
 
+  const handleManageTenantsClick = useCallback((row: UserRow) => {
+    setSelectedUserForManageTenants(row);
+    setManageTenantsDialogOpen(true);
+  }, []);
+
+  const handleManageTenantsCancel = useCallback(() => {
+    setManageTenantsDialogOpen(false);
+    setSelectedUserForManageTenants(null);
+  }, []);
+
+  const handleManageTenantsSuccess = useCallback(async () => {
+    setManageTenantsDialogOpen(false);
+    setSelectedUserForManageTenants(null);
+    await fetchUsers();
+  }, [fetchUsers]);
+
   // Apply search and filter values
   const filteredData = useMemo(() => {
     let result = [...users];
@@ -267,14 +341,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
       header: "Role",
       sortable: true,
       width: "15%",
-      render: (row) => {
-        const role = row.role || "";
-        const roleDisplay = role
-          .split("_")
-          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(" ");
-        return roleDisplay || "-";
-      },
+      render: (row) => renderRoleBadge(row.role),
     },
     {
       key: "tenant_name",
@@ -288,6 +355,27 @@ const UsersTable: React.FC<UsersTableProps> = ({
   // Default handlers
   const handleEdit = onEdit || handleEditClick;
   const handleDelete = onDelete || handleDeleteClick;
+
+  // Custom actions for superadmin users
+  const renderCustomActions = useCallback(
+    (row: UserRow) => {
+      // Only show manage tenants button for superadmin users when mode is superadmin
+      if (mode === "superadmin" && row.role === "superadmin") {
+        return (
+          <button
+            onClick={() => handleManageTenantsClick(row)}
+            className="p-1.5 cursor-pointer rounded-lg hover:bg-sidebar-sub-item-hover transition-colors text-text-secondary hover:text-text-primary"
+            aria-label="Manage Tenants"
+            title="Manage Tenants"
+          >
+            <Settings size={16} />
+          </button>
+        );
+      }
+      return null;
+    },
+    [mode, handleManageTenantsClick]
+  );
 
   if (loading) {
     return (
@@ -312,6 +400,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
         rows={filteredData}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        customActions={renderCustomActions}
         getRowKey={(row) => row.id}
         itemsPerPage={10}
       />
@@ -336,6 +425,12 @@ const UsersTable: React.FC<UsersTableProps> = ({
         onConfirm={handleDeleteConfirm}
         user={selectedUserForDelete}
         loading={deleteLoading}
+      />
+      <ManageSuperAdminTenantsModals
+        isOpen={manageTenantsDialogOpen}
+        onClose={handleManageTenantsCancel}
+        onSuccess={handleManageTenantsSuccess}
+        user={selectedUserForManageTenants}
       />
     </>
   );

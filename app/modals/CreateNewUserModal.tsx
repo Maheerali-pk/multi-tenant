@@ -177,10 +177,20 @@ export default function CreateNewUserModal({
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => {
+      // If role is changed to "superadmin", clear tenant_id
+      if (name === "role" && value === "superadmin") {
+        return {
+          ...prev,
+          [name]: value,
+          tenant_id: "",
+        };
+      }
+      return {
+        ...prev,
+        [name]: value,
+      };
+    });
   };
 
   if (!isOpen) return null;
@@ -269,34 +279,6 @@ export default function CreateNewUserModal({
               />
             </div>
 
-            {/* Tenant Field */}
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="tenant_id"
-                className="text-sm font-medium text-text-primary"
-              >
-                Tenant
-                {formData.role === "tenant_admin" && (
-                  <span className="text-failure"> *</span>
-                )}
-              </label>
-              <CustomSelect
-                id="tenant_id"
-                name="tenant_id"
-                options={tenantOptions}
-                value={formData.tenant_id}
-                onChange={(value) => handleSelectChange("tenant_id", value)}
-                placeholder={
-                  loadingTenants
-                    ? "Loading tenants..."
-                    : formData.role === "tenant_admin"
-                    ? "Select tenant (required)"
-                    : "Select tenant (optional)"
-                }
-                isDisabled={loadingTenants}
-              />
-            </div>
-
             {/* Role Field */}
             <div className="flex flex-col gap-1.5">
               <label
@@ -314,6 +296,36 @@ export default function CreateNewUserModal({
                 placeholder="Select role"
               />
             </div>
+
+            {/* Tenant Field - Only show if role is not "superadmin" */}
+            {formData.role !== "superadmin" && (
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="tenant_id"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  Tenant
+                  {formData.role === "tenant_admin" && (
+                    <span className="text-failure"> *</span>
+                  )}
+                </label>
+                <CustomSelect
+                  id="tenant_id"
+                  name="tenant_id"
+                  options={tenantOptions}
+                  value={formData.tenant_id}
+                  onChange={(value) => handleSelectChange("tenant_id", value)}
+                  placeholder={
+                    loadingTenants
+                      ? "Loading tenants..."
+                      : formData.role === "tenant_admin"
+                      ? "Select tenant (required)"
+                      : "Select tenant (optional)"
+                  }
+                  isDisabled={loadingTenants}
+                />
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}

@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { FilterOption, FilterValues } from "@/app/components/TableFilter";
 import { supabase } from "@/lib/supabase";
 import { useAuthContext } from "@/app/contexts/AuthContext";
+import { useGlobalContext } from "@/app/contexts/GlobalContext";
 
 interface SubcategoryOption {
   id: number;
@@ -37,6 +38,7 @@ export const useAssetFilters = ({
   categoryId,
 }: UseAssetFiltersOptions = {}) => {
   const [auth] = useAuthContext();
+  const [state] = useGlobalContext();
   const [filterValues, setFilterValues] = useState<FilterValues>({});
   const [subcategories, setSubcategories] = useState<SubcategoryOption[]>([]);
   const [classifications, setClassifications] = useState<
@@ -57,6 +59,13 @@ export const useAssetFilters = ({
     const fetchFilterData = async () => {
       try {
         setLoadingCategories(true);
+
+        // For superadmin, use selectedTenantId from GlobalContext
+        // For other users, use their tenant_id from user data
+        const isSuperAdmin = auth.userData?.role === "superadmin";
+        const tenantId = isSuperAdmin
+          ? state.selectedTenantId
+          : auth.userData?.tenant_id;
 
         // Fetch all filter data in parallel
         const [
@@ -87,20 +96,20 @@ export const useAssetFilters = ({
                 .order("name")
             : Promise.resolve({ data: [], error: null }),
           includeFilters.owner || includeFilters.reviewer
-            ? auth.userData?.tenant_id
+            ? tenantId
               ? supabase
                   .from("teams")
                   .select("id, name")
-                  .eq("tenant_id", auth.userData.tenant_id)
+                  .eq("tenant_id", tenantId)
                   .order("name")
               : Promise.resolve({ data: [], error: null })
             : Promise.resolve({ data: [], error: null }),
           includeFilters.owner || includeFilters.reviewer
-            ? auth.userData?.tenant_id
+            ? tenantId
               ? supabase
                   .from("users")
                   .select("id, name")
-                  .eq("tenant_id", auth.userData.tenant_id)
+                  .eq("tenant_id", tenantId)
                   .order("name")
               : Promise.resolve({ data: [], error: null })
             : Promise.resolve({ data: [], error: null }),
@@ -167,6 +176,9 @@ export const useAssetFilters = ({
     includeFilters.status,
     includeFilters.owner,
     includeFilters.reviewer,
+    auth.userData?.role,
+    auth.userData?.tenant_id,
+    state.selectedTenantId,
   ]);
 
   // Get subcategories filtered by categoryId

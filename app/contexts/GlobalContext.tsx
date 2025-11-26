@@ -4,7 +4,11 @@ import { createCustomContext } from "../helpers/createCustomContext";
 
 export type Theme = "light" | "dark";
 
-type ModalType = "createAsset" | "createTenant" | "createUser" | "createUserForTenant";
+type ModalType =
+  | "createAsset"
+  | "createTenant"
+  | "createUser"
+  | "createUserForTenant";
 interface IGlobalState {
   isSidebarOpen: boolean;
   tableSearchValue: string;
@@ -12,6 +16,7 @@ interface IGlobalState {
   modals: Record<ModalType, boolean>;
   createAssetCategoryId?: number;
   refreshTrigger: number;
+  selectedTenantId?: string | null; // For superadmin tenant selection
 }
 
 const STORAGE_KEY = "globalState";
@@ -53,8 +58,14 @@ const initialState: IGlobalState = {
   isSidebarOpen: true,
   theme: (storedState?.theme as Theme) ?? "light",
   tableSearchValue: storedState?.tableSearchValue ?? "",
-  modals: { createAsset: false, createTenant: false, createUser: false, createUserForTenant: false },
+  modals: {
+    createAsset: false,
+    createTenant: false,
+    createUser: false,
+    createUserForTenant: false,
+  },
   createAssetCategoryId: undefined,
+  selectedTenantId: storedState?.selectedTenantId ?? null,
 };
 
 function setState(

@@ -15,6 +15,8 @@ import Image from "next/image";
 import classNames from "classnames";
 import { useAuthContext } from "@/app/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 interface SidebarProps {}
 
@@ -23,6 +25,48 @@ const Sidebar: React.FC<SidebarProps> = () => {
   const [state, dispatch] = useGlobalContext();
   const router = useRouter();
   const isOpen = state.isSidebarOpen;
+  const [tenantLogo, setTenantLogo] = useState<string | null>(null);
+
+  // Determine active tenant ID
+  const activeTenantId =
+    auth.userData?.role === "superadmin"
+      ? state.selectedTenantId
+      : auth.userData?.tenant_id;
+
+  // Fetch tenant logo when active tenant changes
+  useEffect(() => {
+    const fetchTenantLogo = async () => {
+      if (!activeTenantId) {
+        setTenantLogo(null);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("tenants")
+          .select("logo")
+          .eq("id", activeTenantId)
+          .single();
+
+        if (error) {
+          console.error("Error fetching tenant logo:", error);
+          setTenantLogo(null);
+          return;
+        }
+
+        setTenantLogo(data?.logo || null);
+      } catch (err) {
+        console.error("Error fetching tenant logo:", err);
+        setTenantLogo(null);
+      }
+    };
+
+    fetchTenantLogo();
+  }, [activeTenantId]);
+
+  // Determine which logo to display
+  const logoUrl = tenantLogo || "/images/logo.png";
+  console.log(logoUrl);
   return (
     <div
       className={`flex flex-col justify-between bg-bg-inner rounded-3xl overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${
@@ -45,11 +89,16 @@ const Sidebar: React.FC<SidebarProps> = () => {
           >
             {isOpen && (
               <div>
-                <Image
-                  src="/images/logo.png"
+                <img
+                  src={logoUrl}
                   alt="logo"
-                  width={140}
-                  height={30}
+                  className="object-contain h-8 w-auto"
+                  onError={(e) => {
+                    // Fallback to default logo if tenant logo fails to load
+                    if (tenantLogo) {
+                      (e.target as HTMLImageElement).src = "/images/logo.png";
+                    }
+                  }}
                 />
               </div>
             )}
