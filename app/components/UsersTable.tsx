@@ -13,6 +13,7 @@ import { toast } from "react-toastify";
 import { useAuthContext } from "@/app/contexts/AuthContext";
 import { Settings } from "lucide-react";
 import TenantListModal from "./TenantListModal";
+import { useGlobalContext } from "../contexts/GlobalContext";
 
 type User = Tables<"users">;
 type Tenant = Tables<"tenants">;
@@ -57,6 +58,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
     useState<UserRow | null>(null);
   const [tenantListModalOpen, setTenantListModalOpen] = useState(false);
   const [tenantsToShow, setTenantsToShow] = useState<string[]>([]);
+  const [state] = useGlobalContext();
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -71,8 +73,14 @@ const UsersTable: React.FC<UsersTableProps> = ({
         query = query.in("role", ["superadmin", "tenant_admin"]);
       } else if (mode === "tenant_admin") {
         // Tenant admin sees only users from their tenant
-        const tenantId = auth.userData?.tenant_id;
-        if (!tenantId) {
+        const tenantId =
+          auth.userData?.role === "tenant_admin"
+            ? auth.userData?.tenant_id
+            : state.selectedTenantId;
+        if (
+          (auth.userData!.role === "tenant_admin" && !tenantId) ||
+          (auth.userData!.role === "superadmin" && !tenantId)
+        ) {
           setError("Tenant ID not found. Please contact support.");
           setLoading(false);
           return;
@@ -201,7 +209,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [mode, auth.userData?.tenant_id]);
+  }, [mode, auth.userData?.tenant_id, state.selectedTenantId]);
 
   useEffect(() => {
     fetchUsers();
