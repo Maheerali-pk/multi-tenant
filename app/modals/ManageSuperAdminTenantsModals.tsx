@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Tables } from "@/app/types/database.types";
 import type { UserRow } from "@/app/components/UsersTable";
+import ModalWrapper from "@/app/components/ModalWrapper";
 
 type Tenant = Tables<"tenants">;
 
@@ -192,11 +193,8 @@ export default function ManageSuperAdminTenantsModals({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
-      <div className="bg-bg-inner rounded-3xl p-8 shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="2xl">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-2xl font-semibold text-text-dark">
@@ -310,7 +308,6 @@ export default function ManageSuperAdminTenantsModals({
             {loading ? "Saving..." : "Save"}
           </button>
         </div>
-      </div>
-    </div>
+    </ModalWrapper>
   );
 }

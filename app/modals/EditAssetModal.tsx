@@ -9,6 +9,7 @@ import type { AssetRow } from "@/app/components/AssetsTable";
 import { AssetField } from "../types/assets.types";
 import { useAuthContext } from "@/app/contexts/AuthContext";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
+import ModalWrapper from "../components/ModalWrapper";
 
 type AssetSubcategory = Tables<"asset_subcategories">;
 type AssetClassification = Tables<"asset_classifications">;
@@ -443,314 +444,308 @@ export default function EditAssetModal({
     return [...teamOptions, ...userOptions];
   }, [teams, users]);
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
-      <div className="bg-bg-inner rounded-3xl p-8 shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-text-dark">Edit Asset</h2>
-          <button
-            onClick={onClose}
-            disabled={loading}
-            className="p-2 hover:bg-sidebar-sub-item-hover rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Close modal"
-          >
-            <X size={20} className="text-text-secondary" />
-          </button>
+    <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="4xl">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-semibold text-text-dark">Edit Asset</h2>
+        <button
+          onClick={onClose}
+          disabled={loading}
+          className="p-2 hover:bg-sidebar-sub-item-hover rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label="Close modal"
+        >
+          <X size={20} className="text-text-secondary" />
+        </button>
+      </div>
+
+      {error && (
+        <div className="mb-4 p-3 rounded-lg bg-failure-light border border-failure text-failure text-sm">
+          {error}
+        </div>
+      )}
+
+      {loadingAsset && (
+        <div className="mb-4 p-3 rounded-lg bg-sidebar-sub-item-hover text-text-secondary text-sm">
+          Loading asset data...
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Grid Layout for Form Fields */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Name Field - Full Width (always shown if in fieldsToInclude) */}
+          {filedsToInlcude.includes("name") && (
+            <div className="md:col-span-2 flex flex-col gap-1.5">
+              <label
+                htmlFor="name"
+                className="text-sm font-medium text-text-primary"
+              >
+                Name <span className="text-failure">*</span>
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                disabled={loadingAsset}
+                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary disabled:opacity-50"
+                placeholder="Enter asset name"
+              />
+            </div>
+          )}
+
+          {/* Type (Subcategory) Field */}
+          {filedsToInlcude.includes("subcategory_id") && (
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="subcategoryId"
+                className="text-sm font-medium text-text-primary"
+              >
+                Type
+              </label>
+              <CustomSelect
+                id="subcategoryId"
+                name="subcategoryId"
+                options={subcategoryOptions}
+                value={formData.subcategoryId}
+                onChange={(value) => handleSelectChange("subcategoryId", value)}
+                placeholder={
+                  !asset?.categoryId
+                    ? "Category not set"
+                    : subcategories.length === 0
+                    ? "No subcategories available"
+                    : "Select a subcategory (optional)"
+                }
+                isDisabled={
+                  !asset?.categoryId ||
+                  subcategories.length === 0 ||
+                  loadingAsset
+                }
+              />
+            </div>
+          )}
+
+          {/* Sensitivity (Classification) Field */}
+          {filedsToInlcude.includes("classification_id") && (
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="classificationId"
+                className="text-sm font-medium text-text-primary"
+              >
+                Sensitivity
+              </label>
+              <CustomSelect
+                id="classificationId"
+                name="classificationId"
+                options={classificationOptions}
+                value={formData.classificationId}
+                onChange={(value) =>
+                  handleSelectChange("classificationId", value)
+                }
+                placeholder="Select sensitivity (optional)"
+                isDisabled={loadingCategories || loadingAsset}
+              />
+            </div>
+          )}
+
+          {/* Exposure Field */}
+          {filedsToInlcude.includes("exposure_id") && (
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="exposureId"
+                className="text-sm font-medium text-text-primary"
+              >
+                Exposure
+              </label>
+              <CustomSelect
+                id="exposureId"
+                name="exposureId"
+                options={exposureOptions}
+                value={formData.exposureId}
+                onChange={(value) => handleSelectChange("exposureId", value)}
+                placeholder="Select exposure (optional)"
+                isDisabled={loadingCategories || loadingAsset}
+              />
+            </div>
+          )}
+
+          {/* Lifecycle Status Field */}
+          {filedsToInlcude.includes("lifecycle_status_id") && (
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="lifecycleStatusId"
+                className="text-sm font-medium text-text-primary"
+              >
+                Lifecycle Status
+              </label>
+              <CustomSelect
+                id="lifecycleStatusId"
+                name="lifecycleStatusId"
+                options={lifecycleStatusOptions}
+                value={formData.lifecycleStatusId}
+                onChange={(value) =>
+                  handleSelectChange("lifecycleStatusId", value)
+                }
+                placeholder="Select lifecycle status (optional)"
+                isDisabled={loadingCategories || loadingAsset}
+              />
+            </div>
+          )}
+
+          {/* Asset URL Field */}
+          {filedsToInlcude.includes("url") && (
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="url"
+                className="text-sm font-medium text-text-primary"
+              >
+                Asset URL
+              </label>
+              <input
+                type="url"
+                id="url"
+                name="url"
+                value={formData.url}
+                onChange={handleChange}
+                disabled={loadingAsset}
+                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary disabled:opacity-50"
+                placeholder="https://example.com"
+              />
+            </div>
+          )}
+
+          {/* IP Address Field */}
+          {filedsToInlcude.includes("ip_address") && (
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="ip_address"
+                className="text-sm font-medium text-text-primary"
+              >
+                IP Address
+              </label>
+              <input
+                type="text"
+                id="ip_address"
+                name="ip_address"
+                value={formData.ip_address}
+                onChange={handleChange}
+                disabled={loadingAsset}
+                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary disabled:opacity-50"
+                placeholder="192.168.1.1"
+              />
+            </div>
+          )}
+
+          {/* Owner Field */}
+          {(filedsToInlcude.includes("owner_team_id") ||
+            filedsToInlcude.includes("owner_user_id")) && (
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="owner"
+                className="text-sm font-medium text-text-primary"
+              >
+                Owner
+              </label>
+              <CustomSelect
+                id="owner"
+                name="owner"
+                options={ownerOptions}
+                value={formData.owner}
+                onChange={(value) => handleSelectChange("owner", value)}
+                placeholder="Select owner (optional)"
+                isDisabled={loadingCategories || loadingAsset}
+              />
+            </div>
+          )}
+
+          {/* Reviewer Field */}
+          {(filedsToInlcude.includes("reviewer_team_id") ||
+            filedsToInlcude.includes("reviewer_user_id")) && (
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="reviewer"
+                className="text-sm font-medium text-text-primary"
+              >
+                Reviewer
+              </label>
+              <CustomSelect
+                id="reviewer"
+                name="reviewer"
+                options={reviewerOptions}
+                value={formData.reviewer}
+                onChange={(value) => handleSelectChange("reviewer", value)}
+                placeholder="Select reviewer (optional)"
+                isDisabled={loadingCategories || loadingAsset}
+              />
+            </div>
+          )}
+
+          {/* Location Field */}
+          {filedsToInlcude.includes("location") && (
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="location"
+                className="text-sm font-medium text-text-primary"
+              >
+                Location
+              </label>
+              <textarea
+                id="location"
+                name="location"
+                value={formData.location}
+                onChange={handleChange}
+                rows={3}
+                disabled={loadingAsset}
+                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none disabled:opacity-50"
+                placeholder="Enter asset location"
+              />
+            </div>
+          )}
+
+          {/* Description Field */}
+          {filedsToInlcude.includes("description") && (
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="description"
+                className="text-sm font-medium text-text-primary"
+              >
+                Description
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                rows={3}
+                disabled={loadingAsset}
+                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none disabled:opacity-50"
+                placeholder="Enter asset description"
+              />
+            </div>
+          )}
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-failure-light border border-failure text-failure text-sm">
-            {error}
-          </div>
-        )}
-
-        {loadingAsset && (
-          <div className="mb-4 p-3 rounded-lg bg-sidebar-sub-item-hover text-text-secondary text-sm">
-            Loading asset data...
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Grid Layout for Form Fields */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Name Field - Full Width (always shown if in fieldsToInclude) */}
-            {filedsToInlcude.includes("name") && (
-              <div className="md:col-span-2 flex flex-col gap-1.5">
-                <label
-                  htmlFor="name"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Name <span className="text-failure">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  disabled={loadingAsset}
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary disabled:opacity-50"
-                  placeholder="Enter asset name"
-                />
-              </div>
-            )}
-
-            {/* Type (Subcategory) Field */}
-            {filedsToInlcude.includes("subcategory_id") && (
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="subcategoryId"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Type
-                </label>
-                <CustomSelect
-                  id="subcategoryId"
-                  name="subcategoryId"
-                  options={subcategoryOptions}
-                  value={formData.subcategoryId}
-                  onChange={(value) =>
-                    handleSelectChange("subcategoryId", value)
-                  }
-                  placeholder={
-                    !asset?.categoryId
-                      ? "Category not set"
-                      : subcategories.length === 0
-                      ? "No subcategories available"
-                      : "Select a subcategory (optional)"
-                  }
-                  isDisabled={
-                    !asset?.categoryId ||
-                    subcategories.length === 0 ||
-                    loadingAsset
-                  }
-                />
-              </div>
-            )}
-
-            {/* Sensitivity (Classification) Field */}
-            {filedsToInlcude.includes("classification_id") && (
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="classificationId"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Sensitivity
-                </label>
-                <CustomSelect
-                  id="classificationId"
-                  name="classificationId"
-                  options={classificationOptions}
-                  value={formData.classificationId}
-                  onChange={(value) =>
-                    handleSelectChange("classificationId", value)
-                  }
-                  placeholder="Select sensitivity (optional)"
-                  isDisabled={loadingCategories || loadingAsset}
-                />
-              </div>
-            )}
-
-            {/* Exposure Field */}
-            {filedsToInlcude.includes("exposure_id") && (
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="exposureId"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Exposure
-                </label>
-                <CustomSelect
-                  id="exposureId"
-                  name="exposureId"
-                  options={exposureOptions}
-                  value={formData.exposureId}
-                  onChange={(value) => handleSelectChange("exposureId", value)}
-                  placeholder="Select exposure (optional)"
-                  isDisabled={loadingCategories || loadingAsset}
-                />
-              </div>
-            )}
-
-            {/* Lifecycle Status Field */}
-            {filedsToInlcude.includes("lifecycle_status_id") && (
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="lifecycleStatusId"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Lifecycle Status
-                </label>
-                <CustomSelect
-                  id="lifecycleStatusId"
-                  name="lifecycleStatusId"
-                  options={lifecycleStatusOptions}
-                  value={formData.lifecycleStatusId}
-                  onChange={(value) =>
-                    handleSelectChange("lifecycleStatusId", value)
-                  }
-                  placeholder="Select lifecycle status (optional)"
-                  isDisabled={loadingCategories || loadingAsset}
-                />
-              </div>
-            )}
-
-            {/* Asset URL Field */}
-            {filedsToInlcude.includes("url") && (
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="url"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Asset URL
-                </label>
-                <input
-                  type="url"
-                  id="url"
-                  name="url"
-                  value={formData.url}
-                  onChange={handleChange}
-                  disabled={loadingAsset}
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary disabled:opacity-50"
-                  placeholder="https://example.com"
-                />
-              </div>
-            )}
-
-            {/* IP Address Field */}
-            {filedsToInlcude.includes("ip_address") && (
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="ip_address"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  IP Address
-                </label>
-                <input
-                  type="text"
-                  id="ip_address"
-                  name="ip_address"
-                  value={formData.ip_address}
-                  onChange={handleChange}
-                  disabled={loadingAsset}
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary disabled:opacity-50"
-                  placeholder="192.168.1.1"
-                />
-              </div>
-            )}
-
-            {/* Owner Field */}
-            {(filedsToInlcude.includes("owner_team_id") ||
-              filedsToInlcude.includes("owner_user_id")) && (
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="owner"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Owner
-                </label>
-                <CustomSelect
-                  id="owner"
-                  name="owner"
-                  options={ownerOptions}
-                  value={formData.owner}
-                  onChange={(value) => handleSelectChange("owner", value)}
-                  placeholder="Select owner (optional)"
-                  isDisabled={loadingCategories || loadingAsset}
-                />
-              </div>
-            )}
-
-            {/* Reviewer Field */}
-            {(filedsToInlcude.includes("reviewer_team_id") ||
-              filedsToInlcude.includes("reviewer_user_id")) && (
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="reviewer"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Reviewer
-                </label>
-                <CustomSelect
-                  id="reviewer"
-                  name="reviewer"
-                  options={reviewerOptions}
-                  value={formData.reviewer}
-                  onChange={(value) => handleSelectChange("reviewer", value)}
-                  placeholder="Select reviewer (optional)"
-                  isDisabled={loadingCategories || loadingAsset}
-                />
-              </div>
-            )}
-
-            {/* Location Field */}
-            {filedsToInlcude.includes("location") && (
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="location"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Location
-                </label>
-                <textarea
-                  id="location"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleChange}
-                  rows={3}
-                  disabled={loadingAsset}
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none disabled:opacity-50"
-                  placeholder="Enter asset location"
-                />
-              </div>
-            )}
-
-            {/* Description Field */}
-            {filedsToInlcude.includes("description") && (
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="description"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows={3}
-                  disabled={loadingAsset}
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none disabled:opacity-50"
-                  placeholder="Enter asset description"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading || loadingAsset}
-              className="flex-1 py-2.5 px-4 rounded-lg border border-border-hr bg-bg-outer text-text-primary font-medium text-sm hover:bg-sidebar-sub-item-hover transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading || loadingCategories || loadingAsset}
-              className="flex-1 py-2.5 px-4 rounded-lg bg-brand text-text-contrast font-medium text-sm hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            >
-              {loading ? "Updating..." : "Update Asset"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        {/* Action Buttons */}
+        <div className="flex gap-3 pt-4">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading || loadingAsset}
+            className="flex-1 py-2.5 px-4 rounded-lg border border-border-hr bg-bg-outer text-text-primary font-medium text-sm hover:bg-sidebar-sub-item-hover transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading || loadingCategories || loadingAsset}
+            className="flex-1 py-2.5 px-4 rounded-lg bg-brand text-text-contrast font-medium text-sm hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {loading ? "Updating..." : "Update Asset"}
+          </button>
+        </div>
+      </form>
+    </ModalWrapper>
   );
 }

@@ -2,6 +2,7 @@
 
 import { X, AlertTriangle } from "lucide-react";
 import type { AssetRow } from "@/app/components/AssetsTable";
+import ModalWrapper from "@/app/components/ModalWrapper";
 
 interface DeleteAssetProps {
   isOpen: boolean;
@@ -18,15 +19,12 @@ export default function DeleteAsset({
   asset,
   loading = false,
 }: DeleteAssetProps) {
-  if (!isOpen) return null;
-
   const handleConfirm = () => {
     onConfirm();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
-      <div className="bg-bg-inner rounded-3xl p-6 shadow-lg w-full max-w-md">
+    <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="md">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-failure-light">
@@ -83,7 +81,6 @@ export default function DeleteAsset({
             {loading ? "Deleting..." : "Delete"}
           </button>
         </div>
-      </div>
-    </div>
+    </ModalWrapper>
   );
 }

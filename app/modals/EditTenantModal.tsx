@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import ModalWrapper from "@/app/components/ModalWrapper";
 import type { Tables, TablesUpdate } from "@/app/types/database.types";
 import type { TenantRow } from "@/app/components/TenantsTable";
 import { CustomSelect, SelectOption } from "@/app/components/CustomSelect";
@@ -216,11 +217,8 @@ export default function EditTenantModal({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
-      <div className="bg-bg-inner rounded-3xl p-6 shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="2xl">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-text-dark">Edit Tenant</h2>
           <button
@@ -460,7 +458,6 @@ export default function EditTenantModal({
             </div>
           </form>
         )}
-      </div>
-    </div>
+    </ModalWrapper>
   );
 }

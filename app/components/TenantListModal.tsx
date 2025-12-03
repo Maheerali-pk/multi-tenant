@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import ModalWrapper from "./ModalWrapper";
 
 interface TenantListModalProps {
   isOpen: boolean;
@@ -13,17 +14,8 @@ export default function TenantListModal({
   onClose,
   tenants,
 }: TenantListModalProps) {
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-[6px] transition-opacity"
-      onClick={onClose}
-    >
-      <div
-        className="bg-bg-inner rounded-3xl p-6 shadow-2xl w-full max-w-md max-h-[80vh] overflow-y-auto border border-border-hr transform transition-all"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="md">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-text-dark">
             All Tenants ({tenants.length})
@@ -53,7 +45,6 @@ export default function TenantListModal({
             ))
           )}
         </div>
-      </div>
-    </div>
+    </ModalWrapper>
   );
 }
