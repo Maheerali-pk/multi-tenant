@@ -470,7 +470,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
         return (
           <button
             onClick={() => handleManageTenantsClick(row)}
-            className="p-1.5 cursor-pointer rounded-lg hover:bg-sidebar-sub-item-hover transition-colors text-text-secondary hover:text-text-primary"
+            className="p-1.5 cursor-pointer rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/20 transition-colors text-[#7c3aed] hover:text-[#6d28d9]"
             aria-label="Manage Tenants"
             title="Manage Tenants"
           >
