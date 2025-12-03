@@ -12,12 +12,14 @@ import { FilterValues } from "./TableFilter";
 import { toast } from "react-toastify";
 import { useAuthContext } from "@/app/contexts/AuthContext";
 import { Settings } from "lucide-react";
+import TenantListModal from "./TenantListModal";
 
 type User = Tables<"users">;
 type Tenant = Tables<"tenants">;
 
 export interface UserRow extends User {
   tenant_name?: string | null;
+  tenant_names?: string[]; // For superadmin users - list of tenant names
 }
 
 type UserTableMode = "superadmin" | "tenant_admin";
@@ -53,6 +55,8 @@ const UsersTable: React.FC<UsersTableProps> = ({
   const [manageTenantsDialogOpen, setManageTenantsDialogOpen] = useState(false);
   const [selectedUserForManageTenants, setSelectedUserForManageTenants] =
     useState<UserRow | null>(null);
+  const [tenantListModalOpen, setTenantListModalOpen] = useState(false);
+  const [tenantsToShow, setTenantsToShow] = useState<string[]>([]);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -94,16 +98,22 @@ const UsersTable: React.FC<UsersTableProps> = ({
         return;
       }
 
-      // Get unique tenant IDs
+      // Separate superadmin users from others
+      const superadminUsers = usersData.filter(
+        (user) => user.role === "superadmin"
+      );
+      const otherUsers = usersData.filter((user) => user.role !== "superadmin");
+
+      // Get unique tenant IDs for non-superadmin users
       const tenantIds = [
         ...new Set(
-          usersData
+          otherUsers
             .map((user) => user.tenant_id)
             .filter((id): id is string => id !== null)
         ),
       ];
 
-      // Fetch tenants
+      // Fetch tenants for non-superadmin users
       let tenantsMap = new Map<string, string>();
       if (tenantIds.length > 0) {
         const { data: tenantsData, error: tenantsError } = await supabase
@@ -118,13 +128,71 @@ const UsersTable: React.FC<UsersTableProps> = ({
         }
       }
 
+      // Fetch tenant access for superadmin users
+      const superadminUserIds = superadminUsers.map((user) => user.id);
+      let superadminTenantsMap = new Map<string, string[]>();
+
+      if (superadminUserIds.length > 0) {
+        // Fetch tenant access records
+        const { data: accessData, error: accessError } = await supabase
+          .from("internal_user_tenant_access")
+          .select("user_id, tenant_id")
+          .in("user_id", superadminUserIds);
+
+        if (!accessError && accessData) {
+          // Get unique tenant IDs from access records
+          const superadminTenantIds = [
+            ...new Set(accessData.map((a) => a.tenant_id)),
+          ];
+
+          // Fetch tenant names
+          if (superadminTenantIds.length > 0) {
+            const { data: tenantsData, error: tenantsError } = await supabase
+              .from("tenants")
+              .select("id, name")
+              .in("id", superadminTenantIds);
+
+            if (!tenantsError && tenantsData) {
+              const tenantNameMap = new Map(
+                tenantsData.map((tenant) => [tenant.id, tenant.name])
+              );
+
+              // Group tenants by user_id
+              accessData.forEach((access) => {
+                const tenantName = tenantNameMap.get(access.tenant_id);
+                if (tenantName) {
+                  const existing =
+                    superadminTenantsMap.get(access.user_id) || [];
+                  superadminTenantsMap.set(access.user_id, [
+                    ...existing,
+                    tenantName,
+                  ]);
+                }
+              });
+            }
+          }
+        }
+      }
+
       // Combine user data with tenant names
-      const usersWithTenants: UserRow[] = usersData.map((user) => ({
-        ...user,
-        tenant_name: user.tenant_id
-          ? tenantsMap.get(user.tenant_id) || null
-          : null,
-      }));
+      const usersWithTenants: UserRow[] = usersData.map((user) => {
+        if (user.role === "superadmin") {
+          const tenantNames = superadminTenantsMap.get(user.id) || [];
+          return {
+            ...user,
+            tenant_name: null,
+            tenant_names: tenantNames,
+          };
+        } else {
+          return {
+            ...user,
+            tenant_name: user.tenant_id
+              ? tenantsMap.get(user.tenant_id) || null
+              : null,
+            tenant_names: undefined,
+          };
+        }
+      });
 
       setUsers(usersWithTenants);
     } catch (err) {
@@ -291,7 +359,11 @@ const UsersTable: React.FC<UsersTableProps> = ({
           (row.title && row.title.toLowerCase().includes(searchLower)) ||
           (row.role && row.role.toLowerCase().includes(searchLower)) ||
           (row.tenant_name &&
-            row.tenant_name.toLowerCase().includes(searchLower))
+            row.tenant_name.toLowerCase().includes(searchLower)) ||
+          (row.tenant_names &&
+            row.tenant_names.some((name) =>
+              name.toLowerCase().includes(searchLower)
+            ))
       );
     }
 
@@ -348,7 +420,41 @@ const UsersTable: React.FC<UsersTableProps> = ({
       header: "Tenant",
       sortable: true,
       width: "20%",
-      render: (row) => row.tenant_name || "-",
+      render: (row) => {
+        // For superadmin users, show list of tenants
+        if (row.role === "superadmin" && row.tenant_names) {
+          if (row.tenant_names.length === 0) {
+            return "-";
+          }
+
+          const displayTenants = row.tenant_names.slice(0, 3);
+          const remainingCount = row.tenant_names.length - 3;
+
+          const handleShowMore = (e: React.MouseEvent) => {
+            e.stopPropagation();
+            setTenantsToShow(row.tenant_names || []);
+            setTenantListModalOpen(true);
+          };
+
+          return (
+            <span>
+              {displayTenants.join(", ")}
+              {remainingCount > 0 && (
+                <button
+                  onClick={handleShowMore}
+                  className="ml-1 text-brand font-semibold  transition-colors cursor-pointer"
+                  aria-label={`Show ${remainingCount} more tenants`}
+                >
+                  + {remainingCount} more
+                </button>
+              )}
+            </span>
+          );
+        }
+
+        // For other users, show single tenant name
+        return row.tenant_name || "-";
+      },
     },
   ];
 
@@ -431,6 +537,11 @@ const UsersTable: React.FC<UsersTableProps> = ({
         onClose={handleManageTenantsCancel}
         onSuccess={handleManageTenantsSuccess}
         user={selectedUserForManageTenants}
+      />
+      <TenantListModal
+        isOpen={tenantListModalOpen}
+        onClose={() => setTenantListModalOpen(false)}
+        tenants={tenantsToShow}
       />
     </>
   );
