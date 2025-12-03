@@ -37,6 +37,14 @@ function getStoredState(): Partial<IGlobalState> | null {
   }
   return null;
 }
+export const omitKeys = <T extends Record<string, any>>(
+  obj: T,
+  keys: (keyof T)[]
+): Partial<T> => {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([key]) => !keys.includes(key as keyof T))
+  ) as unknown as Partial<T>;
+};
 
 // Helper function to safely set localStorage value
 function setStoredState(state: IGlobalState): void {

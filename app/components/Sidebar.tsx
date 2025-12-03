@@ -15,7 +15,7 @@ import Image from "next/image";
 import classNames from "classnames";
 import { useAuthContext } from "@/app/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 
 interface SidebarProps {}
@@ -67,9 +67,19 @@ const Sidebar: React.FC<SidebarProps> = () => {
   // Determine which logo to display
   const logoUrl = tenantLogo || "/images/logo.png";
   console.log(logoUrl);
-  const shouldHideSidebar =
+  const shouldHideDataItemsOfSidebar =
     (auth.userData?.role === "superadmin" && !state.selectedTenantId) ||
     !auth.userData?.role;
+
+  const shouldShowTenantSettings = useMemo(() => {
+    if (auth.userData?.role === "superadmin" && state.selectedTenantId) {
+      return true;
+    }
+    if (auth.userData?.role === "tenant_admin" && auth.userData?.tenant_id) {
+      return true;
+    }
+    return false;
+  }, [auth.userData, state.selectedTenantId]);
   return (
     <div
       className={`flex flex-col justify-between bg-bg-inner rounded-3xl overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${
@@ -118,7 +128,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
             </div>
           </div>
         </div>
-        {!shouldHideSidebar && (
+        {!shouldHideDataItemsOfSidebar && (
           <div className="flex flex-col gap-0 py-2">
             {SidebarItems.map((item) => (
               <SidebarItemMain key={item.name} data={item} isOpen={isOpen} />
@@ -151,17 +161,17 @@ const Sidebar: React.FC<SidebarProps> = () => {
           />
         )}
 
-        {auth.userData?.role === "tenant_admin" && (
+        {shouldShowTenantSettings && (
           <SidebarItemMain
             isOpen={isOpen}
             data={{
               icon: <Settings size={20} />,
               name: "Settings (Tenant Admin)",
-              href: "/dashboard/settings/tenant-admin/tenant-profile",
+              href: "/dashboard/settings/tenant-admin/company-profile",
               subItems: [
                 {
                   name: "Company Profile",
-                  href: "/dashboard/settings/tenant-admin/tenant-profile",
+                  href: "/dashboard/settings/tenant-admin/company-profile",
                   icon: <UsersRound size={20} />,
                 },
 

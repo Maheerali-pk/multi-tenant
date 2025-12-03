@@ -125,6 +125,13 @@ const Header: React.FC<HeaderProps> = () => {
   };
 
   const handleLogout = async () => {
+    localStorage.removeItem("globalState");
+    dispatch({
+      setState: {
+        selectedTenantId: null,
+        createAssetCategoryId: undefined,
+      },
+    });
     await supabase.auth.signOut();
     // TODO: Implement logout functionality
   };

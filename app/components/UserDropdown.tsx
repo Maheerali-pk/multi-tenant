@@ -87,7 +87,6 @@ const UserDropdown: React.FC<UserDropdownProps> = ({
     setIsDropdownOpen(false);
   };
 
-  console.log(user.userData);
   return (
     <div className="relative" ref={dropdownRef}>
       <button
