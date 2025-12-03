@@ -10,12 +10,16 @@ import { CreateUserForTenantButton } from "@/app/components/CreateUserForTenantB
 import CreateUserModalForTenantAdmin from "@/app/modals/CreateUserModalForTenantAdmin";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import { useUserFilters } from "@/app/hooks/useUserFilters";
+import { getRouteTitle } from "@/app/helpers/data";
+import { IRoute } from "@/app/types/routes.types";
+import { usePathname } from "next/navigation";
 
 interface UsersManagementProps {}
 
 const UsersManagement: React.FC<UsersManagementProps> = () => {
   const [state, dispatch] = useGlobalContext();
   const [searchValue, setSearchValue] = useState("");
+  const pathname = usePathname();
   const { filterValues, setFilterValues, filterOptions } = useUserFilters({
     includeFilters: {
       role: true,
@@ -40,7 +44,7 @@ const UsersManagement: React.FC<UsersManagementProps> = () => {
           <div className="flex flex-col rounded-3xl p-6 gap-3 min-h-0 flex-1">
             <div className="flex justify-between items-center shrink-0 gap-4">
               <div className="font-semibold text-xl items-center text-text-primary">
-                Users Management
+                {getRouteTitle(pathname as IRoute)}
               </div>
               <div className="gap-4 flex items-center">
                 <Search onChange={handleSearchChange} value={searchValue} />

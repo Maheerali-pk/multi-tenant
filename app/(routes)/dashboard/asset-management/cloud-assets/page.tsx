@@ -6,10 +6,12 @@ import Search from "@/app/components/Search";
 import Sidebar from "@/app/components/Sidebar";
 import TableFilter from "@/app/components/TableFilter";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
-import { commonAssetFields } from "@/app/helpers/data";
 import { useAssetFilters } from "@/app/hooks/useAssetFilters";
 import { CreateNewAssetButton } from "@/app/components/CreateNewAssetButton";
+import { commonAssetFields, getRouteTitle } from "@/app/helpers/data";
 import DashboardWrapper from "@/app/components/DashboardWrapper";
+import { IRoute } from "@/app/types/routes.types";
+import { usePathname } from "next/navigation";
 
 interface ApplicationsProps {}
 
@@ -25,16 +27,17 @@ const Applications: React.FC<ApplicationsProps> = () => {
       owner: true,
       reviewer: true,
     },
-    categoryId: 2,
+    categoryId: 3,
   });
+  const pathname = usePathname();
 
   return (
     <DashboardWrapper>
-      <ContentWrapper filedsToInlcude={[...commonAssetFields, "ip_address"]}>
+      <ContentWrapper filedsToInlcude={[...commonAssetFields]}>
         <div className="flex flex-col rounded-3xl  p-6 gap-3 min-h-0 flex-1">
           <div className="flex justify-between items-center shrink-0 gap-4">
             <div className="font-semibold text-xl items-center text-text-primary">
-              Assets Management / Network and Infrastructure management
+              {getRouteTitle(pathname as IRoute)}
             </div>
             <div className="gap-7 flex items-center">
               <Search
@@ -48,16 +51,16 @@ const Applications: React.FC<ApplicationsProps> = () => {
                 values={filterValues}
                 onChange={setFilterValues}
               />
-              <CreateNewAssetButton categoryId={2} />
+              <CreateNewAssetButton categoryId={3} />
             </div>
           </div>
           <div className="flex-1 min-h-0">
             <AssetsTable
               refreshTrigger={state.refreshTrigger}
-              filterValues={filterValues}
               searchValue={state.tableSearchValue}
-              categoryId={2}
-              filedsToInlcude={[...commonAssetFields, "ip_address"]}
+              filterValues={filterValues}
+              categoryId={3}
+              filedsToInlcude={[...commonAssetFields]}
             />
           </div>
         </div>

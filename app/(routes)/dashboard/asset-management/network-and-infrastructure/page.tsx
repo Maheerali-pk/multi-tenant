@@ -1,13 +1,17 @@
 "use client";
 import AssetsTable from "@/app/components/AssetsTable";
 import ContentWrapper from "@/app/components/ContentWrapper";
+import Header from "@/app/components/Header";
 import Search from "@/app/components/Search";
+import Sidebar from "@/app/components/Sidebar";
 import TableFilter from "@/app/components/TableFilter";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
+import { commonAssetFields, getRouteTitle } from "@/app/helpers/data";
 import { useAssetFilters } from "@/app/hooks/useAssetFilters";
-import { commonAssetFields } from "@/app/helpers/data";
 import { CreateNewAssetButton } from "@/app/components/CreateNewAssetButton";
 import DashboardWrapper from "@/app/components/DashboardWrapper";
+import { IRoute } from "@/app/types/routes.types";
+import { usePathname } from "next/navigation";
 
 interface ApplicationsProps {}
 
@@ -23,16 +27,17 @@ const Applications: React.FC<ApplicationsProps> = () => {
       owner: true,
       reviewer: true,
     },
-    categoryId: 4,
+    categoryId: 2,
   });
+  const pathname = usePathname();
 
   return (
     <DashboardWrapper>
-      <ContentWrapper filedsToInlcude={[...commonAssetFields]}>
+      <ContentWrapper filedsToInlcude={[...commonAssetFields, "ip_address"]}>
         <div className="flex flex-col rounded-3xl  p-6 gap-3 min-h-0 flex-1">
           <div className="flex justify-between items-center shrink-0 gap-4">
             <div className="font-semibold text-xl items-center text-text-primary">
-              Assets Management / Data and Information management
+              {getRouteTitle(pathname as IRoute)}
             </div>
             <div className="gap-7 flex items-center">
               <Search
@@ -46,7 +51,7 @@ const Applications: React.FC<ApplicationsProps> = () => {
                 values={filterValues}
                 onChange={setFilterValues}
               />
-              <CreateNewAssetButton categoryId={4} />
+              <CreateNewAssetButton categoryId={2} />
             </div>
           </div>
           <div className="flex-1 min-h-0">
@@ -54,8 +59,8 @@ const Applications: React.FC<ApplicationsProps> = () => {
               refreshTrigger={state.refreshTrigger}
               filterValues={filterValues}
               searchValue={state.tableSearchValue}
-              categoryId={4}
-              filedsToInlcude={[...commonAssetFields]}
+              categoryId={2}
+              filedsToInlcude={[...commonAssetFields, "ip_address"]}
             />
           </div>
         </div>

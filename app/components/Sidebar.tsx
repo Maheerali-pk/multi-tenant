@@ -133,17 +133,17 @@ const Sidebar: React.FC<SidebarProps> = () => {
             data={{
               icon: <Settings size={20} />,
               name: "Settings (Super Admin)",
-              href: "/settings",
+              href: "/dashboard/settings/superadmin/users-and-access",
               subItems: [
                 {
                   name: "Tenant Management",
-                  href: "/dashboard/settings/superadmin/tenants-management",
+                  href: "/dashboard/settings/superadmin/tenant-management",
                   icon: <UsersRound size={20} />,
                 },
 
                 {
                   name: "Users and Access",
-                  href: "/dashboard/settings/superadmin/users-management",
+                  href: "/dashboard/settings/superadmin/users-and-access",
                   icon: <KeyRound size={20} />,
                 },
               ],
@@ -157,7 +157,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
             data={{
               icon: <Settings size={20} />,
               name: "Settings (Tenant Admin)",
-              href: "/settings",
+              href: "/dashboard/settings/tenant-admin/tenant-profile",
               subItems: [
                 {
                   name: "Company Profile",
@@ -167,7 +167,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
 
                 {
                   name: "Users and Access",
-                  href: "/dashboard/settings/tenant-admin/users-management",
+                  href: "/dashboard/settings/tenant-admin/users-and-access",
                   icon: <KeyRound size={20} />,
                 },
               ],

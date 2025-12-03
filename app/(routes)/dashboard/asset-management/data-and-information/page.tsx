@@ -1,14 +1,15 @@
 "use client";
 import AssetsTable from "@/app/components/AssetsTable";
 import ContentWrapper from "@/app/components/ContentWrapper";
-import Header from "@/app/components/Header";
 import Search from "@/app/components/Search";
-import Sidebar from "@/app/components/Sidebar";
 import TableFilter from "@/app/components/TableFilter";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
-import { commonAssetFields } from "@/app/helpers/data";
 import { useAssetFilters } from "@/app/hooks/useAssetFilters";
+import { commonAssetFields, getRouteTitle } from "@/app/helpers/data";
 import { CreateNewAssetButton } from "@/app/components/CreateNewAssetButton";
+import DashboardWrapper from "@/app/components/DashboardWrapper";
+import { IRoute } from "@/app/types/routes.types";
+import { usePathname } from "next/navigation";
 
 interface ApplicationsProps {}
 
@@ -24,19 +25,19 @@ const Applications: React.FC<ApplicationsProps> = () => {
       owner: true,
       reviewer: true,
     },
-    categoryId: 1,
+    categoryId: 4,
   });
+  const pathname = usePathname();
 
   return (
-    <div className="grid grid-cols-[min-content_auto] gap-3 p-3 bg-bg-outer h-full w-full">
-      <Sidebar></Sidebar>
-      <ContentWrapper filedsToInlcude={[...commonAssetFields, "url"]}>
+    <DashboardWrapper>
+      <ContentWrapper filedsToInlcude={[...commonAssetFields]}>
         <div className="flex flex-col rounded-3xl  p-6 gap-3 min-h-0 flex-1">
           <div className="flex justify-between items-center shrink-0 gap-4">
             <div className="font-semibold text-xl items-center text-text-primary">
-              Assets Management / Application management
+              {getRouteTitle(pathname as IRoute)}
             </div>
-            <div className="gap-4 flex items-center">
+            <div className="gap-7 flex items-center">
               <Search
                 onChange={(value) =>
                   dispatch({ setState: { tableSearchValue: value } })
@@ -48,7 +49,7 @@ const Applications: React.FC<ApplicationsProps> = () => {
                 values={filterValues}
                 onChange={setFilterValues}
               />
-              <CreateNewAssetButton categoryId={1} />
+              <CreateNewAssetButton categoryId={4} />
             </div>
           </div>
           <div className="flex-1 min-h-0">
@@ -56,13 +57,13 @@ const Applications: React.FC<ApplicationsProps> = () => {
               refreshTrigger={state.refreshTrigger}
               filterValues={filterValues}
               searchValue={state.tableSearchValue}
-              categoryId={1}
-              filedsToInlcude={[...commonAssetFields, "url"]}
+              categoryId={4}
+              filedsToInlcude={[...commonAssetFields]}
             />
           </div>
         </div>
       </ContentWrapper>
-    </div>
+    </DashboardWrapper>
   );
 };
 

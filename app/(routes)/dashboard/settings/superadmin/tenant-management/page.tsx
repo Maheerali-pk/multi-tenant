@@ -3,24 +3,28 @@
 import { useState, useCallback } from "react";
 import ContentWrapper from "@/app/components/ContentWrapper";
 import DashboardWrapper from "@/app/components/DashboardWrapper";
-import UsersTable from "@/app/components/UsersTable";
+import TenantsTable from "@/app/components/TenantsTable";
+import { CreateNewTenantButton } from "@/app/components/CreateNewTenantButton";
+import CreateTenant from "@/app/modals/CreateTenant";
 import Search from "@/app/components/Search";
 import TableFilter from "@/app/components/TableFilter";
-import { CreateNewUserButton } from "@/app/components/CreateNewUserButton";
-import CreateNewUserModal from "@/app/modals/CreateNewUserModal";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
-import { useUserFilters } from "@/app/hooks/useUserFilters";
+import { useTenantFilters } from "@/app/hooks/useTenantFilters";
+import { getRouteTitle } from "@/app/helpers/data";
+import { IRoute } from "@/app/types/routes.types";
+import { usePathname } from "next/navigation";
 
-interface UsersManagementProps {}
+interface TenantsManagementProps {}
 
-const UsersManagement: React.FC<UsersManagementProps> = () => {
+const TenantsManagement: React.FC<TenantsManagementProps> = () => {
   const [state, dispatch] = useGlobalContext();
   const [searchValue, setSearchValue] = useState("");
-  const { filterValues, setFilterValues, filterOptions } = useUserFilters({
+  const pathname = usePathname();
+  const { filterValues, setFilterValues, filterOptions } = useTenantFilters({
     includeFilters: {
-      role: true,
-      tenant: true,
-      title: true,
+      status: true,
+      country: true,
+      contact_name: true,
     },
   });
 
@@ -29,7 +33,7 @@ const UsersManagement: React.FC<UsersManagementProps> = () => {
   }, []);
 
   const handleCreateSuccess = useCallback(async () => {
-    dispatch({ closeModal: "createUser" });
+    dispatch({ closeModal: "createTenant" });
     dispatch({ setState: { refreshTrigger: (state.refreshTrigger || 0) + 1 } });
   }, [dispatch, state.refreshTrigger]);
 
@@ -40,7 +44,7 @@ const UsersManagement: React.FC<UsersManagementProps> = () => {
           <div className="flex flex-col rounded-3xl p-6 gap-3 min-h-0 flex-1">
             <div className="flex justify-between items-center shrink-0 gap-4">
               <div className="font-semibold text-xl items-center text-text-primary">
-                Users Management
+                {getRouteTitle(pathname as IRoute)}
               </div>
               <div className="gap-4 flex items-center">
                 <Search onChange={handleSearchChange} value={searchValue} />
@@ -49,12 +53,11 @@ const UsersManagement: React.FC<UsersManagementProps> = () => {
                   values={filterValues}
                   onChange={setFilterValues}
                 />
-                <CreateNewUserButton />
+                <CreateNewTenantButton />
               </div>
             </div>
             <div className="flex-1 min-h-0">
-              <UsersTable
-                mode="superadmin"
+              <TenantsTable
                 searchValue={searchValue}
                 filterValues={filterValues}
                 refreshTrigger={state.refreshTrigger}
@@ -63,14 +66,13 @@ const UsersManagement: React.FC<UsersManagementProps> = () => {
           </div>
         </ContentWrapper>
       </DashboardWrapper>
-
-      <CreateNewUserModal
-        isOpen={state.modals.createUser || false}
-        onClose={() => dispatch({ closeModal: "createUser" })}
+      <CreateTenant
+        isOpen={state.modals.createTenant || false}
+        onClose={() => dispatch({ closeModal: "createTenant" })}
         onSuccess={handleCreateSuccess}
       />
     </>
   );
 };
 
-export default UsersManagement;
+export default TenantsManagement;

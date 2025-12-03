@@ -1,4 +1,5 @@
 import { AssetField } from "../types/assets.types";
+import { IRoute } from "../types/routes.types";
 import { allIcons } from "./icons";
 import {
   LayoutGrid,
@@ -20,16 +21,32 @@ import {
 
 export interface SidebarSubItem {
   name: string;
-  href: string;
+  href: IRoute;
   icon: React.ReactNode;
 }
 
 export interface SidebarItem {
   name: string;
-  href?: string;
+  href?: IRoute;
   icon: React.ReactNode;
   subItems: SidebarSubItem[];
 }
+export const formatSingleRoutePathWord = (word: string): string => {
+  return word
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+};
+export const getRouteTitle = (route: IRoute): string => {
+  const routeParts = route.split("/");
+  return routeParts
+    .filter((part) => part.trim() !== "")
+    .filter((part) => part !== "dashboard")
+
+    .map((part) => formatSingleRoutePathWord(part))
+    .join(" / ");
+};
+
 export const SidebarItems: SidebarItem[] = [
   {
     name: "Asset Management",
@@ -38,22 +55,22 @@ export const SidebarItems: SidebarItem[] = [
       {
         icon: <LayoutGrid size={16} />,
         name: "Applications",
-        href: "/dashboard/assets/applications",
+        href: "/dashboard/asset-management/applications",
       },
       {
         icon: <Network size={16} />,
         name: "Network & Infrastructure",
-        href: "/dashboard/assets/network-and-infrastructure",
+        href: "/dashboard/asset-management/network-and-infrastructure",
       },
       {
         icon: <Cloud size={16} />,
         name: "Cloud Assets",
-        href: "/dashboard/assets/cloud-assets",
+        href: "/dashboard/asset-management/cloud-assets",
       },
       {
         icon: <Database size={16} />,
         name: "Data and Information",
-        href: "/dashboard/assets/data-and-information",
+        href: "/dashboard/asset-management/data-and-information",
       },
     ],
   },
