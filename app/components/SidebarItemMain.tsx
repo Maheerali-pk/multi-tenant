@@ -35,6 +35,19 @@ const SidebarItemMain: React.FC<SidebarItemMainProps> = ({
     }
   }, [pathname, data.subItems]);
 
+  // Determine if this item should be shown as selected
+  const shouldShowAsSelected = useMemo(() => {
+    // If item has a direct href and it matches current pathname
+    if (data.href && pathname === data.href) {
+      return true;
+    }
+    // If any sub-item is active
+    if (hasActiveSubItem) {
+      return true;
+    }
+    return false;
+  }, [data.href, pathname, hasActiveSubItem]);
+
   // Don't show sub-items when sidebar is minimized
   const shouldShowSubItems = sidebarOpen && isOpen;
 
@@ -51,8 +64,8 @@ const SidebarItemMain: React.FC<SidebarItemMainProps> = ({
           "flex cursor-pointer  font-medium items-center w-full transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
           {
             "justify-between p-3": sidebarOpen,
-            "text-brand": isOpen,
-            "text-text-primary": !isOpen,
+            "text-brand": shouldShowAsSelected,
+            "text-text-primary": !shouldShowAsSelected,
             "justify-center p-2": !sidebarOpen,
           }
         )}
