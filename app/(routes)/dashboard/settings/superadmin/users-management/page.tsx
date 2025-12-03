@@ -36,7 +36,7 @@ const UsersManagement: React.FC<UsersManagementProps> = () => {
   return (
     <>
       <DashboardWrapper>
-        <ContentWrapper filedsToInlcude={[]}>
+        <ContentWrapper showWithoutTenant filedsToInlcude={[]}>
           <div className="flex flex-col rounded-3xl p-6 gap-3 min-h-0 flex-1">
             <div className="flex justify-between items-center shrink-0 gap-4">
               <div className="font-semibold text-xl items-center text-text-primary">
@@ -63,6 +63,7 @@ const UsersManagement: React.FC<UsersManagementProps> = () => {
           </div>
         </ContentWrapper>
       </DashboardWrapper>
+
       <CreateNewUserModal
         isOpen={state.modals.createUser || false}
         onClose={() => dispatch({ closeModal: "createUser" })}

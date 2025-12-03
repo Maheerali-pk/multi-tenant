@@ -24,12 +24,9 @@ const TenantsManagement: React.FC<TenantsManagementProps> = () => {
     },
   });
 
-  const handleSearchChange = useCallback(
-    (value: string) => {
-      setSearchValue(value);
-    },
-    []
-  );
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchValue(value);
+  }, []);
 
   const handleCreateSuccess = useCallback(async () => {
     dispatch({ closeModal: "createTenant" });
@@ -39,17 +36,14 @@ const TenantsManagement: React.FC<TenantsManagementProps> = () => {
   return (
     <>
       <DashboardWrapper>
-        <ContentWrapper filedsToInlcude={[]}>
+        <ContentWrapper showWithoutTenant filedsToInlcude={[]}>
           <div className="flex flex-col rounded-3xl p-6 gap-3 min-h-0 flex-1">
             <div className="flex justify-between items-center shrink-0 gap-4">
               <div className="font-semibold text-xl items-center text-text-primary">
                 Tenants Management
               </div>
               <div className="gap-4 flex items-center">
-                <Search
-                  onChange={handleSearchChange}
-                  value={searchValue}
-                />
+                <Search onChange={handleSearchChange} value={searchValue} />
                 <TableFilter
                   filters={filterOptions}
                   values={filterValues}

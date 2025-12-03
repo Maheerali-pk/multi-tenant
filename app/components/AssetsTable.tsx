@@ -143,7 +143,6 @@ const AssetsTable: React.FC<AssetsTableProps> = ({
     try {
       setLoading(true);
       setError(null);
-
       // For superadmin, use selectedTenantId from GlobalContext
       // For other users, use their tenant_id from user data
       const isSuperAdmin = auth.userData?.role === "superadmin";

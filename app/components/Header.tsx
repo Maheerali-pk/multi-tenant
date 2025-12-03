@@ -65,13 +65,30 @@ const Header: React.FC<HeaderProps> = () => {
         console.error("Error fetching tenants:", tenantsError);
       } else {
         setTenants((tenantsData as Tenant[]) || []);
-        // Auto-select first tenant if none selected
-        if (!state.selectedTenantId && tenantsData && tenantsData.length > 0) {
-          dispatch({
-            setState: {
-              selectedTenantId: tenantsData[0].id,
-            },
-          });
+
+        // Validate and handle tenant selection
+        if (tenantsData && tenantsData.length > 0) {
+          const tenantIds = tenantsData.map((t) => t.id);
+          const currentSelectedId = state.selectedTenantId;
+
+          // If no tenant is selected, or the selected tenant is not in the available list, auto-select first tenant
+          // if (!currentSelectedId || !tenantIds.includes(currentSelectedId)) {
+          //   dispatch({
+          //     setState: {
+          //       selectedTenantId: tenantsData[0].id,
+          //     },
+          //   });
+          // }
+          // Otherwise, keep the current selection (it's valid)
+        } else {
+          // No tenants available, clear selection
+          if (state.selectedTenantId) {
+            dispatch({
+              setState: {
+                selectedTenantId: null,
+              },
+            });
+          }
         }
       }
     } catch (err) {

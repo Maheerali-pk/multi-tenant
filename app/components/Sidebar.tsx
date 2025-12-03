@@ -67,6 +67,9 @@ const Sidebar: React.FC<SidebarProps> = () => {
   // Determine which logo to display
   const logoUrl = tenantLogo || "/images/logo.png";
   console.log(logoUrl);
+  const shouldHideSidebar =
+    (auth.userData?.role === "superadmin" && !state.selectedTenantId) ||
+    !auth.userData?.role;
   return (
     <div
       className={`flex flex-col justify-between bg-bg-inner rounded-3xl overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${
@@ -115,11 +118,13 @@ const Sidebar: React.FC<SidebarProps> = () => {
             </div>
           </div>
         </div>
-        <div className="flex flex-col gap-0 py-2">
-          {SidebarItems.map((item) => (
-            <SidebarItemMain key={item.name} data={item} isOpen={isOpen} />
-          ))}
-        </div>
+        {!shouldHideSidebar && (
+          <div className="flex flex-col gap-0 py-2">
+            {SidebarItems.map((item) => (
+              <SidebarItemMain key={item.name} data={item} isOpen={isOpen} />
+            ))}
+          </div>
+        )}
       </div>
       <div className="flex flex-col gap-0 pb-5">
         {auth.userData?.role === "superadmin" && (
