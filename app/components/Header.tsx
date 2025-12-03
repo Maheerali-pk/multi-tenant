@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuthContext } from "@/app/contexts/AuthContext";
 import CustomSelect, { SelectOption } from "./CustomSelect";
 import type { Tables } from "@/app/types/database.types";
+import { useRouter } from "next/navigation";
 
 type Tenant = Tables<"tenants">;
 
@@ -22,6 +23,7 @@ const Header: React.FC<HeaderProps> = () => {
   const [loadingTenants, setLoadingTenants] = useState(false);
 
   const isSuperAdmin = auth.userData?.role === "superadmin";
+  const router = useRouter();
 
   // Fetch tenants for superadmin
   useEffect(() => {
@@ -118,7 +120,7 @@ const Header: React.FC<HeaderProps> = () => {
   };
 
   const handleSettings = () => {
-    console.log("Settings clicked");
+    router.push("/dashboard/profile-settings");
     // TODO: Implement settings functionality
   };
 
