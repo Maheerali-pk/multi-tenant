@@ -66,6 +66,64 @@ const TenantsTable: React.FC<TenantsTableProps> = ({
     fetchTenants();
   }, [fetchTenants, refreshTrigger]);
 
+  // Helper function to get status badge styles
+  const getStatusBadgeStyles = (status: string | null): React.CSSProperties => {
+    if (!status) {
+      return {
+        backgroundColor: "var(--color-status-retired-bg)",
+        color: "var(--color-status-retired-text)",
+      };
+    }
+
+    const statusLower = status.toLowerCase();
+    switch (statusLower) {
+      case "active":
+        return {
+          backgroundColor: "var(--color-status-active-bg)",
+          color: "var(--color-status-active-text)",
+        };
+      case "planned":
+        return {
+          backgroundColor: "var(--color-status-planned-bg)",
+          color: "var(--color-status-planned-text)",
+        };
+      case "disabled":
+        return {
+          backgroundColor: "var(--color-status-inactive-bg)",
+          color: "var(--color-status-inactive-text)",
+        };
+      case "retired":
+        return {
+          backgroundColor: "var(--color-status-retired-bg)",
+          color: "var(--color-status-retired-text)",
+        };
+      case "disposed":
+        return {
+          backgroundColor: "var(--color-status-disposed-bg)",
+          color: "var(--color-status-disposed-text)",
+        };
+      default:
+        return {
+          backgroundColor: "var(--color-status-retired-bg)",
+          color: "var(--color-status-retired-text)",
+        };
+    }
+  };
+
+  // Helper function to render status badge
+  const renderStatusBadge = (status: string | null) => {
+    if (!status) return "-";
+
+    return (
+      <span
+        className="px-2 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1"
+        style={getStatusBadgeStyles(status)}
+      >
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
+    );
+  };
+
   const handleEditClick = useCallback((row: TenantRow) => {
     setSelectedTenantForEdit(row);
     setEditDialogOpen(true);
@@ -206,7 +264,7 @@ const TenantsTable: React.FC<TenantsTableProps> = ({
       header: "Status",
       sortable: true,
       width: "10%",
-      render: (row) => row.status || "-",
+      render: (row) => renderStatusBadge(row.status),
     },
     {
       key: "created_at",
