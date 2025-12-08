@@ -32,6 +32,10 @@ const Header: React.FC<HeaderProps> = () => {
     }
   }, [isSuperAdmin, auth.userData?.id]);
 
+  useEffect(() => {
+    fetchSuperAdminTenants();
+  }, [state.refreshTrigger]);
+
   const fetchSuperAdminTenants = async () => {
     if (!auth.userData?.id) return;
 
@@ -74,13 +78,13 @@ const Header: React.FC<HeaderProps> = () => {
           const currentSelectedId = state.selectedTenantId;
 
           // If no tenant is selected, or the selected tenant is not in the available list, auto-select first tenant
-          // if (!currentSelectedId || !tenantIds.includes(currentSelectedId)) {
-          //   dispatch({
-          //     setState: {
-          //       selectedTenantId: tenantsData[0].id,
-          //     },
-          //   });
-          // }
+          if (!currentSelectedId || !tenantIds.includes(currentSelectedId)) {
+            dispatch({
+              setState: {
+                selectedTenantId: tenantsData[0].id,
+              },
+            });
+          }
           // Otherwise, keep the current selection (it's valid)
         } else {
           // No tenants available, clear selection
