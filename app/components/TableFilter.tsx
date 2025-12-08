@@ -15,7 +15,8 @@ export type AssetFilterKey =
   | "tenant"
   | "title"
   | "country"
-  | "contact_name";
+  | "contact_name"
+  | "email";
 
 export interface FilterOption {
   key: AssetFilterKey;
@@ -38,6 +39,7 @@ export interface FilterValues {
   title?: string;
   country?: string;
   contact_name?: string;
+  email?: string;
 }
 
 interface TableFilterProps {

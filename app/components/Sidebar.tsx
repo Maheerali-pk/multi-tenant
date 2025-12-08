@@ -6,6 +6,9 @@ import {
   LucideMenu,
   UsersRound,
   KeyRound,
+  Users2,
+  Building,
+  Building2,
 } from "lucide-react";
 import { SidebarItems } from "../helpers/data";
 import { allIcons } from "../helpers/icons";
@@ -172,13 +175,18 @@ const Sidebar: React.FC<SidebarProps> = () => {
                 {
                   name: "Company Profile",
                   href: "/dashboard/settings/tenant-admin/company-profile",
-                  icon: <UsersRound size={20} />,
+                  icon: <Building2 size={20} />,
                 },
 
                 {
                   name: "Users and Access",
                   href: "/dashboard/settings/tenant-admin/users-and-access",
                   icon: <KeyRound size={20} />,
+                },
+                {
+                  name: "Teams Management",
+                  href: "/dashboard/settings/tenant-admin/teams-management",
+                  icon: <Users2 size={20} />,
                 },
               ],
             }}
