@@ -241,8 +241,7 @@ export default function EditAssetModal({
       const { data, error: fetchError } = await supabase
         .from("asset_subcategories")
         .select("*")
-        .eq("category_id", categoryId)
-        .order("name");
+        .eq("category_id", categoryId);
 
       if (fetchError) {
         console.error("Error fetching subcategories:", fetchError);
@@ -264,6 +263,7 @@ export default function EditAssetModal({
     e.preventDefault();
     setError(null);
 
+    // Validate required fields
     if (!formData.name.trim()) {
       setError("Name is required");
       return;
@@ -271,6 +271,36 @@ export default function EditAssetModal({
 
     if (!asset) {
       setError("Asset not found");
+      return;
+    }
+
+    if (!formData.subcategoryId) {
+      setError("Type (Subcategory) is required");
+      return;
+    }
+
+    if (!formData.classificationId) {
+      setError("Sensitivity is required");
+      return;
+    }
+
+    if (!formData.exposureId) {
+      setError("Exposure is required");
+      return;
+    }
+
+    if (!formData.lifecycleStatusId) {
+      setError("Lifecycle Status is required");
+      return;
+    }
+
+    if (!formData.owner) {
+      setError("Owner is required");
+      return;
+    }
+
+    if (!formData.reviewer) {
+      setError("Reviewer is required");
       return;
     }
 
@@ -503,7 +533,7 @@ export default function EditAssetModal({
                 htmlFor="subcategoryId"
                 className="text-sm font-medium text-text-primary"
               >
-                Type
+                Type <span className="text-failure">*</span>
               </label>
               <CustomSelect
                 id="subcategoryId"
@@ -516,13 +546,14 @@ export default function EditAssetModal({
                     ? "Category not set"
                     : subcategories.length === 0
                     ? "No subcategories available"
-                    : "Select a subcategory (optional)"
+                    : "Select a subcategory"
                 }
                 isDisabled={
                   !asset?.categoryId ||
                   subcategories.length === 0 ||
                   loadingAsset
                 }
+                isRequired
               />
             </div>
           )}
@@ -534,7 +565,7 @@ export default function EditAssetModal({
                 htmlFor="classificationId"
                 className="text-sm font-medium text-text-primary"
               >
-                Sensitivity
+                Sensitivity <span className="text-failure">*</span>
               </label>
               <CustomSelect
                 id="classificationId"
@@ -544,8 +575,9 @@ export default function EditAssetModal({
                 onChange={(value) =>
                   handleSelectChange("classificationId", value)
                 }
-                placeholder="Select sensitivity (optional)"
+                placeholder="Select sensitivity"
                 isDisabled={loadingCategories || loadingAsset}
+                isRequired
               />
             </div>
           )}
@@ -557,7 +589,7 @@ export default function EditAssetModal({
                 htmlFor="exposureId"
                 className="text-sm font-medium text-text-primary"
               >
-                Exposure
+                Exposure <span className="text-failure">*</span>
               </label>
               <CustomSelect
                 id="exposureId"
@@ -565,8 +597,9 @@ export default function EditAssetModal({
                 options={exposureOptions}
                 value={formData.exposureId}
                 onChange={(value) => handleSelectChange("exposureId", value)}
-                placeholder="Select exposure (optional)"
+                placeholder="Select exposure"
                 isDisabled={loadingCategories || loadingAsset}
+                isRequired
               />
             </div>
           )}
@@ -578,7 +611,7 @@ export default function EditAssetModal({
                 htmlFor="lifecycleStatusId"
                 className="text-sm font-medium text-text-primary"
               >
-                Lifecycle Status
+                Lifecycle Status <span className="text-failure">*</span>
               </label>
               <CustomSelect
                 id="lifecycleStatusId"
@@ -588,13 +621,14 @@ export default function EditAssetModal({
                 onChange={(value) =>
                   handleSelectChange("lifecycleStatusId", value)
                 }
-                placeholder="Select lifecycle status (optional)"
+                placeholder="Select lifecycle status"
                 isDisabled={loadingCategories || loadingAsset}
+                isRequired
               />
             </div>
           )}
 
-          {/* Asset URL Field */}
+          {/* Asset URL Field - Optional */}
           {filedsToInlcude.includes("url") && (
             <div className="flex flex-col gap-1.5">
               <label
@@ -616,7 +650,7 @@ export default function EditAssetModal({
             </div>
           )}
 
-          {/* IP Address Field */}
+          {/* IP Address Field - Optional */}
           {filedsToInlcude.includes("ip_address") && (
             <div className="flex flex-col gap-1.5">
               <label
@@ -646,7 +680,7 @@ export default function EditAssetModal({
                 htmlFor="owner"
                 className="text-sm font-medium text-text-primary"
               >
-                Owner
+                Owner <span className="text-failure">*</span>
               </label>
               <CustomSelect
                 id="owner"
@@ -654,8 +688,9 @@ export default function EditAssetModal({
                 options={ownerOptions}
                 value={formData.owner}
                 onChange={(value) => handleSelectChange("owner", value)}
-                placeholder="Select owner (optional)"
+                placeholder="Select owner"
                 isDisabled={loadingCategories || loadingAsset}
+                isRequired
               />
             </div>
           )}
@@ -668,7 +703,7 @@ export default function EditAssetModal({
                 htmlFor="reviewer"
                 className="text-sm font-medium text-text-primary"
               >
-                Reviewer
+                Reviewer <span className="text-failure">*</span>
               </label>
               <CustomSelect
                 id="reviewer"
@@ -676,13 +711,14 @@ export default function EditAssetModal({
                 options={reviewerOptions}
                 value={formData.reviewer}
                 onChange={(value) => handleSelectChange("reviewer", value)}
-                placeholder="Select reviewer (optional)"
+                placeholder="Select reviewer"
                 isDisabled={loadingCategories || loadingAsset}
+                isRequired
               />
             </div>
           )}
 
-          {/* Location Field */}
+          {/* Location Field - Optional */}
           {filedsToInlcude.includes("location") && (
             <div className="flex flex-col gap-1.5">
               <label
@@ -704,7 +740,7 @@ export default function EditAssetModal({
             </div>
           )}
 
-          {/* Description Field */}
+          {/* Description Field - Optional */}
           {filedsToInlcude.includes("description") && (
             <div className="flex flex-col gap-1.5">
               <label
