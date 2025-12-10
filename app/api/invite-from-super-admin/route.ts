@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
 
 	try {
 		// Get the base URL for redirect
-		const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+		const baseUrl = 'https://multi-tenant-beta-seven.vercel.app'
 		const redirectTo = `${baseUrl}/auth/accept-invite`
 
 		// Fetch tenant name if tenant_id is provided
