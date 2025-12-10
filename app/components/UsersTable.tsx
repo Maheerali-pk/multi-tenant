@@ -11,8 +11,10 @@ import ManageSuperAdminTenantsModals from "@/app/modals/ManageSuperAdminTenantsM
 import { FilterValues } from "./TableFilter";
 import { toast } from "react-toastify";
 import { useAuthContext } from "@/app/contexts/AuthContext";
-import { Settings } from "lucide-react";
+import { Settings, Users } from "lucide-react";
 import TenantListModal from "./TenantListModal";
+import TeamListModal from "./ManageUserTeamsModal";
+import TeamsListModal from "./TeamsListModal";
 import { useGlobalContext } from "../contexts/GlobalContext";
 
 type User = Tables<"users">;
@@ -21,6 +23,7 @@ type Tenant = Tables<"tenants">;
 export interface UserRow extends User {
   tenant_name?: string | null;
   tenant_names?: string[]; // For superadmin users - list of tenant names
+  team_names?: string[]; // For tenant_admin mode - list of team names
 }
 
 type UserTableMode = "superadmin" | "tenant_admin";
@@ -58,6 +61,11 @@ const UsersTable: React.FC<UsersTableProps> = ({
     useState<UserRow | null>(null);
   const [tenantListModalOpen, setTenantListModalOpen] = useState(false);
   const [tenantsToShow, setTenantsToShow] = useState<string[]>([]);
+  const [teamListModalOpen, setTeamListModalOpen] = useState(false);
+  const [selectedUserForManageTeams, setSelectedUserForManageTeams] =
+    useState<UserRow | null>(null);
+  const [teamsListModalOpen, setTeamsListModalOpen] = useState(false);
+  const [teamsToShow, setTeamsToShow] = useState<string[]>([]);
   const [state] = useGlobalContext();
 
   const fetchUsers = useCallback(async () => {
@@ -182,7 +190,45 @@ const UsersTable: React.FC<UsersTableProps> = ({
         }
       }
 
-      // Combine user data with tenant names
+      // Fetch team mappings for tenant_admin mode
+      let userTeamsMap = new Map<string, string[]>();
+      if (mode === "tenant_admin" && otherUsers.length > 0) {
+        const userIds = otherUsers.map((user) => user.id);
+        const { data: userTeamsData, error: userTeamsError } = await supabase
+          .from("user_teams")
+          .select("user_id, team_id")
+          .in("user_id", userIds);
+
+        if (!userTeamsError && userTeamsData) {
+          // Get unique team IDs
+          const teamIds = [...new Set(userTeamsData.map((ut) => ut.team_id))];
+
+          // Fetch team names
+          if (teamIds.length > 0) {
+            const { data: teamsData, error: teamsError } = await supabase
+              .from("teams")
+              .select("id, name")
+              .in("id", teamIds);
+
+            if (!teamsError && teamsData) {
+              const teamNameMap = new Map(
+                teamsData.map((team) => [team.id, team.name])
+              );
+
+              // Group teams by user_id
+              userTeamsData.forEach((userTeam) => {
+                const teamName = teamNameMap.get(userTeam.team_id);
+                if (teamName) {
+                  const existing = userTeamsMap.get(userTeam.user_id) || [];
+                  userTeamsMap.set(userTeam.user_id, [...existing, teamName]);
+                }
+              });
+            }
+          }
+        }
+      }
+
+      // Combine user data with tenant names and team names
       const usersWithTenants: UserRow[] = usersData.map((user) => {
         if (user.role === "superadmin") {
           const tenantNames = superadminTenantsMap.get(user.id) || [];
@@ -190,14 +236,17 @@ const UsersTable: React.FC<UsersTableProps> = ({
             ...user,
             tenant_name: null,
             tenant_names: tenantNames,
+            team_names: undefined,
           };
         } else {
+          const teamNames = userTeamsMap.get(user.id) || [];
           return {
             ...user,
             tenant_name: user.tenant_id
               ? tenantsMap.get(user.tenant_id) || null
               : null,
             tenant_names: undefined,
+            team_names: teamNames,
           };
         }
       });
@@ -353,6 +402,22 @@ const UsersTable: React.FC<UsersTableProps> = ({
     await fetchUsers();
   }, [fetchUsers]);
 
+  const handleManageTeamsClick = useCallback((row: UserRow) => {
+    setSelectedUserForManageTeams(row);
+    setTeamListModalOpen(true);
+  }, []);
+
+  const handleManageTeamsCancel = useCallback(() => {
+    setTeamListModalOpen(false);
+    setSelectedUserForManageTeams(null);
+  }, []);
+
+  const handleManageTeamsSuccess = useCallback(async () => {
+    setTeamListModalOpen(false);
+    setSelectedUserForManageTeams(null);
+    await fetchUsers();
+  }, [fetchUsers]);
+
   // Apply search and filter values
   const filteredData = useMemo(() => {
     let result = [...users];
@@ -370,6 +435,10 @@ const UsersTable: React.FC<UsersTableProps> = ({
             row.tenant_name.toLowerCase().includes(searchLower)) ||
           (row.tenant_names &&
             row.tenant_names.some((name) =>
+              name.toLowerCase().includes(searchLower)
+            )) ||
+          (row.team_names &&
+            row.team_names.some((name) =>
               name.toLowerCase().includes(searchLower)
             ))
       );
@@ -401,69 +470,144 @@ const UsersTable: React.FC<UsersTableProps> = ({
       key: "name",
       header: "Name",
       sortable: true,
-      width: "20%",
+      width: mode === "tenant_admin" ? "20%" : "20%",
     },
     {
       key: "email",
       header: "Email",
       sortable: true,
-      width: "20%",
+      width: mode === "tenant_admin" ? "20%" : "20%",
     },
     {
       key: "title",
       header: "Title",
       sortable: true,
-      width: "15%",
+      width: mode === "tenant_admin" ? "15%" : "15%",
       render: (row) => row.title || "-",
     },
     {
       key: "role",
       header: "Role",
       sortable: true,
-      width: "15%",
+      width: mode === "tenant_admin" ? "15%" : "15%",
       render: (row) => renderRoleBadge(row.role),
     },
-    {
-      key: "tenant_name",
-      header: "Tenant",
-      sortable: true,
-      width: "20%",
-      render: (row) => {
-        // For superadmin users, show list of tenants
-        if (row.role === "superadmin" && row.tenant_names) {
-          if (row.tenant_names.length === 0) {
-            return "-";
-          }
+    // Tenant column only shown in superadmin mode
+    ...(mode === "superadmin"
+      ? [
+          {
+            key: "tenant_name",
+            header: "Tenant",
+            sortable: true,
+            width: "20%",
+            render: (row) => {
+              // For superadmin users, show list of tenants
+              if (row.role === "superadmin" && row.tenant_names) {
+                if (row.tenant_names.length === 0) {
+                  return "-";
+                }
 
-          const displayTenants = row.tenant_names.slice(0, 3);
-          const remainingCount = row.tenant_names.length - 3;
+                const displayTenants = row.tenant_names.slice(0, 3);
+                const remainingCount = row.tenant_names.length - 3;
 
-          const handleShowMore = (e: React.MouseEvent) => {
-            e.stopPropagation();
-            setTenantsToShow(row.tenant_names || []);
-            setTenantListModalOpen(true);
-          };
+                const handleShowMore = (e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  setTenantsToShow(row.tenant_names || []);
+                  setTenantListModalOpen(true);
+                };
 
-          return (
-            <span>
-              {displayTenants.join(", ")}
-              {remainingCount > 0 && (
-                <button
-                  onClick={handleShowMore}
-                  className="ml-1 text-brand font-semibold  transition-colors cursor-pointer"
-                  aria-label={`Show ${remainingCount} more tenants`}
-                >
-                  + {remainingCount} more
-                </button>
-              )}
-            </span>
-          );
-        }
+                return (
+                  <span>
+                    {displayTenants.join(", ")}
+                    {remainingCount > 0 && (
+                      <button
+                        onClick={handleShowMore}
+                        className="ml-1 text-brand font-semibold  transition-colors cursor-pointer"
+                        aria-label={`Show ${remainingCount} more tenants`}
+                      >
+                        + {remainingCount} more
+                      </button>
+                    )}
+                  </span>
+                );
+              }
 
-        // For other users, show single tenant name
-        return row.tenant_name || "-";
-      },
-    },
+              // For other users, show single tenant name
+              return row.tenant_name || "-";
+            },
+          } as TableColumn<UserRow>,
+        ]
+      : []),
+    // Add Teams column for tenant_admin mode (second last column, before actions)
+    ...(mode === "tenant_admin"
+      ? [
+          {
+            key: "team_names",
+            header: "Teams",
+            sortable: false,
+            width: "20%",
+            render: (row: UserRow) => {
+              if (row.team_names && row.team_names.length > 0) {
+                const maxLength = 20;
+                const allTeamsText = row.team_names.join(", ");
+
+                const handleShowMore = (e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  setTeamsToShow(row.team_names || []);
+                  setTeamsListModalOpen(true);
+                };
+
+                // If all teams fit within 30 characters, show all
+                if (allTeamsText.length <= maxLength) {
+                  return <span>{allTeamsText}</span>;
+                }
+
+                // Truncate to exactly 30 characters (can cut team names in the middle)
+                const displayText = allTeamsText.substring(0, maxLength);
+
+                // Count remaining teams by checking how many teams are fully displayed
+                let teamsDisplayed = 0;
+                let currentLength = 0;
+
+                for (let i = 0; i < row.team_names.length; i++) {
+                  const teamName = row.team_names[i];
+                  const separator = i > 0 ? ", " : "";
+                  const potentialLength =
+                    currentLength + separator.length + teamName.length;
+
+                  if (potentialLength <= maxLength) {
+                    teamsDisplayed++;
+                    currentLength = potentialLength;
+                  } else {
+                    break;
+                  }
+                }
+
+                const remainingCount = row.team_names.length - teamsDisplayed;
+
+                return (
+                  <span>
+                    {displayText}
+                    {remainingCount > 0 && (
+                      <>
+                        ...
+                        <button
+                          onClick={handleShowMore}
+                          className="ml-1 text-brand font-semibold transition-colors cursor-pointer hover:underline"
+                          aria-label={`Show ${remainingCount} more teams`}
+                        >
+                          Show {remainingCount} more
+                        </button>
+                      </>
+                    )}
+                  </span>
+                );
+              }
+              return "-";
+            },
+          } as TableColumn<UserRow>,
+        ]
+      : []),
   ];
 
   // Default handlers
@@ -473,10 +617,13 @@ const UsersTable: React.FC<UsersTableProps> = ({
   // Custom actions for superadmin users
   const renderCustomActions = useCallback(
     (row: UserRow) => {
-      // Only show manage tenants button for superadmin users when mode is superadmin
+      const actions = [];
+
+      // Show manage tenants button for superadmin users when mode is superadmin
       if (mode === "superadmin" && row.role === "superadmin") {
-        return (
+        actions.push(
           <button
+            key="manage-tenants"
             onClick={() => handleManageTenantsClick(row)}
             className="p-1.5 cursor-pointer rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/20 transition-colors text-[#7c3aed] hover:text-[#6d28d9]"
             aria-label="Manage Tenants"
@@ -486,9 +633,25 @@ const UsersTable: React.FC<UsersTableProps> = ({
           </button>
         );
       }
-      return null;
+
+      // Show manage teams button for tenant_admin mode when role is superadmin or tenant_admin
+      if (mode === "tenant_admin") {
+        actions.push(
+          <button
+            key="manage-teams"
+            onClick={() => handleManageTeamsClick(row)}
+            className="p-1.5 cursor-pointer rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors text-[#7c3aed] hover:text-[#6d28d9]"
+            aria-label="Manage Teams"
+            title="Manage Teams"
+          >
+            <Settings size={16} />
+          </button>
+        );
+      }
+
+      return actions.length > 0 ? <>{actions}</> : null;
     },
-    [mode, handleManageTenantsClick]
+    [mode, handleManageTenantsClick, handleManageTeamsClick]
   );
 
   if (loading) {
@@ -550,6 +713,17 @@ const UsersTable: React.FC<UsersTableProps> = ({
         isOpen={tenantListModalOpen}
         onClose={() => setTenantListModalOpen(false)}
         tenants={tenantsToShow}
+      />
+      <TeamListModal
+        isOpen={teamListModalOpen}
+        onClose={handleManageTeamsCancel}
+        onSuccess={handleManageTeamsSuccess}
+        user={selectedUserForManageTeams}
+      />
+      <TeamsListModal
+        isOpen={teamsListModalOpen}
+        onClose={() => setTeamsListModalOpen(false)}
+        teams={teamsToShow}
       />
     </>
   );
