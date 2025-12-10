@@ -18,11 +18,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     }
 
     const isAuthRoute = pathname?.startsWith("/auth");
+    const isAcceptInviteRoute = pathname === "/auth/accept-invite";
 
     // If user is authenticated
     if (authState.user) {
-      // If on auth pages, redirect to dashboard or stored redirect path
-      if (isAuthRoute) {
+      // If on auth pages (except accept-invite), redirect to dashboard or stored redirect path
+      if (isAuthRoute && !isAcceptInviteRoute) {
         // Check if there's a stored redirect path
         const redirectPath = sessionStorage.getItem("redirectAfterLogin");
         if (redirectPath) {
@@ -65,9 +66,13 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If user is authenticated and trying to access auth pages, don't render children
+  // If user is authenticated and trying to access auth pages (except accept-invite), don't render children
   // (redirect will happen in useEffect)
-  if (authState.user && pathname?.startsWith("/auth")) {
+  if (
+    authState.user &&
+    pathname?.startsWith("/auth") &&
+    pathname !== "/auth/accept-invite"
+  ) {
     return null;
   }
 
