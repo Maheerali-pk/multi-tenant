@@ -8,7 +8,14 @@ export async function POST(req: NextRequest) {
 
 	try {
 		// Get the base URL for redirect
-		const baseUrl = 'https://multi-tenant-beta-seven.vercel.app'
+		// Priority: NEXT_PUBLIC_APP_URL > VERCEL_URL > hardcoded production URL
+		let baseUrl = process.env.NEXT_PUBLIC_APP_URL
+		if (!baseUrl && process.env.VERCEL_URL) {
+			baseUrl = `https://${process.env.VERCEL_URL}`
+		}
+		if (!baseUrl) {
+			baseUrl = 'https://multi-tenant-beta-seven.vercel.app'
+		}
 		const redirectTo = `${baseUrl}/auth/accept-invite`
 
 		// Fetch tenant name if tenant_id is provided

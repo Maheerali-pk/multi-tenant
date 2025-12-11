@@ -9,6 +9,8 @@ import EditTeamModal from "@/app/modals/EditTeamModal";
 import { FilterValues } from "./TableFilter";
 import { useAuthContext } from "@/app/contexts/AuthContext";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
+import { Settings } from "lucide-react";
+import ManageTeamUsersModal from "./ManageTeamUsersModal";
 
 type Team = Tables<"teams">;
 
@@ -39,6 +41,9 @@ const TeamsTable: React.FC<TeamsTableProps> = ({
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedTeamForEdit, setSelectedTeamForEdit] =
+    useState<TeamRow | null>(null);
+  const [manageUsersDialogOpen, setManageUsersDialogOpen] = useState(false);
+  const [selectedTeamForManageUsers, setSelectedTeamForManageUsers] =
     useState<TeamRow | null>(null);
 
   const fetchTeams = useCallback(async () => {
@@ -224,6 +229,39 @@ const TeamsTable: React.FC<TeamsTableProps> = ({
     },
   ];
 
+  const handleManageUsersClick = useCallback((row: TeamRow) => {
+    setSelectedTeamForManageUsers(row);
+    setManageUsersDialogOpen(true);
+  }, []);
+
+  const handleManageUsersCancel = useCallback(() => {
+    setManageUsersDialogOpen(false);
+    setSelectedTeamForManageUsers(null);
+  }, []);
+
+  const handleManageUsersSuccess = useCallback(async () => {
+    setManageUsersDialogOpen(false);
+    setSelectedTeamForManageUsers(null);
+    await fetchTeams();
+  }, [fetchTeams]);
+
+  // Custom actions for teams - add settings icon
+  const renderCustomActions = useCallback(
+    (row: TeamRow) => {
+      return (
+        <button
+          onClick={() => handleManageUsersClick(row)}
+          className="p-1.5 cursor-pointer rounded-lg hover:bg-blue-100 dark:hover:bg-purple-900/20 transition-colors text-[#7c3aed] hover:text-[#6d28d9]"
+          aria-label="Manage Users"
+          title="Manage Users"
+        >
+          <Settings size={16} />
+        </button>
+      );
+    },
+    [handleManageUsersClick]
+  );
+
   // Default handlers
   const handleEdit = onEdit || handleEditClick;
 
@@ -252,6 +290,7 @@ const TeamsTable: React.FC<TeamsTableProps> = ({
         rows={filteredData}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        customActions={renderCustomActions}
         getRowKey={(row) => row.id}
         itemsPerPage={10}
       />
@@ -267,6 +306,12 @@ const TeamsTable: React.FC<TeamsTableProps> = ({
         onClose={handleEditCancel}
         onSuccess={handleEditSuccessWithRefresh}
         team={selectedTeamForEdit}
+      />
+      <ManageTeamUsersModal
+        isOpen={manageUsersDialogOpen}
+        onClose={handleManageUsersCancel}
+        onSuccess={handleManageUsersSuccess}
+        team={selectedTeamForManageUsers}
       />
     </>
   );
