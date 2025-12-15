@@ -26,6 +26,9 @@
   --blue: #2563eb;
   --icon: #6b7280;
   --input: white;
+  --input-disabled-bg: #f3f4f6;
+  --input-disabled-text: #9ca3af;
+  --input-disabled-border: #d1d5db;
   --status-active-bg: rgba(16, 185, 129, 0.15);
   --status-active-text: #059669;
   --status-planned-bg: rgba(99, 102, 241, 0.15);
@@ -62,6 +65,9 @@
   --blue: #2563eb;
   --icon: #6b7280;
   --input: #070f25;
+  --input-disabled-bg: #03060d;
+  --input-disabled-text: #6b7280;
+  --input-disabled-border: #0a1220;
   --status-active-bg: rgba(16, 185, 129, 0.15);
   --status-active-text: #6ee7b7;
   --status-planned-bg: rgba(99, 102, 241, 0.15);
@@ -125,4 +131,26 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: "Poppins", Arial, Helvetica, sans-serif;
+}
+
+/* Disabled input styling - make it more visually distinct */
+input:disabled,
+textarea:disabled,
+select:disabled {
+  background-color: var(--input-disabled-bg) !important;
+  color: var(--input-disabled-text) !important;
+  border-color: var(--input-disabled-border) !important;
+  cursor: not-allowed !important;
+  opacity: 1 !important;
+}
+
+/* For inputs with disabled class */
+input.disabled,
+textarea.disabled,
+select.disabled {
+  background-color: var(--input-disabled-bg) !important;
+  color: var(--input-disabled-text) !important;
+  border-color: var(--input-disabled-border) !important;
+  cursor: not-allowed !important;
+  opacity: 1 !important;
 }

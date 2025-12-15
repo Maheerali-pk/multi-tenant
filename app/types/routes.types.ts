@@ -12,7 +12,7 @@ type PolicySubRoute =
 	| "compliance-standards"
 	| "templates";
 
-type PolicyRoute = `/dashboard/policy/${PolicySubRoute}`;
+type PolicyRoute = `/dashboard/policy-management/${PolicySubRoute}`;
 
 type RiskSubRoute =
 	| "assessment"
@@ -36,6 +36,7 @@ type ITenantAdminRoutes =
 	`/dashboard/settings/tenant-admin/${TenantAdminSubRoute}`;
 
 type ProfileSettingsRoute = "/dashboard/profile-settings";
+
 type ILogoutRoute = "/logout";
 
 export type IRoute =

@@ -29,6 +29,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
   const router = useRouter();
   const isOpen = state.isSidebarOpen;
   const [tenantLogo, setTenantLogo] = useState<string | null>(null);
+  console.log("Sidebar rendered");
 
   // Determine active tenant ID
   const activeTenantId =
@@ -38,6 +39,7 @@ const Sidebar: React.FC<SidebarProps> = () => {
 
   // Fetch tenant logo when active tenant changes
   useEffect(() => {
+    console.log(activeTenantId, "activeTenantId");
     const fetchTenantLogo = async () => {
       if (!activeTenantId) {
         setTenantLogo(null);
@@ -52,14 +54,12 @@ const Sidebar: React.FC<SidebarProps> = () => {
           .single();
 
         if (error) {
-          console.error("Error fetching tenant logo:", error);
           setTenantLogo(null);
           return;
         }
 
         setTenantLogo(data?.logo || null);
       } catch (err) {
-        console.error("Error fetching tenant logo:", err);
         setTenantLogo(null);
       }
     };
@@ -69,7 +69,6 @@ const Sidebar: React.FC<SidebarProps> = () => {
 
   // Determine which logo to display
   const logoUrl = tenantLogo || "/images/logo.png";
-  console.log(logoUrl);
   const shouldHideDataItemsOfSidebar =
     (auth.userData?.role === "superadmin" && !state.selectedTenantId) ||
     !auth.userData?.role;

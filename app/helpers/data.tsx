@@ -81,17 +81,17 @@ export const SidebarItems: SidebarItem[] = [
       {
         icon: <Shield size={16} />,
         name: "Security Policies",
-        href: "/dashboard/policy/security-policies",
+        href: "/dashboard/policy-management/security-policies",
       },
       {
         icon: <ClipboardList size={16} />,
         name: "Compliance Standards",
-        href: "/dashboard/policy/compliance-standards",
+        href: "/dashboard/policy-management/compliance-standards",
       },
       {
         icon: <FileCheck size={16} />,
         name: "Policy Templates",
-        href: "/dashboard/policy/templates",
+        href: "/dashboard/policy-management/templates",
       },
     ],
   },

@@ -19,24 +19,52 @@ interface CustomSelectProps {
   id?: string;
 }
 
-const customStyles: StylesConfig<SelectOption, false, GroupBase<SelectOption>> = {
+const getCustomStyles = (
+  isDisabled: boolean
+): StylesConfig<SelectOption, false, GroupBase<SelectOption>> => ({
   control: (baseStyles, state) => ({
     ...baseStyles,
-    backgroundColor: "var(--input)",
-    borderColor: state.isFocused ? "var(--brand)" : "var(--border-hr)",
+    backgroundColor: isDisabled
+      ? "var(--input-disabled-bg)"
+      : "var(--input)",
+    borderColor: isDisabled
+      ? "var(--input-disabled-border)"
+      : state.isFocused
+      ? "var(--brand)"
+      : "var(--border-hr)",
     borderRadius: "0.5rem",
-    padding: "0.25rem 0.5rem",
-    minHeight: "2.5rem",
+    padding: 0,
+    minHeight: "auto",
+    height: "auto",
     fontSize: "0.875rem",
-    color: "var(--text-primary)",
-    cursor: state.isDisabled ? "not-allowed" : "pointer",
-    opacity: state.isDisabled ? 0.5 : 1,
-    boxShadow: state.isFocused
-      ? "0 0 0 2px var(--brand)"
-      : "none",
+    color: isDisabled
+      ? "var(--input-disabled-text)"
+      : "var(--text-primary)",
+    cursor: isDisabled ? "not-allowed" : "pointer",
+    opacity: 1,
+    boxShadow: "none",
+    borderWidth: "1px",
+    transition: "border-color 0.15s ease-in-out",
     "&:hover": {
-      borderColor: state.isFocused ? "var(--brand)" : "var(--border-hr)",
+      borderColor: isDisabled
+        ? "var(--input-disabled-border)"
+        : state.isFocused
+        ? "var(--brand)"
+        : "var(--border-hr)",
     },
+  }),
+  valueContainer: (baseStyles) => ({
+    ...baseStyles,
+    padding: "0.5rem 0.75rem",
+  }),
+  input: (baseStyles) => ({
+    ...baseStyles,
+    margin: 0,
+    padding: 0,
+    color: isDisabled
+      ? "var(--input-disabled-text)"
+      : "var(--text-primary)",
+    fontSize: "0.875rem",
   }),
   menu: (baseStyles) => ({
     ...baseStyles,
@@ -67,42 +95,56 @@ const customStyles: StylesConfig<SelectOption, false, GroupBase<SelectOption>> =
   }),
   placeholder: (baseStyles) => ({
     ...baseStyles,
-    color: "var(--text-secondary)",
+    color: isDisabled
+      ? "var(--input-disabled-text)"
+      : "var(--text-secondary)",
     fontSize: "0.875rem",
   }),
   singleValue: (baseStyles) => ({
     ...baseStyles,
-    color: "var(--text-primary)",
+    color: isDisabled
+      ? "var(--input-disabled-text)"
+      : "var(--text-primary)",
     fontSize: "0.875rem",
-  }),
-  input: (baseStyles) => ({
-    ...baseStyles,
-    color: "var(--text-primary)",
-    fontSize: "0.875rem",
+    margin: 0,
   }),
   indicatorsContainer: (baseStyles) => ({
     ...baseStyles,
-    color: "var(--text-secondary)",
+    color: isDisabled
+      ? "var(--input-disabled-text)"
+      : "var(--text-secondary)",
+    padding: 0,
+    paddingRight: "0.5rem",
   }),
   indicatorSeparator: (baseStyles) => ({
     ...baseStyles,
-    backgroundColor: "var(--border-hr)",
+    backgroundColor: isDisabled
+      ? "var(--input-disabled-border)"
+      : "var(--border-hr)",
   }),
   dropdownIndicator: (baseStyles) => ({
     ...baseStyles,
-    color: "var(--text-secondary)",
+    color: isDisabled
+      ? "var(--input-disabled-text)"
+      : "var(--text-secondary)",
     "&:hover": {
-      color: "var(--text-primary)",
+      color: isDisabled
+        ? "var(--input-disabled-text)"
+        : "var(--text-primary)",
     },
   }),
   clearIndicator: (baseStyles) => ({
     ...baseStyles,
-    color: "var(--text-secondary)",
+    color: isDisabled
+      ? "var(--input-disabled-text)"
+      : "var(--text-secondary)",
     "&:hover": {
-      color: "var(--text-primary)",
+      color: isDisabled
+        ? "var(--input-disabled-text)"
+        : "var(--text-primary)",
     },
   }),
-};
+});
 
 export const CustomSelect: React.FC<CustomSelectProps> = ({
   options,
@@ -137,7 +179,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       placeholder={placeholder}
       isDisabled={isDisabled}
       isClearable={!isRequired}
-      styles={customStyles}
+      styles={getCustomStyles(isDisabled)}
       classNamePrefix="custom-select"
     />
   );

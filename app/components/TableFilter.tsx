@@ -16,7 +16,9 @@ export type AssetFilterKey =
   | "title"
   | "country"
   | "contact_name"
-  | "email";
+  | "email"
+  | "creator"
+  | "approver";
 
 export interface FilterOption {
   key: AssetFilterKey;
@@ -40,6 +42,8 @@ export interface FilterValues {
   country?: string;
   contact_name?: string;
   email?: string;
+  creator?: string;
+  approver?: string;
 }
 
 interface TableFilterProps {
@@ -76,6 +80,9 @@ function TableFilter({ filters, values, onChange, onClear }: TableFilterProps) {
       title: "",
       country: "",
       contact_name: "",
+      email: "",
+      creator: "",
+      approver: "",
     };
     onChange(clearedValues);
     onClear?.();
