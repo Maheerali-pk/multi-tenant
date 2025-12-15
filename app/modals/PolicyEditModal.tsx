@@ -11,6 +11,7 @@ import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import type { Tables, TablesUpdate } from "@/app/types/database.types";
 import PolicyComment from "@/app/components/PolicyComment";
 import { policyLifecycleStatuses } from "@/app/helpers/permenantTablesData";
+import RichTextEditor from "@/app/components/RichTextEditor";
 
 type Team = Tables<"teams">;
 type User = Tables<"users">;
@@ -760,13 +761,11 @@ export default function PolicyEditModal({
               >
                 Requirements
               </label>
-              <textarea
-                id="requirements"
-                name="requirements"
+              <RichTextEditor
                 value={formData.requirements}
-                onChange={handleChange}
-                rows={10}
-                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none"
+                onChange={(html) =>
+                  setFormData((prev) => ({ ...prev, requirements: html }))
+                }
                 placeholder="Enter requirements"
               />
             </div>

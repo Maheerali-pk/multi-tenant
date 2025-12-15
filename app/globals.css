@@ -154,3 +154,36 @@ select.disabled {
   cursor: not-allowed !important;
   opacity: 1 !important;
 }
+
+/* Rich text editor styling - ensure text color matches theme */
+.rich-text-editor-wrapper [contenteditable="true"],
+.rich-text-editor-wrapper [contenteditable="true"] *,
+.rich-text-editor-wrapper .rich-text-content,
+.rich-text-editor-wrapper .rich-text-content * {
+  color: var(--text-primary) !important;
+}
+
+.rich-text-editor-wrapper [contenteditable="true"] p,
+.rich-text-editor-wrapper .rich-text-content p {
+  color: var(--text-primary) !important;
+}
+
+.rich-text-editor-wrapper [contenteditable="true"] h1,
+.rich-text-editor-wrapper [contenteditable="true"] h2,
+.rich-text-editor-wrapper [contenteditable="true"] h3,
+.rich-text-editor-wrapper [contenteditable="true"] h4,
+.rich-text-editor-wrapper [contenteditable="true"] h5,
+.rich-text-editor-wrapper [contenteditable="true"] h6,
+.rich-text-editor-wrapper .rich-text-content h1,
+.rich-text-editor-wrapper .rich-text-content h2,
+.rich-text-editor-wrapper .rich-text-content h3,
+.rich-text-editor-wrapper .rich-text-content h4,
+.rich-text-editor-wrapper .rich-text-content h5,
+.rich-text-editor-wrapper .rich-text-content h6 {
+  color: var(--text-primary) !important;
+}
+
+.rich-text-editor-wrapper [contenteditable="true"] li,
+.rich-text-editor-wrapper .rich-text-content li {
+  color: var(--text-primary) !important;
+}
