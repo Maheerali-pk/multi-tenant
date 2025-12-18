@@ -187,3 +187,89 @@ select.disabled {
 .rich-text-editor-wrapper .rich-text-content li {
   color: var(--text-primary) !important;
 }
+
+/* Quill editor styling */
+.rich-text-editor-wrapper .ql-container {
+  font-family: inherit;
+  font-size: 0.875rem;
+  border: none;
+  border-top: 1px solid var(--border-hr);
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.rich-text-editor-wrapper .ql-container .ql-editor {
+  min-height: 200px;
+  padding: 0.5rem 0.75rem;
+  color: var(--text-primary);
+  background-color: var(--input);
+}
+
+.rich-text-editor-wrapper .ql-container .ql-editor.ql-blank::before {
+  color: var(--text-secondary);
+  font-style: normal;
+}
+
+.rich-text-editor-wrapper .ql-toolbar {
+  border: 1px solid var(--border-hr);
+  border-bottom: none;
+  border-radius: 0.5rem 0.5rem 0 0;
+  background-color: var(--bg-inner);
+  padding: 0.5rem;
+}
+
+.rich-text-editor-wrapper .ql-toolbar .ql-stroke {
+  stroke: var(--text-secondary);
+}
+
+.rich-text-editor-wrapper .ql-toolbar .ql-fill {
+  fill: var(--text-secondary);
+}
+
+.rich-text-editor-wrapper .ql-toolbar .ql-picker-label {
+  color: var(--text-secondary);
+}
+
+.rich-text-editor-wrapper .ql-toolbar button:hover,
+.rich-text-editor-wrapper .ql-toolbar button:focus,
+.rich-text-editor-wrapper .ql-toolbar button.ql-active {
+  color: var(--brand);
+}
+
+.rich-text-editor-wrapper .ql-toolbar button:hover .ql-stroke,
+.rich-text-editor-wrapper .ql-toolbar button:focus .ql-stroke,
+.rich-text-editor-wrapper .ql-toolbar button.ql-active .ql-stroke {
+  stroke: var(--brand);
+}
+
+.rich-text-editor-wrapper .ql-toolbar button:hover .ql-fill,
+.rich-text-editor-wrapper .ql-toolbar button:focus .ql-fill,
+.rich-text-editor-wrapper .ql-toolbar button.ql-active .ql-fill {
+  fill: var(--brand);
+}
+
+.rich-text-editor-wrapper .ql-toolbar .ql-picker.ql-expanded .ql-picker-label {
+  color: var(--text-primary);
+}
+
+.rich-text-editor-wrapper .ql-toolbar .ql-picker-options {
+  background-color: var(--bg-inner);
+  border: 1px solid var(--border-hr);
+  border-radius: 0.5rem;
+  color: var(--text-primary);
+}
+
+.rich-text-editor-wrapper .ql-toolbar .ql-picker-item:hover {
+  background-color: var(--sidebar-sub-item-hover);
+  color: var(--brand);
+}
+
+.rich-text-editor-wrapper .ql-disabled .ql-editor {
+  background-color: var(--input-disabled-bg);
+  color: var(--input-disabled-text);
+  cursor: not-allowed;
+}
+
+.rich-text-editor-wrapper .ql-disabled .ql-toolbar {
+  opacity: 0.5;
+  pointer-events: none;
+}

@@ -1,42 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  createEditorSystem,
-  boldExtension,
-  italicExtension,
-  underlineExtension,
-  listExtension,
-  blockFormatExtension,
-  historyExtension,
-  htmlExtension,
-  RichText,
-} from "@lexkit/editor";
-import {
-  Bold,
-  Italic,
-  Underline,
-  List,
-  ListOrdered,
-  Undo,
-  Redo,
-  Heading1,
-  Heading2,
-  Heading3,
-} from "lucide-react";
 
-// Create editor system with extensions
-const extensions = [
-  boldExtension,
-  italicExtension,
-  underlineExtension,
-  listExtension,
-  blockFormatExtension,
-  historyExtension,
-  htmlExtension,
-] as const;
-
-const { Provider, useEditor } = createEditorSystem<typeof extensions>();
+// Import Quill CSS
+// @ts-ignore - CSS import
+import "quill/dist/quill.snow.css";
 
 interface RichTextEditorProps {
   value: string;
@@ -46,249 +14,176 @@ interface RichTextEditorProps {
   className?: string;
 }
 
-function RichTextEditorContent({
+export default function RichTextEditor({
   value,
   onChange,
   placeholder = "Enter text...",
   disabled = false,
   className = "",
 }: RichTextEditorProps) {
-  const { commands, editor, activeStates } = useEditor();
-  const isInitialized = useRef(false);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const quillInstanceRef = useRef<any>(null);
   const lastValueRef = useRef<string>(value);
-  const [activeStatesLocal, setActiveStatesLocal] = useState<{
-    bold: boolean;
-    italic: boolean;
-    underline: boolean;
-    unorderedList: boolean;
-    orderedList: boolean;
-    canUndo: boolean;
-    canRedo: boolean;
-    isH1: boolean;
-    isH2: boolean;
-    isH3: boolean;
-  }>({
-    bold: false,
-    italic: false,
-    underline: false,
-    unorderedList: false,
-    orderedList: false,
-    canUndo: false,
-    canRedo: false,
-    isH1: false,
-    isH2: false,
-    isH3: false,
-  });
+  const isUpdatingFromPropRef = useRef(false);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Update active states
   useEffect(() => {
-    if (!editor) return;
+    if (typeof window === "undefined") return;
 
-    const updateStates = () => {
-      // activeStates should already contain boolean values
-      setActiveStatesLocal({
-        bold: activeStates.bold ?? false,
-        italic: activeStates.italic ?? false,
-        underline: activeStates.underline ?? false,
-        unorderedList: activeStates.unorderedList ?? false,
-        orderedList: activeStates.orderedList ?? false,
-        canUndo: activeStates.canUndo ?? false,
-        canRedo: activeStates.canRedo ?? false,
-        isH1: activeStates.isH1 ?? false,
-        isH2: activeStates.isH2 ?? false,
-        isH3: activeStates.isH3 ?? false,
-      });
-    };
+    let isMounted = true;
 
-    const removeUpdateListener = editor.registerUpdateListener(() => {
-      updateStates();
-    });
+    // Dynamically import Quill
+    const initQuill = async () => {
+      try {
+        const QuillModule = await import("quill");
+        const Quill = QuillModule.default;
 
-    // Initial state update
-    updateStates();
+        // Wait for the ref to be attached to the DOM
+        const waitForRef = () => {
+          return new Promise<void>((resolve) => {
+            if (editorRef.current) {
+              resolve();
+            } else {
+              const checkInterval = setInterval(() => {
+                if (editorRef.current) {
+                  clearInterval(checkInterval);
+                  resolve();
+                }
+              }, 10);
+              // Timeout after 1 second
+              setTimeout(() => {
+                clearInterval(checkInterval);
+                resolve();
+              }, 1000);
+            }
+          });
+        };
 
-    return () => {
-      removeUpdateListener();
-    };
-  }, [editor, activeStates]);
+        await waitForRef();
 
-  // Load initial value or update when value prop changes externally
-  useEffect(() => {
-    if (!editor) return;
+        // Wait for next frame to ensure DOM is ready
+        await new Promise((resolve) => requestAnimationFrame(resolve));
 
-    if (!isInitialized.current) {
-      // Initial load
-      if (value) {
-        commands.importFromHTML(value, { preventFocus: true }).then(() => {
-          isInitialized.current = true;
-          lastValueRef.current = value;
+        if (!isMounted || !editorRef.current || quillInstanceRef.current) {
+          return;
+        }
+
+        // Clear the container before initializing
+        if (editorRef.current) {
+          editorRef.current.innerHTML = "";
+        }
+
+        // Initialize Quill - ensure it's editable
+        const quill = new Quill(editorRef.current!, {
+          theme: "snow",
+          placeholder: placeholder,
+          readOnly: disabled,
+          modules: {
+            toolbar: [
+              [{ header: [1, 2, 3, false] }],
+              ["bold", "italic", "underline"],
+              [{ align: [] }],
+              [{ list: "ordered" }, { list: "bullet" }],
+              ["undo", "redo"],
+            ],
+            history: {
+              delay: 1000,
+              maxStack: 50,
+              userOnly: false,
+            },
+          },
         });
-      } else {
-        isInitialized.current = true;
-        lastValueRef.current = "";
+
+        // Ensure editor is enabled
+        quill.enable(!disabled);
+
+        quillInstanceRef.current = quill;
+
+        // Set initial value
+        if (value) {
+          const delta = quill.clipboard.convert({ html: value });
+          quill.setContents(delta, "silent");
+          lastValueRef.current = value;
+        }
+
+        // Listen for text changes
+        quill.on("text-change", () => {
+          if (isUpdatingFromPropRef.current) {
+            isUpdatingFromPropRef.current = false;
+            return;
+          }
+
+          const html = quill.root.innerHTML;
+          // Quill returns "<p><br></p>" for empty content, normalize to empty string
+          const normalizedHtml = html === "<p><br></p>" ? "" : html;
+
+          if (normalizedHtml !== lastValueRef.current) {
+            lastValueRef.current = normalizedHtml;
+            onChange(normalizedHtml);
+          }
+        });
+
+        setIsMounted(true);
+      } catch (error) {
+        console.error("Error initializing Quill:", error);
+        setIsMounted(true); // Set mounted even on error to show the container
       }
-    } else if (value !== lastValueRef.current) {
-      // External value change (e.g., form reset)
-      commands.importFromHTML(value || "", { preventFocus: true }).then(() => {
-        lastValueRef.current = value || "";
-      });
-    }
-  }, [editor, value, commands]);
-
-  // Listen for editor changes and export HTML
-  useEffect(() => {
-    if (!editor || !isInitialized.current) return;
-
-    const removeUpdateListener = editor.registerUpdateListener(() => {
-      const html = commands.exportToHTML();
-      // Only call onChange if the value actually changed
-      if (html !== lastValueRef.current) {
-        lastValueRef.current = html;
-        onChange(html);
-      }
-    });
-
-    return () => {
-      removeUpdateListener();
     };
-  }, [editor, commands, onChange]);
 
-  const ToolbarButton = ({
-    onClick,
-    isActive,
-    disabled,
-    children,
-    title,
-  }: {
-    onClick: () => void;
-    isActive?: boolean;
-    disabled?: boolean;
-    children: React.ReactNode;
-    title?: string;
-  }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      className={`p-2 rounded hover:bg-sidebar-sub-item-hover transition-colors ${
-        isActive
-          ? "bg-sidebar-sub-item-hover text-brand"
-          : "text-text-secondary hover:text-text-primary"
-      } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-    >
-      {children}
-    </button>
-  );
+    initQuill();
+
+    // Cleanup
+    return () => {
+      isMounted = false;
+      if (quillInstanceRef.current) {
+        quillInstanceRef.current = null;
+      }
+    };
+  }, []); // Only run once on mount
+
+  // Handle external value changes (e.g., form reset)
+  useEffect(() => {
+    if (!quillInstanceRef.current || value === lastValueRef.current) return;
+
+    isUpdatingFromPropRef.current = true;
+    const quill = quillInstanceRef.current;
+    const delta = quill.clipboard.convert({ html: value || "" });
+    quill.setContents(delta, "silent");
+    lastValueRef.current = value || "";
+  }, [value]);
+
+  // Handle disabled state changes
+  useEffect(() => {
+    if (!quillInstanceRef.current) return;
+    quillInstanceRef.current.enable(!disabled);
+  }, [disabled]);
+
+  // Handle placeholder changes
+  useEffect(() => {
+    if (!quillInstanceRef.current) return;
+    const root = quillInstanceRef.current.root;
+    if (root) {
+      root.setAttribute("data-placeholder", placeholder);
+    }
+  }, [placeholder]);
 
   return (
     <div className={`rich-text-editor ${className}`}>
-      {/* Toolbar */}
-      <div className="flex items-center gap-1 p-2 border-b border-border-hr bg-bg-inner rounded-t-lg">
-        <div className="flex items-center gap-1 border-r border-border-hr pr-2 mr-2">
-          <ToolbarButton
-            onClick={() => commands.toggleBold()}
-            isActive={activeStatesLocal.bold}
-            title="Bold (Ctrl+B)"
-          >
-            <Bold size={16} />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => commands.toggleItalic()}
-            isActive={activeStatesLocal.italic}
-            title="Italic (Ctrl+I)"
-          >
-            <Italic size={16} />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => commands.toggleUnderline()}
-            isActive={activeStatesLocal.underline}
-            title="Underline (Ctrl+U)"
-          >
-            <Underline size={16} />
-          </ToolbarButton>
-        </div>
-
-        <div className="flex items-center gap-1 border-r border-border-hr pr-2 mr-2">
-          <ToolbarButton
-            onClick={() => commands.toggleHeading("h1")}
-            isActive={activeStatesLocal.isH1}
-            title="Heading 1"
-          >
-            <Heading1 size={16} />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => commands.toggleHeading("h2")}
-            isActive={activeStatesLocal.isH2}
-            title="Heading 2"
-          >
-            <Heading2 size={16} />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => commands.toggleHeading("h3")}
-            isActive={activeStatesLocal.isH3}
-            title="Heading 3"
-          >
-            <Heading3 size={16} />
-          </ToolbarButton>
-        </div>
-
-        <div className="flex items-center gap-1 border-r border-border-hr pr-2 mr-2">
-          <ToolbarButton
-            onClick={() => commands.toggleUnorderedList()}
-            isActive={activeStatesLocal.unorderedList}
-            title="Bullet List"
-          >
-            <List size={16} />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => commands.toggleOrderedList()}
-            isActive={activeStatesLocal.orderedList}
-            title="Numbered List"
-          >
-            <ListOrdered size={16} />
-          </ToolbarButton>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <ToolbarButton
-            onClick={() => commands.undo()}
-            disabled={!activeStatesLocal.canUndo}
-            title="Undo (Ctrl+Z)"
-          >
-            <Undo size={16} />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => commands.redo()}
-            disabled={!activeStatesLocal.canRedo}
-            title="Redo (Ctrl+Y)"
-          >
-            <Redo size={16} />
-          </ToolbarButton>
-        </div>
-      </div>
-
-      {/* Editor */}
-      <div className="border border-border-hr border-t-0 rounded-b-lg rich-text-editor-wrapper">
-        <RichText
-          placeholder={placeholder}
-          className="min-h-[200px] px-3 py-2 bg-input text-text-primary text-sm outline-none focus-within:border-brand transition-colors"
-          classNames={{
-            container: "w-full",
-            contentEditable:
-              "min-h-[200px] focus:outline-none text-text-primary rich-text-content",
-            placeholder: "text-text-secondary",
+      <div className="border border-border-hr rounded-lg rich-text-editor-wrapper relative">
+        {!isMounted && (
+          <div className="min-h-[200px] px-3 py-2 bg-input text-text-primary text-sm flex items-center justify-center absolute inset-0 z-10 rounded-lg">
+            <span className="text-text-secondary">Loading editor...</span>
+          </div>
+        )}
+        <div
+          ref={editorRef}
+          className="rich-text-content"
+          style={{
+            minHeight: "200px",
+            opacity: isMounted ? 1 : 0,
           }}
         />
       </div>
     </div>
-  );
-}
-
-export default function RichTextEditor(props: RichTextEditorProps) {
-  return (
-    <Provider extensions={extensions}>
-      <RichTextEditorContent {...props} />
-    </Provider>
   );
 }

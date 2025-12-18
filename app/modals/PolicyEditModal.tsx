@@ -176,10 +176,7 @@ export default function PolicyEditModal({
           .eq("tenant_id", tenantId)
           .order("name"),
         supabase.from("asset_classifications").select("*").order("name"),
-        supabase
-          .from("document_lifecycle_statuses")
-          .select("*")
-          .order("name"),
+        supabase.from("document_lifecycle_statuses").select("*").order("name"),
         supabase.from("document_types").select("*").order("name"),
       ]);
 
@@ -557,7 +554,9 @@ export default function PolicyEditModal({
                   name="documentType"
                   options={documentTypeOptions}
                   value={formData.documentType}
-                  onChange={(value) => handleSelectChange("documentType", value)}
+                  onChange={(value) =>
+                    handleSelectChange("documentType", value)
+                  }
                   placeholder="Select document type"
                   isDisabled={true}
                 />
@@ -989,7 +988,7 @@ export default function PolicyEditModal({
         classification_id: classificationId,
         status_id: statusId,
         document_type_id: documentTypeId,
-        version: formData.version.trim() || null,
+        version: formData.version.trim() || undefined,
         objective: formData.purpose.trim() || null,
         scope: formData.scope.trim() || null,
         requirements: formData.requirements.trim() || null,
