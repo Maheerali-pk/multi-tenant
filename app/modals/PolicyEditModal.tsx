@@ -10,12 +10,13 @@ import { useAuthContext } from "@/app/contexts/AuthContext";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import type { Tables, TablesUpdate } from "@/app/types/database.types";
 import PolicyComment from "@/app/components/PolicyComment";
-import { policyLifecycleStatuses } from "@/app/helpers/permenantTablesData";
 import RichTextEditor from "@/app/components/RichTextEditor";
 
 type Team = Tables<"teams">;
 type User = Tables<"users">;
 type Policy = Tables<"policies">;
+type DocumentLifecycleStatus = Tables<"document_lifecycle_statuses">;
+type DocumentType = Tables<"document_types">;
 type AssetClassification = Tables<"asset_classifications">;
 
 interface PolicyEditModalProps {
@@ -59,6 +60,10 @@ export default function PolicyEditModal({
   const [classifications, setClassifications] = useState<AssetClassification[]>(
     []
   );
+  const [documentLifecycleStatuses, setDocumentLifecycleStatuses] = useState<
+    DocumentLifecycleStatus[]
+  >([]);
+  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +94,21 @@ export default function PolicyEditModal({
     }
   }, [isOpen, policyId]);
 
+  // Set document type to "Policy" whenever document types are loaded
+  useEffect(() => {
+    if (documentTypes.length > 0) {
+      const policyType = documentTypes.find(
+        (type) => type.name.toLowerCase() === "policy"
+      );
+      if (policyType) {
+        setFormData((prev) => ({
+          ...prev,
+          documentType: policyType.id.toString(),
+        }));
+      }
+    }
+  }, [documentTypes]);
+
   // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
@@ -97,7 +117,7 @@ export default function PolicyEditModal({
         title: "",
         owner: "",
         reviewer: "",
-        documentType: "Policy",
+        documentType: "",
         status: "",
         classification: "",
         version: "",
@@ -138,20 +158,30 @@ export default function PolicyEditModal({
       }
 
       // Fetch all dropdown data in parallel
-      const [teamsResult, usersResult, classificationsResult] =
-        await Promise.all([
-          supabase
-            .from("teams")
-            .select("*")
-            .eq("tenant_id", tenantId)
-            .order("name"),
-          supabase
-            .from("users")
-            .select("*")
-            .eq("tenant_id", tenantId)
-            .order("name"),
-          supabase.from("asset_classifications").select("*").order("name"),
-        ]);
+      const [
+        teamsResult,
+        usersResult,
+        classificationsResult,
+        documentLifecycleStatusesResult,
+        documentTypesResult,
+      ] = await Promise.all([
+        supabase
+          .from("teams")
+          .select("*")
+          .eq("tenant_id", tenantId)
+          .order("name"),
+        supabase
+          .from("users")
+          .select("*")
+          .eq("tenant_id", tenantId)
+          .order("name"),
+        supabase.from("asset_classifications").select("*").order("name"),
+        supabase
+          .from("document_lifecycle_statuses")
+          .select("*")
+          .order("name"),
+        supabase.from("document_types").select("*").order("name"),
+      ]);
 
       if (teamsResult.error) {
         console.error("Error fetching teams:", teamsResult.error);
@@ -165,10 +195,37 @@ export default function PolicyEditModal({
           classificationsResult.error
         );
       }
+      if (documentLifecycleStatusesResult.error) {
+        console.error(
+          "Error fetching document lifecycle statuses:",
+          documentLifecycleStatusesResult.error
+        );
+      }
+      if (documentTypesResult.error) {
+        console.error(
+          "Error fetching document types:",
+          documentTypesResult.error
+        );
+      }
 
       setTeams(teamsResult.data || []);
       setUsers(usersResult.data || []);
       setClassifications(classificationsResult.data || []);
+      setDocumentLifecycleStatuses(documentLifecycleStatusesResult.data || []);
+      setDocumentTypes(documentTypesResult.data || []);
+
+      // Set document type to "Policy" if available
+      if (documentTypesResult.data && documentTypesResult.data.length > 0) {
+        const policyType = documentTypesResult.data.find(
+          (type) => type.name.toLowerCase() === "policy"
+        );
+        if (policyType) {
+          setFormData((prev) => ({
+            ...prev,
+            documentType: policyType.id.toString(),
+          }));
+        }
+      }
     } catch (err) {
       console.error("Error fetching data:", err);
       setError("Failed to load data");
@@ -206,21 +263,21 @@ export default function PolicyEditModal({
 
       // Fetch creator name
       let creatorName = "";
-      if (policy.creator_id) {
+      if (policy.created_by) {
         const { data: creator } = await supabase
           .from("users")
           .select("name")
-          .eq("id", policy.creator_id)
+          .eq("id", policy.created_by)
           .single();
         creatorName = creator?.name || "";
       }
 
       // Determine owner value
       let ownerValue = "";
-      if (policy.owner_team_id) {
-        ownerValue = `team:${policy.owner_team_id}`;
-      } else if (policy.owner_user_id) {
-        ownerValue = `user:${policy.owner_user_id}`;
+      if (policy.policy_owner_team_id) {
+        ownerValue = `team:${policy.policy_owner_team_id}`;
+      } else if (policy.policy_owner_user_id) {
+        ownerValue = `user:${policy.policy_owner_user_id}`;
       }
 
       // Determine reviewer value
@@ -251,26 +308,30 @@ export default function PolicyEditModal({
         }
       };
 
-      // Populate form data
+      // Populate form data using new table structure
+      // Note: documentType will be set to "Policy" by useEffect when documentTypes are loaded
       setFormData({
-        title: policy.name || "",
+        title: policy.title || "",
         owner: ownerValue,
         reviewer: reviewerValue,
-        documentType: "Policy",
-        status: policy.status?.toString() || "",
+        documentType: "", // Will be set to "Policy" by useEffect
+        status: policy.status_id?.toString() || "",
         classification: policy.classification_id?.toString() || "",
         version: policy.version || "",
         createdBy: creatorName,
         createdOn: formatDate(policy.created_at),
         reviewedBy: "",
-        reviewedOn: "",
+        reviewedOn: formatDate(policy.reviewed_at),
         approvedBy: "",
-        approvedOn: "",
-        effectiveDate: "",
+        approvedOn: formatDate(policy.approved_at),
+        effectiveDate: formatDateForInput(policy.effective_date),
         nextReviewDate: formatDateForInput(policy.next_review_date),
-        purpose: policy.purpose || "",
+        purpose: policy.objective || "",
         scope: policy.scope || "",
-        requirements: policy.requirements || "",
+        requirements:
+          typeof policy.requirements === "string"
+            ? policy.requirements
+            : JSON.stringify(policy.requirements) || "",
       });
     } catch (err) {
       console.error("Error fetching policy data:", err);
@@ -383,14 +444,24 @@ export default function PolicyEditModal({
     return [...teamOptions, ...userOptions];
   }, [teams, users]);
 
-  // Policy status options (from permanent data)
+  // Document lifecycle status options
   const statusOptions: SelectOption[] = useMemo(
     () =>
-      policyLifecycleStatuses.map((status) => ({
+      documentLifecycleStatuses.map((status) => ({
         value: status.id.toString(),
         label: status.name,
       })),
-    []
+    [documentLifecycleStatuses]
+  );
+
+  // Document type options
+  const documentTypeOptions: SelectOption[] = useMemo(
+    () =>
+      documentTypes.map((type) => ({
+        value: type.id.toString(),
+        label: type.name,
+      })),
+    [documentTypes]
   );
 
   // Classification options
@@ -481,13 +552,14 @@ export default function PolicyEditModal({
                 >
                   Document Type
                 </label>
-                <input
-                  type="text"
+                <CustomSelect
                   id="documentType"
                   name="documentType"
+                  options={documentTypeOptions}
                   value={formData.documentType}
-                  disabled
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none opacity-50 cursor-not-allowed"
+                  onChange={(value) => handleSelectChange("documentType", value)}
+                  placeholder="Select document type"
+                  isDisabled={true}
                 />
               </div>
 
@@ -880,23 +952,45 @@ export default function PolicyEditModal({
         }
       }
 
-      // Convert classification and status to numbers
+      // Convert classification, status, and document type to numbers
       const classificationId = formData.classification
         ? parseInt(formData.classification)
         : null;
       const statusId = formData.status ? parseInt(formData.status) : null;
+      const documentTypeId = formData.documentType
+        ? parseInt(formData.documentType)
+        : null;
 
-      // Prepare policy update data
+      if (!documentTypeId) {
+        setError("Document type is required");
+        setLoading(false);
+        return;
+      }
+
+      if (!statusId) {
+        setError("Status is required");
+        setLoading(false);
+        return;
+      }
+
+      if (!classificationId) {
+        setError("Classification is required");
+        setLoading(false);
+        return;
+      }
+
+      // Prepare policy update data using new table structure
       const policyUpdateData: TablesUpdate<"policies"> = {
-        name: formData.title.trim(),
-        owner_team_id: ownerTeamId,
-        owner_user_id: ownerUserId,
+        title: formData.title.trim(),
+        policy_owner_team_id: ownerTeamId,
+        policy_owner_user_id: ownerUserId,
         reviewer_team_id: reviewerTeamId,
         reviewer_user_id: reviewerUserId,
         classification_id: classificationId,
-        status: statusId,
+        status_id: statusId,
+        document_type_id: documentTypeId,
         version: formData.version.trim() || null,
-        purpose: formData.purpose.trim() || null,
+        objective: formData.purpose.trim() || null,
         scope: formData.scope.trim() || null,
         requirements: formData.requirements.trim() || null,
         next_review_date: formData.nextReviewDate || null,

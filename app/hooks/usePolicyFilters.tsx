@@ -5,7 +5,6 @@ import { FilterOption, FilterValues } from "@/app/components/TableFilter";
 import { supabase } from "@/lib/supabase";
 import { useAuthContext } from "@/app/contexts/AuthContext";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
-import { policyLifecycleStatuses } from "@/app/helpers/permenantTablesData";
 
 interface UsePolicyFiltersOptions {
   includeFilters?: {
@@ -32,13 +31,8 @@ export const usePolicyFilters = ({
   const [creatorOptions, setCreatorOptions] = useState<string[]>([]);
   const [ownerOptions, setOwnerOptions] = useState<string[]>([]);
   const [approverOptions, setApproverOptions] = useState<string[]>([]);
+  const [statusOptions, setStatusOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Status options from permanent data
-  const statusOptions = useMemo(
-    () => policyLifecycleStatuses.map((status) => status.name),
-    []
-  );
 
   // Fetch filter data
   useEffect(() => {
@@ -57,12 +51,17 @@ export const usePolicyFilters = ({
           return;
         }
 
-        // Fetch all filter data in parallel (statuses are now from permanent data)
-        const [policiesResult, teamsResult, usersResult] = await Promise.all([
+        // Fetch all filter data in parallel
+        const [
+          policiesResult,
+          teamsResult,
+          usersResult,
+          documentLifecycleStatusesResult,
+        ] = await Promise.all([
           supabase
             .from("policies")
             .select(
-              "creator_id, owner_team_id, owner_user_id, approver_team_id, approver_user_id"
+              "created_by, policy_owner_team_id, policy_owner_user_id, approver_team_id, approver_user_id, status_id"
             ),
           includeFilters.owner || includeFilters.approver
             ? supabase
@@ -82,14 +81,32 @@ export const usePolicyFilters = ({
                   .order("name")
               : Promise.resolve({ data: [], error: null })
             : Promise.resolve({ data: [], error: null }),
+          includeFilters.status
+            ? supabase
+                .from("document_lifecycle_statuses")
+                .select("id, name")
+                .order("name")
+            : Promise.resolve({ data: [], error: null }),
         ]);
+
+        // Extract status options
+        if (
+          includeFilters.status &&
+          documentLifecycleStatusesResult.data &&
+          documentLifecycleStatusesResult.data.length > 0
+        ) {
+          const statusNames = documentLifecycleStatusesResult.data.map(
+            (s: { id: number; name: string }) => s.name
+          );
+          setStatusOptions(statusNames);
+        }
 
         // Extract unique creator names
         if (includeFilters.creator && policiesResult.data && usersResult.data) {
           const creatorIds = [
             ...new Set(
               policiesResult.data
-                .map((p: any) => p.creator_id)
+                .map((p: any) => p.created_by)
                 .filter((id: string | null): id is string => id !== null)
             ),
           ];
@@ -112,7 +129,7 @@ export const usePolicyFilters = ({
             const ownerTeamIds = [
               ...new Set(
                 policiesResult.data
-                  .map((p: any) => p.owner_team_id)
+                  .map((p: any) => p.policy_owner_team_id)
                   .filter((id: string | null): id is string => id !== null)
               ),
             ];
@@ -131,7 +148,7 @@ export const usePolicyFilters = ({
             const ownerUserIds = [
               ...new Set(
                 policiesResult.data
-                  .map((p: any) => p.owner_user_id)
+                  .map((p: any) => p.policy_owner_user_id)
                   .filter((id: string | null): id is string => id !== null)
               ),
             ];

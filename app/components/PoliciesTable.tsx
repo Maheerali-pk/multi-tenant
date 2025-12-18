@@ -7,10 +7,9 @@ import { Tables } from "@/app/types/database.types";
 import { FilterValues } from "./TableFilter";
 import { useAuthContext } from "@/app/contexts/AuthContext";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
-import { policyLifecycleStatuses } from "@/app/helpers/permenantTablesData";
 
 type Policy = Tables<"policies">;
-type PolicyLifecycleStatus = Tables<"policy_lifecycle_statuses">;
+type DocumentLifecycleStatus = Tables<"document_lifecycle_statuses">;
 
 export interface PolicyRow {
   id: string;
@@ -89,7 +88,7 @@ const PoliciesTable: React.FC<PoliciesTableProps> = ({
       const creatorIds = [
         ...new Set(
           policiesData
-            .map((policy) => policy.creator_id)
+            .map((policy) => policy.created_by)
             .filter((id): id is string => id !== null)
         ),
       ];
@@ -97,7 +96,7 @@ const PoliciesTable: React.FC<PoliciesTableProps> = ({
       const ownerTeamIds = [
         ...new Set(
           policiesData
-            .map((policy) => policy.owner_team_id)
+            .map((policy) => policy.policy_owner_team_id)
             .filter((id): id is string => id !== null)
         ),
       ];
@@ -105,7 +104,7 @@ const PoliciesTable: React.FC<PoliciesTableProps> = ({
       const ownerUserIds = [
         ...new Set(
           policiesData
-            .map((policy) => policy.owner_user_id)
+            .map((policy) => policy.policy_owner_user_id)
             .filter((id): id is string => id !== null)
         ),
       ];
@@ -126,13 +125,22 @@ const PoliciesTable: React.FC<PoliciesTableProps> = ({
         ),
       ];
 
-      // Fetch all related data in parallel (statuses are now from permanent data)
+      const statusIds = [
+        ...new Set(
+          policiesData
+            .map((policy) => policy.status_id)
+            .filter((id): id is number => id !== null)
+        ),
+      ];
+
+      // Fetch all related data in parallel
       const [
         creatorsResult,
         ownerTeamsResult,
         ownerUsersResult,
         approverTeamsResult,
         approverUsersResult,
+        statusesResult,
       ] = await Promise.all([
         creatorIds.length > 0
           ? supabase.from("users").select("id, name").in("id", creatorIds)
@@ -148,6 +156,12 @@ const PoliciesTable: React.FC<PoliciesTableProps> = ({
           : Promise.resolve({ data: [], error: null }),
         approverUserIds.length > 0
           ? supabase.from("users").select("id, name").in("id", approverUserIds)
+          : Promise.resolve({ data: [], error: null }),
+        statusIds.length > 0
+          ? supabase
+              .from("document_lifecycle_statuses")
+              .select("id, name")
+              .in("id", statusIds)
           : Promise.resolve({ data: [], error: null }),
       ]);
 
@@ -182,24 +196,26 @@ const PoliciesTable: React.FC<PoliciesTableProps> = ({
         )
       );
 
-      // Use permanent data for statuses instead of fetching from database
+      // Create status map from fetched data
       const statusMap = new Map(
-        policyLifecycleStatuses.map((status) => [status.id, status.name])
+        (statusesResult.data || []).map(
+          (status: { id: number; name: string }) => [status.id, status.name]
+        )
       );
 
       // Transform the data to match our PolicyRow interface
       const transformedData: PolicyRow[] = policiesData.map((policy) => {
         // Get creator name
-        const creatorName = policy.creator_id
-          ? creatorMap.get(policy.creator_id) || null
+        const creatorName = policy.created_by
+          ? creatorMap.get(policy.created_by) || null
           : null;
 
         // Determine owner name
         let ownerName: string | null = null;
-        if (policy.owner_team_id) {
-          ownerName = ownerTeamMap.get(policy.owner_team_id) || null;
-        } else if (policy.owner_user_id) {
-          ownerName = ownerUserMap.get(policy.owner_user_id) || null;
+        if (policy.policy_owner_team_id) {
+          ownerName = ownerTeamMap.get(policy.policy_owner_team_id) || null;
+        } else if (policy.policy_owner_user_id) {
+          ownerName = ownerUserMap.get(policy.policy_owner_user_id) || null;
         }
 
         // Determine approver name
@@ -211,18 +227,18 @@ const PoliciesTable: React.FC<PoliciesTableProps> = ({
         }
 
         // Get status name
-        const statusName = policy.status
-          ? statusMap.get(policy.status) || null
+        const statusName = policy.status_id
+          ? statusMap.get(policy.status_id) || null
           : null;
 
         return {
           id: policy.id,
-          title: policy.name,
+          title: policy.title,
           creator: creatorName,
           owner: ownerName,
           approver: approverName,
           status: statusName,
-          statusId: policy.status,
+          statusId: policy.status_id,
           version: policy.version,
           nextReviewDate: policy.next_review_date,
         };

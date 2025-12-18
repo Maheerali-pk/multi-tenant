@@ -10,12 +10,12 @@ import { useAuthContext } from "@/app/contexts/AuthContext";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import type { Tables, TablesInsert } from "@/app/types/database.types";
 import PolicyComment from "@/app/components/PolicyComment";
-import { policyLifecycleStatuses } from "@/app/helpers/permenantTablesData";
 import RichTextEditor from "@/app/components/RichTextEditor";
 
 type Team = Tables<"teams">;
 type User = Tables<"users">;
-type PolicyLifecycleStatus = Tables<"policy_lifecycle_statuses">;
+type DocumentLifecycleStatus = Tables<"document_lifecycle_statuses">;
+type DocumentType = Tables<"document_types">;
 type AssetClassification = Tables<"asset_classifications">;
 
 interface CreateNewPolicyModalProps {
@@ -57,6 +57,10 @@ export default function CreateNewPolicyModal({
   const [classifications, setClassifications] = useState<AssetClassification[]>(
     []
   );
+  const [documentLifecycleStatuses, setDocumentLifecycleStatuses] = useState<
+    DocumentLifecycleStatus[]
+  >([]);
+  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +96,7 @@ export default function CreateNewPolicyModal({
         title: "",
         owner: "",
         reviewer: "",
-        documentType: "Policy",
+        documentType: "",
         status: "",
         classification: "",
         version: "",
@@ -116,8 +120,8 @@ export default function CreateNewPolicyModal({
 
   // Set default values when modal opens
   useEffect(() => {
-    if (isOpen && !formData.status) {
-      const draftStatus = policyLifecycleStatuses.find(
+    if (isOpen && !formData.status && documentLifecycleStatuses.length > 0) {
+      const draftStatus = documentLifecycleStatuses.find(
         (status) => status.name.toLowerCase() === "draft"
       );
       if (draftStatus) {
@@ -128,7 +132,7 @@ export default function CreateNewPolicyModal({
         }));
       }
     }
-  }, [isOpen, auth.userData?.name]);
+  }, [isOpen, auth.userData?.name, documentLifecycleStatuses]);
 
   const fetchAllData = async () => {
     try {
@@ -148,21 +152,31 @@ export default function CreateNewPolicyModal({
         return;
       }
 
-      // Fetch all dropdown data in parallel (statuses are now from permanent data)
-      const [teamsResult, usersResult, classificationsResult] =
-        await Promise.all([
-          supabase
-            .from("teams")
-            .select("*")
-            .eq("tenant_id", tenantId)
-            .order("name"),
-          supabase
-            .from("users")
-            .select("*")
-            .eq("tenant_id", tenantId)
-            .order("name"),
-          supabase.from("asset_classifications").select("*").order("name"),
-        ]);
+      // Fetch all dropdown data in parallel
+      const [
+        teamsResult,
+        usersResult,
+        classificationsResult,
+        documentLifecycleStatusesResult,
+        documentTypesResult,
+      ] = await Promise.all([
+        supabase
+          .from("teams")
+          .select("*")
+          .eq("tenant_id", tenantId)
+          .order("name"),
+        supabase
+          .from("users")
+          .select("*")
+          .eq("tenant_id", tenantId)
+          .order("name"),
+        supabase.from("asset_classifications").select("*").order("name"),
+        supabase
+          .from("document_lifecycle_statuses")
+          .select("*")
+          .order("name"),
+        supabase.from("document_types").select("*").order("name"),
+      ]);
 
       if (teamsResult.error) {
         console.error("Error fetching teams:", teamsResult.error);
@@ -176,10 +190,37 @@ export default function CreateNewPolicyModal({
           classificationsResult.error
         );
       }
+      if (documentLifecycleStatusesResult.error) {
+        console.error(
+          "Error fetching document lifecycle statuses:",
+          documentLifecycleStatusesResult.error
+        );
+      }
+      if (documentTypesResult.error) {
+        console.error(
+          "Error fetching document types:",
+          documentTypesResult.error
+        );
+      }
 
       setTeams(teamsResult.data || []);
       setUsers(usersResult.data || []);
       setClassifications(classificationsResult.data || []);
+      setDocumentLifecycleStatuses(documentLifecycleStatusesResult.data || []);
+      setDocumentTypes(documentTypesResult.data || []);
+
+      // Set default document type to "Policy" if available
+      if (documentTypesResult.data && documentTypesResult.data.length > 0) {
+        const policyType = documentTypesResult.data.find(
+          (type) => type.name.toLowerCase() === "policy"
+        );
+        if (policyType) {
+          setFormData((prev) => ({
+            ...prev,
+            documentType: policyType.id.toString(),
+          }));
+        }
+      }
     } catch (err) {
       console.error("Error fetching data:", err);
       setError("Failed to load data");
@@ -235,14 +276,24 @@ export default function CreateNewPolicyModal({
     return [...teamOptions, ...userOptions];
   }, [teams, users]);
 
-  // Policy status options (from permanent data)
+  // Document lifecycle status options
   const statusOptions: SelectOption[] = useMemo(
     () =>
-      policyLifecycleStatuses.map((status) => ({
+      documentLifecycleStatuses.map((status) => ({
         value: status.id.toString(),
         label: status.name,
       })),
-    []
+    [documentLifecycleStatuses]
+  );
+
+  // Document type options
+  const documentTypeOptions: SelectOption[] = useMemo(
+    () =>
+      documentTypes.map((type) => ({
+        value: type.id.toString(),
+        label: type.name,
+      })),
+    [documentTypes]
   );
 
   // Classification options
@@ -333,13 +384,14 @@ export default function CreateNewPolicyModal({
                 >
                   Document Type
                 </label>
-                <input
-                  type="text"
+                <CustomSelect
                   id="documentType"
                   name="documentType"
+                  options={documentTypeOptions}
                   value={formData.documentType}
-                  disabled
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none opacity-50 cursor-not-allowed"
+                  onChange={(value) => handleSelectChange("documentType", value)}
+                  placeholder="Select document type"
+                  isDisabled={true}
                 />
               </div>
 
@@ -703,6 +755,11 @@ export default function CreateNewPolicyModal({
       return;
     }
 
+    if (!formData.documentType) {
+      setError("Document type is required");
+      return;
+    }
+
     // Check if user is authenticated
     if (!auth.userData?.id) {
       setError("User not authenticated");
@@ -751,31 +808,52 @@ export default function CreateNewPolicyModal({
       const approverTeamId: string | null = null;
       const approverUserId: string | null = null;
 
-      // Convert classification and status to numbers
+      // Convert classification, status, and document type to numbers
       const classificationId = formData.classification
         ? parseInt(formData.classification)
         : null;
       const statusId = formData.status ? parseInt(formData.status) : null;
+      const documentTypeId = formData.documentType
+        ? parseInt(formData.documentType)
+        : null;
 
-      // Prepare policy data
-      const policyData: TablesInsert<"policies"> & { tenant_id: string } = {
-        name: formData.title.trim(),
-        creator_id: auth.userData.id,
+      if (!documentTypeId) {
+        setError("Document type is required");
+        setLoading(false);
+        return;
+      }
+
+      if (!statusId) {
+        setError("Status is required");
+        setLoading(false);
+        return;
+      }
+
+      if (!classificationId) {
+        setError("Classification is required");
+        setLoading(false);
+        return;
+      }
+
+      // Prepare policy data using new table structure
+      const policyData: TablesInsert<"policies"> = {
+        title: formData.title.trim(),
+        created_by: auth.userData.id,
         tenant_id: tenantId,
-        owner_team_id: ownerTeamId,
-        owner_user_id: ownerUserId,
+        policy_owner_team_id: ownerTeamId,
+        policy_owner_user_id: ownerUserId,
         reviewer_team_id: reviewerTeamId,
         reviewer_user_id: reviewerUserId,
         approver_team_id: approverTeamId,
         approver_user_id: approverUserId,
         classification_id: classificationId,
-        status: statusId,
+        status_id: statusId,
+        document_type_id: documentTypeId,
         version: formData.version.trim() || null,
-        purpose: formData.purpose.trim() || null,
+        objective: formData.purpose.trim() || null,
         scope: formData.scope.trim() || null,
         requirements: formData.requirements.trim() || null,
         next_review_date: formData.nextReviewDate || null,
-        created_at: new Date().toISOString(),
       };
 
       // Insert policy
@@ -822,7 +900,7 @@ export default function CreateNewPolicyModal({
         title: "",
         owner: "",
         reviewer: "",
-        documentType: "Policy",
+        documentType: "",
         status: "",
         classification: "",
         version: "",
