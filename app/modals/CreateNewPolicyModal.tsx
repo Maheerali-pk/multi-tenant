@@ -681,9 +681,9 @@ export default function CreateNewPolicyModal({
         );
       case "tab3":
         return (
-          <div className="py-4 space-y-6">
+          <div className="py-4 space-y-6 flex flex-col h-full">
             {/* Comments List */}
-            <div className="space-y-4">
+            <div className="space-y-4 flex-1 overflow-y-auto">
               {comments.length === 0 ? (
                 <div className="text-center py-8 text-text-secondary text-sm">
                   No comments yet. Be the first to add a comment.
@@ -969,7 +969,7 @@ export default function CreateNewPolicyModal({
       <Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Tab Content - Rendered outside Tabs component */}
-      <div className="mt-6  overflow-y-auto">{renderTabContent()}</div>
+      <div className="mt-6  flex-1 overflow-y-auto">{renderTabContent()}</div>
 
       {/* Action Buttons - Shared between tabs */}
       <div className="flex gap-3 pt-6 mt-6 border-t border-border-hr">

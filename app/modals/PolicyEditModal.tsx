@@ -1053,7 +1053,7 @@ export default function PolicyEditModal({
       isOpen={isOpen}
       onClose={onClose}
       maxWidth="4xl"
-      className="flex flex-col "
+      className="flex flex-col h-[80vh]"
     >
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-semibold text-text-dark">Edit Policy</h2>
