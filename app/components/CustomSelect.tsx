@@ -1,7 +1,12 @@
 "use client";
 
 import React from "react";
-import Select, { StylesConfig, GroupBase, SingleValue, ActionMeta } from "react-select";
+import Select, {
+  StylesConfig,
+  GroupBase,
+  SingleValue,
+  ActionMeta,
+} from "react-select";
 
 export interface SelectOption {
   value: string;
@@ -18,15 +23,16 @@ interface CustomSelectProps {
   name?: string;
   id?: string;
 }
+const MemoizedSelect = React.memo(
+  Select<SelectOption, false, GroupBase<SelectOption>>
+);
 
 const getCustomStyles = (
   isDisabled: boolean
 ): StylesConfig<SelectOption, false, GroupBase<SelectOption>> => ({
   control: (baseStyles, state) => ({
     ...baseStyles,
-    backgroundColor: isDisabled
-      ? "var(--input-disabled-bg)"
-      : "var(--input)",
+    backgroundColor: isDisabled ? "var(--input-disabled-bg)" : "var(--input)",
     borderColor: isDisabled
       ? "var(--input-disabled-border)"
       : state.isFocused
@@ -37,9 +43,7 @@ const getCustomStyles = (
     minHeight: "auto",
     height: "auto",
     fontSize: "0.875rem",
-    color: isDisabled
-      ? "var(--input-disabled-text)"
-      : "var(--text-primary)",
+    color: isDisabled ? "var(--input-disabled-text)" : "var(--text-primary)",
     cursor: isDisabled ? "not-allowed" : "pointer",
     opacity: 1,
     boxShadow: "none",
@@ -61,9 +65,7 @@ const getCustomStyles = (
     ...baseStyles,
     margin: 0,
     padding: 0,
-    color: isDisabled
-      ? "var(--input-disabled-text)"
-      : "var(--text-primary)",
+    color: isDisabled ? "var(--input-disabled-text)" : "var(--text-primary)",
     fontSize: "0.875rem",
   }),
   menu: (baseStyles) => ({
@@ -71,7 +73,8 @@ const getCustomStyles = (
     backgroundColor: "var(--bg-inner)",
     border: "1px solid var(--border-hr)",
     borderRadius: "0.5rem",
-    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+    boxShadow:
+      "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
     zIndex: 9999,
   }),
   option: (baseStyles, state) => ({
@@ -81,9 +84,7 @@ const getCustomStyles = (
       : state.isFocused
       ? "var(--sidebar-sub-item-hover)"
       : "transparent",
-    color: state.isSelected
-      ? "var(--text-contrast)"
-      : "var(--text-primary)",
+    color: state.isSelected ? "var(--text-contrast)" : "var(--text-primary)",
     fontSize: "0.875rem",
     padding: "0.5rem 0.75rem",
     cursor: "pointer",
@@ -95,24 +96,18 @@ const getCustomStyles = (
   }),
   placeholder: (baseStyles) => ({
     ...baseStyles,
-    color: isDisabled
-      ? "var(--input-disabled-text)"
-      : "var(--text-secondary)",
+    color: isDisabled ? "var(--input-disabled-text)" : "var(--text-secondary)",
     fontSize: "0.875rem",
   }),
   singleValue: (baseStyles) => ({
     ...baseStyles,
-    color: isDisabled
-      ? "var(--input-disabled-text)"
-      : "var(--text-primary)",
+    color: isDisabled ? "var(--input-disabled-text)" : "var(--text-primary)",
     fontSize: "0.875rem",
     margin: 0,
   }),
   indicatorsContainer: (baseStyles) => ({
     ...baseStyles,
-    color: isDisabled
-      ? "var(--input-disabled-text)"
-      : "var(--text-secondary)",
+    color: isDisabled ? "var(--input-disabled-text)" : "var(--text-secondary)",
     padding: 0,
     paddingRight: "0.5rem",
   }),
@@ -124,24 +119,16 @@ const getCustomStyles = (
   }),
   dropdownIndicator: (baseStyles) => ({
     ...baseStyles,
-    color: isDisabled
-      ? "var(--input-disabled-text)"
-      : "var(--text-secondary)",
+    color: isDisabled ? "var(--input-disabled-text)" : "var(--text-secondary)",
     "&:hover": {
-      color: isDisabled
-        ? "var(--input-disabled-text)"
-        : "var(--text-primary)",
+      color: isDisabled ? "var(--input-disabled-text)" : "var(--text-primary)",
     },
   }),
   clearIndicator: (baseStyles) => ({
     ...baseStyles,
-    color: isDisabled
-      ? "var(--input-disabled-text)"
-      : "var(--text-secondary)",
+    color: isDisabled ? "var(--input-disabled-text)" : "var(--text-secondary)",
     "&:hover": {
-      color: isDisabled
-        ? "var(--input-disabled-text)"
-        : "var(--text-primary)",
+      color: isDisabled ? "var(--input-disabled-text)" : "var(--text-primary)",
     },
   }),
 });
@@ -156,7 +143,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   name,
   id,
 }) => {
-  const selectedOption = options.find((option) => option.value === value) || null;
+  const selectedOption =
+    options.find((option) => option.value === value) || null;
 
   const handleChange = (
     newValue: SingleValue<SelectOption>,
@@ -170,7 +158,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   };
 
   return (
-    <Select<SelectOption, false, GroupBase<SelectOption>>
+    <MemoizedSelect
       id={id}
       name={name}
       options={options}
@@ -186,4 +174,3 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
 };
 
 export default CustomSelect;
-
