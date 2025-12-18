@@ -1049,7 +1049,12 @@ export default function PolicyEditModal({
   };
 
   return (
-    <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="4xl">
+    <ModalWrapper
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="4xl"
+      className="flex flex-col "
+    >
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-semibold text-text-dark">Edit Policy</h2>
         <button
@@ -1071,7 +1076,7 @@ export default function PolicyEditModal({
       <Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Tab Content - Rendered outside Tabs component */}
-      <div className="mt-6 min-h-[60vh] max-h-[60vh] overflow-y-auto">
+      <div className="mt-6 overflow-y-auto">
         {loadingData ? (
           <div className="flex items-center justify-center py-8 text-text-secondary">
             Loading policy data...

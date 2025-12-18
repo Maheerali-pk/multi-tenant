@@ -940,7 +940,12 @@ export default function CreateNewPolicyModal({
   };
 
   return (
-    <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="4xl">
+    <ModalWrapper
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="4xl"
+      className="flex flex-col h-[80vh]"
+    >
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-semibold text-text-dark">
           Create New Policy
@@ -964,9 +969,7 @@ export default function CreateNewPolicyModal({
       <Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Tab Content - Rendered outside Tabs component */}
-      <div className="mt-6 min-h-[60vh] max-h-[60vh] overflow-y-auto">
-        {renderTabContent()}
-      </div>
+      <div className="mt-6  overflow-y-auto">{renderTabContent()}</div>
 
       {/* Action Buttons - Shared between tabs */}
       <div className="flex gap-3 pt-6 mt-6 border-t border-border-hr">

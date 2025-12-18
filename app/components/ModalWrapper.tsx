@@ -7,6 +7,7 @@ interface ModalWrapperProps {
   onClose: () => void;
   children: ReactNode;
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "4xl" | string;
+  className?: string;
 }
 
 const maxWidthClasses: Record<string, string> = {
@@ -23,15 +24,18 @@ export default function ModalWrapper({
   onClose,
   children,
   maxWidth = "md",
+  className = "",
 }: ModalWrapperProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-[6px] transition-opacity">
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-[6px] transition-opacity `}
+    >
       <div
         className={`bg-bg-inner rounded-3xl p-6 shadow-2xl w-full ${
           maxWidthClasses[maxWidth] || maxWidth
-        } max-h-[90vh] overflow-y-auto border border-border-hr transform transition-all`}
+        } max-h-[90vh] overflow-y-auto border border-border-hr transform transition-all ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {children}
