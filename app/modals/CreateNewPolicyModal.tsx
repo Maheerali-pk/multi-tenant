@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { X } from "lucide-react";
+import { X, FileText, FileEdit, MessageSquare } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import ModalWrapper from "@/app/components/ModalWrapper";
 import Tabs, { Tab } from "@/app/components/Tabs";
@@ -76,9 +76,9 @@ export default function CreateNewPolicyModal({
   const [newComment, setNewComment] = useState("");
 
   const tabs: Tab[] = [
-    { id: "tab1", label: "Policy Document" },
-    { id: "tab2", label: "Content" },
-    { id: "tab3", label: "Comments" },
+    { id: "tab1", label: "Policy Document", icon: <FileText size={16} /> },
+    { id: "tab2", label: "Content", icon: <FileEdit size={16} /> },
+    { id: "tab3", label: "Comments", icon: <MessageSquare size={16} /> },
   ];
 
   // Fetch all dropdown data when modal opens
