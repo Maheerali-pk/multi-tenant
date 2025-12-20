@@ -1,28 +1,33 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import ContentWrapper from "@/app/components/ContentWrapper";
 import DashboardWrapper from "@/app/components/DashboardWrapper";
-import PoliciesTable from "@/app/components/PoliciesTable";
+import PoliciesTable, { PolicyRow } from "../components/PoliciesTable";
 import Search from "@/app/components/Search";
 import TableFilter from "@/app/components/TableFilter";
-import { CreateNewPolicyButton } from "@/app/components/CreateNewPolicyButton";
-import CreateNewPolicyModal from "@/app/modals/CreateNewPolicyModal";
-import PolicyEditModal from "@/app/modals/PolicyEditModal";
-import DeletePolicy from "@/app/modals/DeletePolicy";
+import { CreateNewPolicyButton } from "../components/CreateNewPolicyButton";
+import CreateNewPolicyModal from "../components/CreateNewPolicyModal";
+import PolicyEditModal from "../components/PolicyEditModal";
+import DeletePolicy from "../components/DeletePolicy";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
+import { useAuthContext } from "@/app/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { toast } from "react-toastify";
-import type { PolicyRow } from "@/app/components/PoliciesTable";
 import { usePolicyFilters } from "@/app/hooks/usePolicyFilters";
 import { getRouteTitle } from "@/app/helpers/data";
 import { IRoute } from "@/app/types/routes.types";
 import { usePathname } from "next/navigation";
+import type { PolicyModalStatus } from "@/app/types/policy.types";
+import { Tables } from "@/app/types/database.types";
+
+type Policy = Tables<"policies">;
 
 interface SecurityPoliciesProps {}
 
 const SecurityPolicies: React.FC<SecurityPoliciesProps> = () => {
   const [state, dispatch] = useGlobalContext();
+  const [auth] = useAuthContext();
   const [searchValue, setSearchValue] = useState("");
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedPolicyId, setSelectedPolicyId] = useState<string | null>(null);
@@ -30,7 +35,245 @@ const SecurityPolicies: React.FC<SecurityPoliciesProps> = () => {
   const [selectedPolicyForDelete, setSelectedPolicyForDelete] =
     useState<PolicyRow | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [policies, setPolicies] = useState<PolicyRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const pathname = usePathname();
+
+  // Helper function to map status name to PolicyModalStatus
+  const mapStatusToModalStatus = (status: string | null): PolicyModalStatus => {
+    if (!status) return "draft";
+
+    const statusLower = status.toLowerCase().replace(/\s+/g, "-");
+
+    console.log("statusLower", statusLower);
+    switch (statusLower) {
+      case "draft":
+        return "draft";
+      case "under-review":
+        return "under-review";
+      case "changes-required":
+      case "changes_required":
+        return "changes-required";
+      case "waiting-approval":
+      case "waiting_approval":
+        return "waiting-approval";
+      case "approved":
+        return "approved";
+      default:
+        return "draft";
+    }
+  };
+
+  // Fetch policies
+  const fetchPolicies = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Determine tenant ID based on user role
+      const isSuperAdmin = auth.userData?.role === "superadmin";
+      const tenantId = isSuperAdmin
+        ? state.selectedTenantId
+        : auth.userData?.tenant_id;
+
+      if (!tenantId) {
+        setError(
+          isSuperAdmin ? "Please select a tenant" : "User tenant not found"
+        );
+        setLoading(false);
+        return;
+      }
+
+      // Fetch policies
+      const { data: policiesData, error: policiesError } = await supabase
+        .from("policies")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (policiesError) {
+        console.error("Error fetching policies:", policiesError);
+        setError("Failed to load policies");
+        return;
+      }
+
+      if (!policiesData || policiesData.length === 0) {
+        setPolicies([]);
+        return;
+      }
+
+      // Get unique IDs for related data
+      const creatorIds = [
+        ...new Set(
+          policiesData
+            .map((policy) => policy.created_by)
+            .filter((id): id is string => id !== null)
+        ),
+      ];
+
+      const ownerTeamIds = [
+        ...new Set(
+          policiesData
+            .map((policy) => policy.policy_owner_team_id)
+            .filter((id): id is string => id !== null)
+        ),
+      ];
+
+      const ownerUserIds = [
+        ...new Set(
+          policiesData
+            .map((policy) => policy.policy_owner_user_id)
+            .filter((id): id is string => id !== null)
+        ),
+      ];
+
+      const approverTeamIds = [
+        ...new Set(
+          policiesData
+            .map((policy) => policy.approver_team_id)
+            .filter((id): id is string => id !== null)
+        ),
+      ];
+
+      const approverUserIds = [
+        ...new Set(
+          policiesData
+            .map((policy) => policy.approver_user_id)
+            .filter((id): id is string => id !== null)
+        ),
+      ];
+
+      const statusIds = [
+        ...new Set(
+          policiesData
+            .map((policy) => policy.status_id)
+            .filter((id): id is number => id !== null)
+        ),
+      ];
+
+      // Fetch all related data in parallel
+      const [
+        creatorsResult,
+        ownerTeamsResult,
+        ownerUsersResult,
+        approverTeamsResult,
+        approverUsersResult,
+        statusesResult,
+      ] = await Promise.all([
+        creatorIds.length > 0
+          ? supabase.from("users").select("id, name").in("id", creatorIds)
+          : Promise.resolve({ data: [], error: null }),
+        ownerTeamIds.length > 0
+          ? supabase.from("teams").select("id, name").in("id", ownerTeamIds)
+          : Promise.resolve({ data: [], error: null }),
+        ownerUserIds.length > 0
+          ? supabase.from("users").select("id, name").in("id", ownerUserIds)
+          : Promise.resolve({ data: [], error: null }),
+        approverTeamIds.length > 0
+          ? supabase.from("teams").select("id, name").in("id", approverTeamIds)
+          : Promise.resolve({ data: [], error: null }),
+        approverUserIds.length > 0
+          ? supabase.from("users").select("id, name").in("id", approverUserIds)
+          : Promise.resolve({ data: [], error: null }),
+        statusIds.length > 0
+          ? supabase
+              .from("document_lifecycle_statuses")
+              .select("id, name")
+              .in("id", statusIds)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+
+      // Create lookup maps
+      const creatorMap = new Map(
+        (creatorsResult.data || []).map(
+          (user: { id: string; name: string }) => [user.id, user.name]
+        )
+      );
+
+      const ownerTeamMap = new Map(
+        (ownerTeamsResult.data || []).map(
+          (team: { id: string; name: string }) => [team.id, team.name]
+        )
+      );
+
+      const ownerUserMap = new Map(
+        (ownerUsersResult.data || []).map(
+          (user: { id: string; name: string }) => [user.id, user.name]
+        )
+      );
+
+      const approverTeamMap = new Map(
+        (approverTeamsResult.data || []).map(
+          (team: { id: string; name: string }) => [team.id, team.name]
+        )
+      );
+
+      const approverUserMap = new Map(
+        (approverUsersResult.data || []).map(
+          (user: { id: string; name: string }) => [user.id, user.name]
+        )
+      );
+
+      // Create status map from fetched data
+      const statusMap = new Map(
+        (statusesResult.data || []).map(
+          (status: { id: number; name: string }) => [status.id, status.name]
+        )
+      );
+
+      // Transform the data to match our PolicyRow interface
+      const transformedData: PolicyRow[] = policiesData.map((policy) => {
+        // Get creator name
+        const creatorName = policy.created_by
+          ? creatorMap.get(policy.created_by) || null
+          : null;
+
+        // Determine owner name
+        let ownerName: string | null = null;
+        if (policy.policy_owner_team_id) {
+          ownerName = ownerTeamMap.get(policy.policy_owner_team_id) || null;
+        } else if (policy.policy_owner_user_id) {
+          ownerName = ownerUserMap.get(policy.policy_owner_user_id) || null;
+        }
+
+        // Determine approver name
+        let approverName: string | null = null;
+        if (policy.approver_team_id) {
+          approverName = approverTeamMap.get(policy.approver_team_id) || null;
+        } else if (policy.approver_user_id) {
+          approverName = approverUserMap.get(policy.approver_user_id) || null;
+        }
+
+        // Get status name
+        const statusName = policy.status_id
+          ? statusMap.get(policy.status_id) || null
+          : null;
+
+        return {
+          id: policy.id,
+          title: policy.title,
+          creator: creatorName,
+          owner: ownerName,
+          approver: approverName,
+          status: statusName,
+          statusId: policy.status_id,
+          version: policy.version,
+          nextReviewDate: policy.next_review_date,
+        };
+      });
+
+      setPolicies(transformedData);
+    } catch (err) {
+      console.error("Unexpected error fetching policies:", err);
+      setError("An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  }, [auth.userData?.role, auth.userData?.tenant_id, state.selectedTenantId]);
+
+  useEffect(() => {
+    fetchPolicies();
+  }, [fetchPolicies, state.refreshTrigger]);
 
   // Memoize includeFilters to prevent infinite re-renders
   const includeFilters = useMemo(
@@ -150,6 +393,14 @@ const SecurityPolicies: React.FC<SecurityPoliciesProps> = () => {
     dispatch,
     state.refreshTrigger,
   ]);
+  const editModalStatus = useMemo(() => {
+    return selectedPolicyId
+      ? mapStatusToModalStatus(
+          policies.find((p) => p.id === selectedPolicyId)?.status || null
+        )
+      : "draft";
+  }, [selectedPolicyId, policies]);
+  console.log("all policies", policies);
 
   return (
     <>
@@ -172,9 +423,11 @@ const SecurityPolicies: React.FC<SecurityPoliciesProps> = () => {
             </div>
             <div className="flex-1 min-h-0">
               <PoliciesTable
+                policies={policies}
+                loading={loading}
+                error={error}
                 searchValue={searchValue}
                 filterValues={filterValues}
-                refreshTrigger={state.refreshTrigger}
                 onEditClick={handleEditClick}
                 onDeleteClick={handleDeleteClick}
               />
@@ -189,6 +442,7 @@ const SecurityPolicies: React.FC<SecurityPoliciesProps> = () => {
       />
       <PolicyEditModal
         isOpen={editModalOpen}
+        status={editModalStatus}
         onClose={handleEditClose}
         onSuccess={handleEditSuccess}
         policyId={selectedPolicyId}

@@ -9,7 +9,7 @@ import { CustomSelect, SelectOption } from "@/app/components/CustomSelect";
 import { useAuthContext } from "@/app/contexts/AuthContext";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import type { Tables, TablesInsert } from "@/app/types/database.types";
-import PolicyComment from "@/app/components/PolicyComment";
+import PolicyComment from "./PolicyComment";
 import RichTextEditor from "@/app/components/RichTextEditor";
 
 type Team = Tables<"teams">;
@@ -1000,3 +1000,4 @@ export default function CreateNewPolicyModal({
     </ModalWrapper>
   );
 }
+

@@ -1,0 +1,1 @@
+export type PolicyModalStatus = "draft" | "under-review" | "changes-required" | "waiting-approval" | "approved";

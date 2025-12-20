@@ -8,38 +8,172 @@ import Tabs, { Tab } from "@/app/components/Tabs";
 import { CustomSelect, SelectOption } from "@/app/components/CustomSelect";
 import { useAuthContext } from "@/app/contexts/AuthContext";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
-import type { Tables, TablesUpdate } from "@/app/types/database.types";
-import PolicyComment from "@/app/components/PolicyComment";
+import type { TablesUpdate } from "@/app/types/database.types";
+import PolicyComment from "@/app/(routes)/dashboard/policy-management/components/PolicyComment";
 import RichTextEditor from "@/app/components/RichTextEditor";
+import Input from "@/app/components/Input";
+import Button from "@/app/components/Button";
+import { usePolicyDetails } from "@/app/hooks/usePolicyDetails";
+import type { PolicyModalStatus } from "@/app/types/policy.types";
 
-type Team = Tables<"teams">;
-type User = Tables<"users">;
-type Policy = Tables<"policies">;
-type DocumentLifecycleStatus = Tables<"document_lifecycle_statuses">;
-type DocumentType = Tables<"document_types">;
-type AssetClassification = Tables<"asset_classifications">;
+type PolicyFormField =
+  | "title"
+  | "owner"
+  | "reviewer"
+  | "documentType"
+  | "status"
+  | "classification"
+  | "version"
+  | "createdBy"
+  | "createdOn"
+  | "reviewedBy"
+  | "reviewedOn"
+  | "approvedBy"
+  | "approvedOn"
+  | "effectiveDate"
+  | "nextReviewDate"
+  | "purpose"
+  | "scope"
+  | "requirements";
 
 interface PolicyEditModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
   policyId: string | null;
+  status: PolicyModalStatus;
 }
+
+// Configuration object for different policy statuses
+const POLICY_STATUS_CONFIG: Record<
+  PolicyModalStatus,
+  {
+    modalTitle: string;
+    enabledFields: readonly PolicyFormField[];
+    actionButtons: {
+      cancel?: { show: boolean; label: string; action: () => void };
+      save?: { show: boolean; label: string; action: () => void };
+      submitForReview?: { show: boolean; label: string; action: () => void };
+      requestChanges?: { show: boolean; label: string; action: () => void };
+      submitForApproval?: { show: boolean; label: string; action: () => void };
+      approve?: { show: boolean; label: string; action: () => void };
+      reject?: { show: boolean; label: string; action: () => void };
+    };
+  }
+> = {
+  draft: {
+    modalTitle: "Edit Policy (Draft)",
+    enabledFields: [
+      "title",
+      "owner",
+      "reviewer",
+      "classification",
+      "version",
+      "nextReviewDate",
+      "purpose",
+      "scope",
+      "requirements",
+    ] as const,
+    actionButtons: {
+      cancel: { show: true, label: "Cancel", action: () => {} },
+      save: { show: true, label: "Save as Draft", action: () => {} },
+      submitForReview: {
+        show: true,
+        label: "Submit for Review",
+        action: () => {},
+      },
+    },
+  },
+  "under-review": {
+    modalTitle: "Review Policy",
+    enabledFields: [] as const,
+    actionButtons: {
+      cancel: { show: true, label: "Close", action: () => {} },
+      requestChanges: {
+        show: true,
+        label: "Request Changes",
+        action: () => {},
+      },
+      submitForApproval: {
+        show: true,
+        label: "Submit for Approval",
+        action: () => {},
+      },
+    },
+  },
+  "changes-required": {
+    modalTitle: "Edit Policy (Changes Required)",
+    enabledFields: [
+      "title",
+      "owner",
+      "reviewer",
+      "classification",
+      "version",
+      "purpose",
+      "scope",
+      "requirements",
+    ] as const,
+    actionButtons: {
+      cancel: { show: true, label: "Cancel", action: () => {} },
+      save: { show: true, label: "Save Changes", action: () => {} },
+      submitForReview: {
+        show: true,
+        label: "Resubmit for Review",
+        action: () => {},
+      },
+    },
+  },
+  "waiting-approval": {
+    modalTitle: "View Policy (Waiting for Approval)",
+    enabledFields: [] as const,
+    actionButtons: {
+      cancel: { show: true, label: "Close", action: () => {} },
+      approve: { show: true, label: "Approve", action: () => {} },
+      reject: { show: true, label: "Request Changes", action: () => {} },
+    },
+  },
+  approved: {
+    modalTitle: "View Policy (Approved)",
+    enabledFields: [] as const,
+    actionButtons: {
+      cancel: { show: true, label: "Close", action: () => {} },
+    },
+  },
+};
 
 export default function PolicyEditModal({
   isOpen,
   onClose,
   onSuccess,
   policyId,
+  status,
 }: PolicyEditModalProps) {
+  // Get configuration for current status
+  const config = POLICY_STATUS_CONFIG[status];
   const [auth] = useAuthContext();
   const [state] = useGlobalContext();
   const [activeTab, setActiveTab] = useState<string>("tab1");
+
+  // Use custom hook for data fetching
+  const {
+    teams,
+    users,
+    classifications,
+    documentLifecycleStatuses,
+    documentTypes,
+    initialFormData,
+    comments: fetchedComments,
+    loadingData,
+    error: dataError,
+    policyTypeId,
+  } = usePolicyDetails(policyId, isOpen);
+
+  // Form data state
   const [formData, setFormData] = useState({
     title: "",
     owner: "",
     reviewer: "",
-    documentType: "Policy",
+    documentType: "",
     status: "",
     classification: "",
     version: "",
@@ -55,28 +189,11 @@ export default function PolicyEditModal({
     scope: "",
     requirements: "",
   });
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [classifications, setClassifications] = useState<AssetClassification[]>(
-    []
-  );
-  const [documentLifecycleStatuses, setDocumentLifecycleStatuses] = useState<
-    DocumentLifecycleStatus[]
-  >([]);
-  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
+
+  // UI state
   const [loading, setLoading] = useState(false);
-  const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [comments, setComments] = useState<
-    Array<{
-      id: string;
-      text: string;
-      user_id: string;
-      user_name: string;
-      created_at: string;
-      isNew?: boolean; // Track if comment is new (not saved to DB yet)
-    }>
-  >([]);
+  const [comments, setComments] = useState(fetchedComments);
   const [newComment, setNewComment] = useState("");
 
   const tabs: Tab[] = [
@@ -85,29 +202,34 @@ export default function PolicyEditModal({
     { id: "tab3", label: "Comments", icon: <MessageSquare size={16} /> },
   ];
 
-  // Fetch policy data and all dropdown data when modal opens
+  // Initialize form data when policy data is loaded
   useEffect(() => {
-    if (isOpen && policyId) {
-      fetchAllData();
-      fetchPolicyData();
-      fetchComments();
+    if (initialFormData) {
+      setFormData(initialFormData);
     }
-  }, [isOpen, policyId]);
+  }, [initialFormData]);
 
-  // Set document type to "Policy" whenever document types are loaded
+  // Set document type to "Policy" when policyTypeId is available
   useEffect(() => {
-    if (documentTypes.length > 0) {
-      const policyType = documentTypes.find(
-        (type) => type.name.toLowerCase() === "policy"
-      );
-      if (policyType) {
-        setFormData((prev) => ({
-          ...prev,
-          documentType: policyType.id.toString(),
-        }));
-      }
+    if (policyTypeId && formData.documentType !== policyTypeId) {
+      setFormData((prev) => ({
+        ...prev,
+        documentType: policyTypeId,
+      }));
     }
-  }, [documentTypes]);
+  }, [policyTypeId, formData.documentType]);
+
+  // Sync comments from hook
+  useEffect(() => {
+    setComments(fetchedComments);
+  }, [fetchedComments]);
+
+  // Sync error from hook
+  useEffect(() => {
+    if (dataError) {
+      setError(dataError);
+    }
+  }, [dataError]);
 
   // Reset form when modal closes
   useEffect(() => {
@@ -138,261 +260,6 @@ export default function PolicyEditModal({
       setError(null);
     }
   }, [isOpen]);
-
-  const fetchAllData = async () => {
-    try {
-      setLoadingData(true);
-      setError(null);
-
-      const isSuperAdmin = auth.userData?.role === "superadmin";
-      const tenantId = isSuperAdmin
-        ? state.selectedTenantId
-        : auth.userData?.tenant_id;
-
-      if (!tenantId) {
-        setError(
-          isSuperAdmin ? "Please select a tenant" : "User tenant not found"
-        );
-        setLoadingData(false);
-        return;
-      }
-
-      // Fetch all dropdown data in parallel
-      const [
-        teamsResult,
-        usersResult,
-        classificationsResult,
-        documentLifecycleStatusesResult,
-        documentTypesResult,
-      ] = await Promise.all([
-        supabase
-          .from("teams")
-          .select("*")
-          .eq("tenant_id", tenantId)
-          .order("name"),
-        supabase
-          .from("users")
-          .select("*")
-          .eq("tenant_id", tenantId)
-          .order("name"),
-        supabase.from("asset_classifications").select("*").order("name"),
-        supabase.from("document_lifecycle_statuses").select("*").order("name"),
-        supabase.from("document_types").select("*").order("name"),
-      ]);
-
-      if (teamsResult.error) {
-        console.error("Error fetching teams:", teamsResult.error);
-      }
-      if (usersResult.error) {
-        console.error("Error fetching users:", usersResult.error);
-      }
-      if (classificationsResult.error) {
-        console.error(
-          "Error fetching classifications:",
-          classificationsResult.error
-        );
-      }
-      if (documentLifecycleStatusesResult.error) {
-        console.error(
-          "Error fetching document lifecycle statuses:",
-          documentLifecycleStatusesResult.error
-        );
-      }
-      if (documentTypesResult.error) {
-        console.error(
-          "Error fetching document types:",
-          documentTypesResult.error
-        );
-      }
-
-      setTeams(teamsResult.data || []);
-      setUsers(usersResult.data || []);
-      setClassifications(classificationsResult.data || []);
-      setDocumentLifecycleStatuses(documentLifecycleStatusesResult.data || []);
-      setDocumentTypes(documentTypesResult.data || []);
-
-      // Set document type to "Policy" if available
-      if (documentTypesResult.data && documentTypesResult.data.length > 0) {
-        const policyType = documentTypesResult.data.find(
-          (type) => type.name.toLowerCase() === "policy"
-        );
-        if (policyType) {
-          setFormData((prev) => ({
-            ...prev,
-            documentType: policyType.id.toString(),
-          }));
-        }
-      }
-    } catch (err) {
-      console.error("Error fetching data:", err);
-      setError("Failed to load data");
-    } finally {
-      setLoadingData(false);
-    }
-  };
-
-  const fetchPolicyData = async () => {
-    if (!policyId) return;
-
-    try {
-      setLoadingData(true);
-      setError(null);
-
-      // Fetch policy data
-      const { data: policy, error: policyError } = await supabase
-        .from("policies")
-        .select("*")
-        .eq("id", policyId)
-        .single();
-
-      if (policyError) {
-        console.error("Error fetching policy:", policyError);
-        setError("Failed to load policy data");
-        setLoadingData(false);
-        return;
-      }
-
-      if (!policy) {
-        setError("Policy not found");
-        setLoadingData(false);
-        return;
-      }
-
-      // Fetch creator name
-      let creatorName = "";
-      if (policy.created_by) {
-        const { data: creator } = await supabase
-          .from("users")
-          .select("name")
-          .eq("id", policy.created_by)
-          .single();
-        creatorName = creator?.name || "";
-      }
-
-      // Determine owner value
-      let ownerValue = "";
-      if (policy.policy_owner_team_id) {
-        ownerValue = `team:${policy.policy_owner_team_id}`;
-      } else if (policy.policy_owner_user_id) {
-        ownerValue = `user:${policy.policy_owner_user_id}`;
-      }
-
-      // Determine reviewer value
-      let reviewerValue = "";
-      if (policy.reviewer_team_id) {
-        reviewerValue = `team:${policy.reviewer_team_id}`;
-      } else if (policy.reviewer_user_id) {
-        reviewerValue = `user:${policy.reviewer_user_id}`;
-      }
-
-      // Format dates
-      const formatDate = (dateString: string | null) => {
-        if (!dateString) return "";
-        try {
-          return new Date(dateString).toLocaleDateString();
-        } catch {
-          return dateString;
-        }
-      };
-
-      const formatDateForInput = (dateString: string | null) => {
-        if (!dateString) return "";
-        try {
-          const date = new Date(dateString);
-          return date.toISOString().split("T")[0];
-        } catch {
-          return "";
-        }
-      };
-
-      // Populate form data using new table structure
-      // Note: documentType will be set to "Policy" by useEffect when documentTypes are loaded
-      setFormData({
-        title: policy.title || "",
-        owner: ownerValue,
-        reviewer: reviewerValue,
-        documentType: "", // Will be set to "Policy" by useEffect
-        status: policy.status_id?.toString() || "",
-        classification: policy.classification_id?.toString() || "",
-        version: policy.version || "",
-        createdBy: creatorName,
-        createdOn: formatDate(policy.created_at),
-        reviewedBy: "",
-        reviewedOn: formatDate(policy.reviewed_at),
-        approvedBy: "",
-        approvedOn: formatDate(policy.approved_at),
-        effectiveDate: formatDateForInput(policy.effective_date),
-        nextReviewDate: formatDateForInput(policy.next_review_date),
-        purpose: policy.objective || "",
-        scope: policy.scope || "",
-        requirements:
-          typeof policy.requirements === "string"
-            ? policy.requirements
-            : JSON.stringify(policy.requirements) || "",
-      });
-    } catch (err) {
-      console.error("Error fetching policy data:", err);
-      setError("Failed to load policy data");
-    } finally {
-      setLoadingData(false);
-    }
-  };
-
-  const fetchComments = async () => {
-    if (!policyId) return;
-
-    try {
-      // Fetch comments
-      const { data: commentsData, error: commentsError } = await supabase
-        .from("policy_comments")
-        .select("*")
-        .eq("policy_id", policyId)
-        .order("created_at", { ascending: false });
-
-      if (commentsError) {
-        console.error("Error fetching comments:", commentsError);
-        return;
-      }
-
-      if (commentsData && commentsData.length > 0) {
-        // Get unique user IDs
-        const userIds = [
-          ...new Set(
-            commentsData
-              .map((comment) => comment.user_id)
-              .filter((id): id is string => id !== null)
-          ),
-        ];
-
-        // Fetch user names
-        const { data: usersData } = await supabase
-          .from("users")
-          .select("id, name")
-          .in("id", userIds);
-
-        // Create user map
-        const userMap = new Map(
-          (usersData || []).map((user) => [user.id, user.name])
-        );
-
-        // Transform comments to match our structure
-        const transformedComments = commentsData.map((comment) => ({
-          id: `db-${comment.policy_id}-${comment.created_at}`,
-          text: comment.text,
-          user_id: comment.user_id,
-          user_name: userMap.get(comment.user_id) || "Unknown User",
-          created_at: comment.created_at,
-          isNew: false,
-        }));
-
-        setComments(transformedComments);
-      } else {
-        setComments([]);
-      }
-    } catch (err) {
-      console.error("Error fetching comments:", err);
-    }
-  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -491,14 +358,14 @@ export default function PolicyEditModal({
                 >
                   Title <span className="text-failure">*</span>
                 </label>
-                <input
+                <Input
                   type="text"
                   id="title"
                   name="title"
                   value={formData.title}
                   onChange={handleChange}
                   required
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary"
+                  disabled={!config.enabledFields.includes("title")}
                   placeholder="Enter policy title"
                 />
               </div>
@@ -518,7 +385,9 @@ export default function PolicyEditModal({
                   value={formData.owner}
                   onChange={(value) => handleSelectChange("owner", value)}
                   placeholder="Select owner"
-                  isDisabled={loadingData}
+                  isDisabled={
+                    loadingData || !config.enabledFields.includes("owner")
+                  }
                 />
               </div>
 
@@ -537,7 +406,9 @@ export default function PolicyEditModal({
                   value={formData.reviewer}
                   onChange={(value) => handleSelectChange("reviewer", value)}
                   placeholder="Select reviewer"
-                  isDisabled={loadingData}
+                  isDisabled={
+                    loadingData || !config.enabledFields.includes("reviewer")
+                  }
                 />
               </div>
 
@@ -558,7 +429,7 @@ export default function PolicyEditModal({
                     handleSelectChange("documentType", value)
                   }
                   placeholder="Select document type"
-                  isDisabled={true}
+                  isDisabled={!config.enabledFields.includes("documentType")}
                 />
               </div>
 
@@ -577,7 +448,7 @@ export default function PolicyEditModal({
                   value={formData.status}
                   onChange={(value) => handleSelectChange("status", value)}
                   placeholder="Select status"
-                  isDisabled={false}
+                  isDisabled={!config.enabledFields.includes("status")}
                 />
               </div>
 
@@ -598,7 +469,10 @@ export default function PolicyEditModal({
                     handleSelectChange("classification", value)
                   }
                   placeholder="Select classification"
-                  isDisabled={loadingData}
+                  isDisabled={
+                    loadingData ||
+                    !config.enabledFields.includes("classification")
+                  }
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -608,13 +482,13 @@ export default function PolicyEditModal({
                 >
                   Version
                 </label>
-                <input
+                <Input
                   type="text"
                   id="version"
                   name="version"
                   value={formData.version}
                   onChange={handleChange}
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary"
+                  disabled={!config.enabledFields.includes("version")}
                   placeholder="Enter version"
                 />
               </div>
@@ -627,13 +501,12 @@ export default function PolicyEditModal({
                 >
                   Created By
                 </label>
-                <input
+                <Input
                   type="text"
                   id="createdBy"
                   name="createdBy"
                   value={formData.createdBy}
                   disabled
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none opacity-50 cursor-not-allowed"
                 />
               </div>
 
@@ -645,13 +518,12 @@ export default function PolicyEditModal({
                 >
                   Created On
                 </label>
-                <input
+                <Input
                   type="text"
                   id="createdOn"
                   name="createdOn"
                   value={formData.createdOn}
                   disabled
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none opacity-50 cursor-not-allowed"
                 />
               </div>
 
@@ -663,13 +535,12 @@ export default function PolicyEditModal({
                 >
                   Reviewed By
                 </label>
-                <input
+                <Input
                   type="text"
                   id="reviewedBy"
                   name="reviewedBy"
                   value={formData.reviewedBy}
                   disabled
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none opacity-50 cursor-not-allowed"
                 />
               </div>
 
@@ -681,13 +552,12 @@ export default function PolicyEditModal({
                 >
                   Reviewed On
                 </label>
-                <input
+                <Input
                   type="text"
                   id="reviewedOn"
                   name="reviewedOn"
                   value={formData.reviewedOn}
                   disabled
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none opacity-50 cursor-not-allowed"
                 />
               </div>
 
@@ -699,13 +569,12 @@ export default function PolicyEditModal({
                 >
                   Approved By
                 </label>
-                <input
+                <Input
                   type="text"
                   id="approvedBy"
                   name="approvedBy"
                   value={formData.approvedBy}
                   disabled
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none opacity-50 cursor-not-allowed"
                 />
               </div>
 
@@ -717,13 +586,12 @@ export default function PolicyEditModal({
                 >
                   Approved On
                 </label>
-                <input
+                <Input
                   type="text"
                   id="approvedOn"
                   name="approvedOn"
                   value={formData.approvedOn}
                   disabled
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none opacity-50 cursor-not-allowed"
                 />
               </div>
 
@@ -735,13 +603,12 @@ export default function PolicyEditModal({
                 >
                   Effective Date
                 </label>
-                <input
+                <Input
                   type="text"
                   id="effectiveDate"
                   name="effectiveDate"
                   value={formData.effectiveDate}
                   disabled
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none opacity-50 cursor-not-allowed"
                 />
               </div>
 
@@ -753,13 +620,13 @@ export default function PolicyEditModal({
                 >
                   Next Review Date
                 </label>
-                <input
+                <Input
                   type="date"
                   id="nextReviewDate"
                   name="nextReviewDate"
                   value={formData.nextReviewDate}
                   onChange={handleChange}
-                  className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary"
+                  disabled={!config.enabledFields.includes("nextReviewDate")}
                 />
               </div>
             </div>
@@ -776,13 +643,12 @@ export default function PolicyEditModal({
               >
                 Title
               </label>
-              <input
+              <Input
                 type="text"
                 id="title-tab2"
                 name="title-tab2"
                 value={formData.title}
                 disabled
-                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none opacity-50 cursor-not-allowed"
               />
             </div>
 
@@ -800,7 +666,12 @@ export default function PolicyEditModal({
                 value={formData.purpose}
                 onChange={handleChange}
                 rows={2}
-                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none"
+                disabled={!config.enabledFields.includes("purpose")}
+                className={`px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none ${
+                  !config.enabledFields.includes("purpose")
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
                 placeholder="Enter purpose"
               />
             </div>
@@ -819,7 +690,12 @@ export default function PolicyEditModal({
                 value={formData.scope}
                 onChange={handleChange}
                 rows={2}
-                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none"
+                disabled={!config.enabledFields.includes("scope")}
+                className={`px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none ${
+                  !config.enabledFields.includes("scope")
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
                 placeholder="Enter scope"
               />
             </div>
@@ -838,15 +714,16 @@ export default function PolicyEditModal({
                   setFormData((prev) => ({ ...prev, requirements: html }))
                 }
                 placeholder="Enter requirements"
+                disabled={!config.enabledFields.includes("requirements")}
               />
             </div>
           </div>
         );
       case "tab3":
         return (
-          <div className="py-4 space-y-6">
+          <div className="py-4 space-y-6 flex flex-col h-full flex-1">
             {/* Comments List */}
-            <div className="space-y-4">
+            <div className="space-y-4 flex-1">
               {comments.length === 0 ? (
                 <div className="text-center py-8 text-text-secondary text-sm">
                   No comments yet. Be the first to add a comment.
@@ -880,8 +757,9 @@ export default function PolicyEditModal({
                 className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none"
                 placeholder="Enter your comment..."
               />
-              <button
+              <Button
                 type="button"
+                variant="primary"
                 onClick={() => {
                   if (newComment.trim()) {
                     const comment = {
@@ -897,10 +775,10 @@ export default function PolicyEditModal({
                   }
                 }}
                 disabled={!newComment.trim()}
-                className="self-start px-4 py-2 rounded-lg bg-brand text-text-contrast font-medium text-sm hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="self-start"
               >
                 Add Comment
-              </button>
+              </Button>
             </div>
           </div>
         );
@@ -1043,9 +921,125 @@ export default function PolicyEditModal({
     }
   };
 
-  const handleSubmitForReview = () => {
-    // Submit for review logic - to be implemented
-    console.log("Submit for review clicked", formData);
+  const handleSubmitForReview = async () => {
+    // Submit for review logic
+    if (!policyId) return;
+
+    setError(null);
+
+    // Validate required fields
+    if (!formData.title.trim()) {
+      setError("Title is required");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Update status to "under-review"
+      // TODO: Replace with actual status ID from documentLifecycleStatuses
+      const underReviewStatus = documentLifecycleStatuses.find(
+        (s) => s.name.toLowerCase() === "under review"
+      );
+      const { error: statusError } = await supabase
+        .from("policies")
+        .update({ status_id: underReviewStatus?.id || null })
+        .eq("id", policyId);
+
+      if (statusError) {
+        console.error("Error updating status:", statusError);
+        setError("Failed to submit for review");
+        setLoading(false);
+        return;
+      }
+
+      // Call onSuccess to refresh the table
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      // Close modal
+      onClose();
+    } catch (err) {
+      console.error("Error submitting for review:", err);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    if (!policyId) return;
+
+    setError(null);
+    setLoading(true);
+
+    try {
+      // Update status to "approved"
+      // TODO: Replace with actual status ID from documentLifecycleStatuses
+      const approvedStatus = documentLifecycleStatuses.find(
+        (s) => s.name.toLowerCase() === "approved"
+      );
+      const { error: statusError } = await supabase
+        .from("policies")
+        .update({ status_id: approvedStatus?.id || null })
+        .eq("id", policyId);
+
+      if (statusError) {
+        console.error("Error approving policy:", statusError);
+        setError("Failed to approve policy");
+        setLoading(false);
+        return;
+      }
+
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      onClose();
+    } catch (err) {
+      console.error("Error approving policy:", err);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!policyId) return;
+
+    setError(null);
+    setLoading(true);
+
+    try {
+      // Update status to "changes-required"
+      // TODO: Replace with actual status ID from documentLifecycleStatuses
+      const changesRequiredStatus = documentLifecycleStatuses.find(
+        (s) => s.name.toLowerCase() === "changes-required"
+      );
+      const { error: statusError } = await supabase
+        .from("policies")
+        .update({ status_id: changesRequiredStatus?.id || null })
+        .eq("id", policyId);
+
+      if (statusError) {
+        console.error("Error rejecting policy:", statusError);
+        setError("Failed to request changes");
+        setLoading(false);
+        return;
+      }
+
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      onClose();
+    } catch (err) {
+      console.error("Error rejecting policy:", err);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -1056,7 +1050,9 @@ export default function PolicyEditModal({
       className="flex flex-col h-[80vh]"
     >
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold text-text-dark">Edit Policy</h2>
+        <h2 className="text-2xl font-semibold text-text-dark">
+          {config.modalTitle}
+        </h2>
         <button
           onClick={onClose}
           className="p-2 hover:bg-sidebar-sub-item-hover rounded-lg transition-colors cursor-pointer"
@@ -1076,7 +1072,7 @@ export default function PolicyEditModal({
       <Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Tab Content - Rendered outside Tabs component */}
-      <div className="mt-6 overflow-y-auto">
+      <div className="mt-6 overflow-y-auto flex-1">
         {loadingData ? (
           <div className="flex items-center justify-center py-8 text-text-secondary">
             Loading policy data...
@@ -1088,29 +1084,82 @@ export default function PolicyEditModal({
 
       {/* Action Buttons - Shared between tabs */}
       <div className="flex gap-3 pt-6 mt-6 border-t border-border-hr">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-1 py-2.5 px-4 rounded-lg border border-border-hr bg-bg-outer text-text-primary font-medium text-sm hover:bg-sidebar-sub-item-hover transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 cursor-pointer"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={loading || loadingData}
-          className="flex-1 py-2.5 px-4 rounded-lg border border-border-hr bg-bg-outer text-text-primary font-medium text-sm hover:bg-sidebar-sub-item-hover transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-        >
-          {loading ? "Saving..." : "Save"}
-        </button>
-        <button
-          type="button"
-          onClick={handleSubmitForReview}
-          disabled={loading || loadingData}
-          className="flex-1 py-2.5 px-4 rounded-lg bg-brand text-text-contrast font-medium text-sm hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-        >
-          Submit for Review
-        </button>
+        {config.actionButtons.cancel?.show && (
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            className="flex-1"
+          >
+            {config.actionButtons.cancel.label}
+          </Button>
+        )}
+        {config.actionButtons.save?.show && (
+          <Button
+            type="button"
+            variant="primary"
+            onClick={handleSave}
+            disabled={loading || loadingData}
+            className="flex-1"
+          >
+            {loading ? "Saving..." : config.actionButtons.save.label}
+          </Button>
+        )}
+        {config.actionButtons.submitForReview?.show && (
+          <Button
+            type="button"
+            variant="success"
+            onClick={handleSubmitForReview}
+            disabled={loading || loadingData}
+            className="flex-1"
+          >
+            {config.actionButtons.submitForReview.label}
+          </Button>
+        )}
+        {config.actionButtons.requestChanges?.show && (
+          <Button
+            type="button"
+            variant="primary"
+            onClick={handleReject}
+            disabled={loading || loadingData}
+            className="flex-1"
+          >
+            {config.actionButtons.requestChanges.label}
+          </Button>
+        )}
+        {config.actionButtons.submitForApproval?.show && (
+          <Button
+            type="button"
+            variant="success"
+            onClick={handleSubmitForReview}
+            disabled={loading || loadingData}
+            className="flex-1"
+          >
+            {config.actionButtons.submitForApproval.label}
+          </Button>
+        )}
+        {config.actionButtons.approve?.show && (
+          <Button
+            type="button"
+            variant="success"
+            onClick={handleApprove}
+            disabled={loading || loadingData}
+            className="flex-1"
+          >
+            {config.actionButtons.approve.label}
+          </Button>
+        )}
+        {config.actionButtons.reject?.show && (
+          <Button
+            type="button"
+            variant="danger"
+            onClick={handleReject}
+            disabled={loading || loadingData}
+            className="flex-1"
+          >
+            {config.actionButtons.reject.label}
+          </Button>
+        )}
       </div>
     </ModalWrapper>
   );

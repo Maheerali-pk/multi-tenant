@@ -29,7 +29,6 @@ const Sidebar: React.FC<SidebarProps> = () => {
   const router = useRouter();
   const isOpen = state.isSidebarOpen;
   const [tenantLogo, setTenantLogo] = useState<string | null>(null);
-  console.log("Sidebar rendered");
 
   // Determine active tenant ID
   const activeTenantId =
