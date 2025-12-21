@@ -83,10 +83,36 @@ const SecurityPolicies: React.FC<SecurityPoliciesProps> = () => {
         return;
       }
 
-      // Fetch policies
+      // Get current user ID
+      const userId = auth.userData?.id;
+      if (!userId) {
+        setError("User not authenticated");
+        setLoading(false);
+        return;
+      }
+
+      // Build query with filtering:
+      // PRIMARY CONDITION: Always filter by tenant_id first
+      // SECONDARY CONDITIONS (applied after tenant_id):
+      // Show policies where:
+      // 1. Status IS approved (4) - visible to everyone
+      // OR
+      // 2. Status IS draft (1) AND created_by = current_user_id - visible only to creator
+      // OR
+      // 3. Status IS changes-required (3) AND created_by = current_user_id - visible only to creator
+      // OR
+      // 4. Status IS under-review (2) AND (created_by = current_user_id OR reviewer_user_id = current_user_id) - creator and reviewer
+      // OR
+      // 5. Status IS waiting-approval (7) AND (created_by = current_user_id OR reviewer_user_id = current_user_id OR approver_user_id = current_user_id) - creator, reviewer, approver
+      // OR
+      // 6. policy_owner_user_id = current_user_id - owner always sees it
       const { data: policiesData, error: policiesError } = await supabase
         .from("policies")
         .select("*")
+        .eq("tenant_id", tenantId) // PRIMARY: Always filter by tenant first
+        .or(
+          `status_id.eq.4,and(status_id.eq.1,created_by.eq.${userId}),and(status_id.eq.3,created_by.eq.${userId}),and(status_id.eq.2,or(created_by.eq.${userId},reviewer_user_id.eq.${userId})),and(status_id.eq.7,or(created_by.eq.${userId},reviewer_user_id.eq.${userId},approver_user_id.eq.${userId})),policy_owner_user_id.eq.${userId}`
+        ) // SECONDARY: Status-based visibility rules
         .order("created_at", { ascending: false });
 
       if (policiesError) {
@@ -272,7 +298,12 @@ const SecurityPolicies: React.FC<SecurityPoliciesProps> = () => {
     } finally {
       setLoading(false);
     }
-  }, [auth.userData?.role, auth.userData?.tenant_id, state.selectedTenantId]);
+  }, [
+    auth.userData?.role,
+    auth.userData?.tenant_id,
+    auth.userData?.id,
+    state.selectedTenantId,
+  ]);
 
   useEffect(() => {
     fetchPolicies();
