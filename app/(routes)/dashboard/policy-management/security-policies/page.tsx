@@ -18,7 +18,10 @@ import { usePolicyFilters } from "@/app/hooks/usePolicyFilters";
 import { getRouteTitle } from "@/app/helpers/data";
 import { IRoute } from "@/app/types/routes.types";
 import { usePathname } from "next/navigation";
-import type { PolicyModalStatus } from "@/app/types/policy.types";
+import type {
+  PolicyModalStatus,
+  PolicyUserRole,
+} from "@/app/types/policy.types";
 import { Tables } from "@/app/types/database.types";
 
 type Policy = Tables<"policies">;
@@ -44,19 +47,15 @@ const SecurityPolicies: React.FC<SecurityPoliciesProps> = () => {
   const mapStatusToModalStatus = (status: string | null): PolicyModalStatus => {
     if (!status) return "draft";
 
-    const statusLower = status.toLowerCase().replace(/\s+/g, "-");
-
-    console.log("statusLower", statusLower);
-    switch (statusLower) {
+    // Map database status names to PolicyModalStatus
+    switch (status) {
       case "draft":
         return "draft";
-      case "under-review":
+      case "under-review": // DB has "under-review" which maps to "under-review" in PolicyModalStatus
         return "under-review";
       case "changes-required":
-      case "changes_required":
         return "changes-required";
       case "waiting-approval":
-      case "waiting_approval":
         return "waiting-approval";
       case "approved":
         return "approved";
@@ -259,6 +258,11 @@ const SecurityPolicies: React.FC<SecurityPoliciesProps> = () => {
           statusId: policy.status_id,
           version: policy.version,
           nextReviewDate: policy.next_review_date,
+          // IDs for role calculation
+          createdBy: policy.created_by,
+          reviewerUserId: policy.reviewer_user_id,
+          approverUserId: policy.approver_user_id,
+          policyOwnerUserId: policy.policy_owner_user_id,
         };
       });
 
@@ -400,7 +404,34 @@ const SecurityPolicies: React.FC<SecurityPoliciesProps> = () => {
         )
       : "draft";
   }, [selectedPolicyId, policies]);
-  console.log("all policies", policies);
+
+  // Calculate user role for the selected policy
+  const userRolesForPolicy: PolicyUserRole[] = useMemo((): PolicyUserRole[] => {
+    if (!selectedPolicyId || !auth.userData?.id) return [];
+
+    const selectedPolicy = policies.find((p) => p.id === selectedPolicyId);
+    if (!selectedPolicy) return [];
+
+    const userId = auth.userData.id;
+
+    const userRoles: PolicyUserRole[] = [];
+    // Check in priority order: creator, reviewer, approver, owner
+    if (selectedPolicy.createdBy === userId) {
+      userRoles.push("creator");
+    }
+    if (selectedPolicy.reviewerUserId === userId) {
+      userRoles.push("reviewer");
+    }
+    if (selectedPolicy.approverUserId === userId) {
+      userRoles.push("approver");
+    }
+    if (selectedPolicy.policyOwnerUserId === userId) {
+      userRoles.push("owner");
+    }
+
+    // Return undefined if user has no role (don't pass "none" as it's not useful for overrides)
+    return userRoles;
+  }, [selectedPolicyId, policies, auth.userData?.id]);
 
   return (
     <>
@@ -446,6 +477,7 @@ const SecurityPolicies: React.FC<SecurityPoliciesProps> = () => {
         onClose={handleEditClose}
         onSuccess={handleEditSuccess}
         policyId={selectedPolicyId}
+        userRolesForPolicy={userRolesForPolicy}
       />
       <DeletePolicy
         isOpen={deleteModalOpen}

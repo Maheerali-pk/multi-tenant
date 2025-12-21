@@ -14,6 +14,11 @@ export interface PolicyRow {
   statusId: number | null;
   version: string | null;
   nextReviewDate: string | null;
+  // IDs for role calculation
+  createdBy: string | null;
+  reviewerUserId: string | null;
+  approverUserId: string | null;
+  policyOwnerUserId: string | null;
 }
 
 interface PoliciesTableProps {
@@ -48,6 +53,17 @@ const PoliciesTable: React.FC<PoliciesTableProps> = ({
     }
   };
 
+  // Helper function to transform status name to display format
+  // e.g., "under-review" -> "User Review", "changes-required" -> "Changes Required"
+  const formatStatusForDisplay = (status: string | null): string => {
+    if (!status) return "-";
+
+    return status
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
   // Helper function to get status badge styles
   const getStatusBadgeStyles = (status: string | null): React.CSSProperties => {
     if (!status) {
@@ -57,23 +73,27 @@ const PoliciesTable: React.FC<PoliciesTableProps> = ({
       };
     }
 
-    const statusLower = status.toLowerCase();
-    switch (statusLower) {
+    // Use exact database status names
+    switch (status) {
       case "draft":
         return {
           backgroundColor: "rgba(100, 116, 139, 0.15)",
           color: "#475569",
         };
-      case "under review":
-      case "under_review":
+      case "under-review":
         return {
           backgroundColor: "rgba(59, 130, 246, 0.15)",
           color: "#2563eb",
         };
-      case "changes required":
+      case "changes-required":
         return {
           backgroundColor: "rgba(245, 158, 11, 0.15)",
           color: "#d97706",
+        };
+      case "waiting-approval":
+        return {
+          backgroundColor: "rgba(59, 130, 246, 0.15)",
+          color: "#2563eb",
         };
       case "approved":
         return {
@@ -85,17 +105,7 @@ const PoliciesTable: React.FC<PoliciesTableProps> = ({
           backgroundColor: "rgba(16, 185, 129, 0.15)",
           color: "#059669",
         };
-      case "active":
-        return {
-          backgroundColor: "rgba(16, 185, 129, 0.15)",
-          color: "#059669",
-        };
-      case "rejected":
-        return {
-          backgroundColor: "rgba(239, 68, 68, 0.15)",
-          color: "#dc2626",
-        };
-      case "archived":
+      case "retired":
         return {
           backgroundColor: "rgba(100, 116, 139, 0.15)",
           color: "#475569",
@@ -117,7 +127,7 @@ const PoliciesTable: React.FC<PoliciesTableProps> = ({
         className="px-2 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1"
         style={getStatusBadgeStyles(status)}
       >
-        {status}
+        {formatStatusForDisplay(status)}
       </span>
     );
   };

@@ -14,12 +14,18 @@ import RichTextEditor from "@/app/components/RichTextEditor";
 import Input from "@/app/components/Input";
 import Button from "@/app/components/Button";
 import { usePolicyDetails } from "@/app/hooks/usePolicyDetails";
-import type { PolicyModalStatus } from "@/app/types/policy.types";
+import type {
+  PolicyModalStatus,
+  DocumentLifecycleStatusName,
+  PolicyUserRole,
+} from "@/app/types/policy.types";
+import EditModalButtons from "./edit-modal-buttons";
 
-type PolicyFormField =
+export type PolicyFormField =
   | "title"
   | "owner"
   | "reviewer"
+  | "approver"
   | "documentType"
   | "status"
   | "classification"
@@ -36,109 +42,177 @@ type PolicyFormField =
   | "scope"
   | "requirements";
 
+export type PolicyActionButtons = {
+  cancel?: { show: boolean; label: string; action: () => void };
+  save?: { show: boolean; label: string; action: () => void };
+  submitForReview?: { show: boolean; label: string; action: () => void };
+  requestChanges?: { show: boolean; label: string; action: () => void };
+  submitForApproval?: { show: boolean; label: string; action: () => void };
+  approve?: { show: boolean; label: string; action: () => void };
+  reject?: { show: boolean; label: string; action: () => void };
+};
+
 interface PolicyEditModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
   policyId: string | null;
   status: PolicyModalStatus;
+  userRolesForPolicy: PolicyUserRole[];
 }
 
-// Configuration object for different policy statuses
-const POLICY_STATUS_CONFIG: Record<
-  PolicyModalStatus,
-  {
-    modalTitle: string;
-    enabledFields: readonly PolicyFormField[];
-    actionButtons: {
-      cancel?: { show: boolean; label: string; action: () => void };
-      save?: { show: boolean; label: string; action: () => void };
-      submitForReview?: { show: boolean; label: string; action: () => void };
-      requestChanges?: { show: boolean; label: string; action: () => void };
-      submitForApproval?: { show: boolean; label: string; action: () => void };
-      approve?: { show: boolean; label: string; action: () => void };
-      reject?: { show: boolean; label: string; action: () => void };
+// Function to get policy configuration based on status and user role
+const getPolicyConfig = (
+  status: PolicyModalStatus,
+  userRoles: PolicyUserRole[]
+): {
+  modalTitle: string;
+  enabledFields: readonly PolicyFormField[];
+  actionButtons: PolicyActionButtons;
+} => {
+  // Draft status - same for all roles
+  if (status === "draft") {
+    return {
+      modalTitle: "Edit Policy (Draft)",
+      enabledFields: [
+        "title",
+        "owner",
+        "reviewer",
+        "approver",
+        "classification",
+        "version",
+        "nextReviewDate",
+        "purpose",
+        "scope",
+        "requirements",
+      ] as const,
+      actionButtons: {
+        cancel: { show: true, label: "Cancel", action: () => {} },
+        save: { show: true, label: "Save as Draft", action: () => {} },
+        submitForReview: {
+          show: true,
+          label: "Submit for Review",
+          action: () => {},
+        },
+      },
     };
   }
-> = {
-  draft: {
-    modalTitle: "Edit Policy (Draft)",
-    enabledFields: [
-      "title",
-      "owner",
-      "reviewer",
-      "classification",
-      "version",
-      "nextReviewDate",
-      "purpose",
-      "scope",
-      "requirements",
-    ] as const,
-    actionButtons: {
-      cancel: { show: true, label: "Cancel", action: () => {} },
-      save: { show: true, label: "Save as Draft", action: () => {} },
-      submitForReview: {
-        show: true,
-        label: "Submit for Review",
-        action: () => {},
+
+  // Under-review status - role-specific behavior
+  if (status === "under-review") {
+    if (userRoles.includes("reviewer")) {
+      return {
+        modalTitle: "Review Policy",
+        enabledFields: [] as const,
+        actionButtons: {
+          cancel: { show: true, label: "Close", action: () => {} },
+          requestChanges: {
+            show: true,
+            label: "Request Changes",
+            action: () => {},
+          },
+          submitForApproval: {
+            show: true,
+            label: "Submit for Approval",
+            action: () => {},
+          },
+        },
+      };
+    }
+
+    // Default for other roles (approver, owner, none)
+    return {
+      modalTitle: "View Policy (Under Review)",
+      enabledFields: [] as const,
+      actionButtons: {
+        cancel: { show: true, label: "Close", action: () => {} },
       },
-    },
-  },
-  "under-review": {
-    modalTitle: "Review Policy",
+    };
+  }
+
+  // Changes-required status - same for all roles
+  if (status === "changes-required") {
+    if (userRoles.includes("creator")) {
+      return {
+        modalTitle: "Edit Policy",
+        enabledFields: [
+          "title",
+          "owner",
+          "reviewer",
+          "approver",
+          "classification",
+          "version",
+          "purpose",
+          "scope",
+          "requirements",
+        ] as const,
+        actionButtons: {
+          cancel: { show: true, label: "Cancel", action: () => {} },
+          save: { show: true, label: "Save as Draft", action: () => {} },
+          submitForReview: {
+            show: true,
+            label: "Resubmit for Review",
+            action: () => {},
+          },
+        },
+      };
+    }
+    return {
+      modalTitle: "View Policy (Changes Required)",
+      enabledFields: [] as const,
+      actionButtons: {
+        cancel: { show: true, label: "Close", action: () => {} },
+      },
+    };
+  }
+
+  // Waiting-approval status - role-specific behavior
+  if (status === "waiting-approval") {
+    if (userRoles.includes("approver")) {
+      return {
+        modalTitle: "Approve Policy",
+        enabledFields: [] as const,
+        actionButtons: {
+          cancel: { show: true, label: "Close", action: () => {} },
+          approve: { show: true, label: "Approve", action: () => {} },
+          requestChanges: {
+            show: true,
+            label: "Request Changes",
+            action: () => {},
+          },
+        },
+      };
+    }
+
+    // Default for other roles (creator, reviewer, owner, none)
+    return {
+      modalTitle: "View Policy (Waiting for Approval)",
+      enabledFields: [] as const,
+      actionButtons: {
+        cancel: { show: true, label: "Close", action: () => {} },
+      },
+    };
+  }
+
+  // Approved status - same for all roles
+  if (status === "approved") {
+    return {
+      modalTitle: "View Policy",
+      enabledFields: [] as const,
+      actionButtons: {
+        cancel: { show: true, label: "Close", action: () => {} },
+      },
+    };
+  }
+
+  // Fallback (should never reach here, but TypeScript needs it)
+  return {
+    modalTitle: "Edit Policy",
     enabledFields: [] as const,
     actionButtons: {
       cancel: { show: true, label: "Close", action: () => {} },
-      requestChanges: {
-        show: true,
-        label: "Request Changes",
-        action: () => {},
-      },
-      submitForApproval: {
-        show: true,
-        label: "Submit for Approval",
-        action: () => {},
-      },
     },
-  },
-  "changes-required": {
-    modalTitle: "Edit Policy (Changes Required)",
-    enabledFields: [
-      "title",
-      "owner",
-      "reviewer",
-      "classification",
-      "version",
-      "purpose",
-      "scope",
-      "requirements",
-    ] as const,
-    actionButtons: {
-      cancel: { show: true, label: "Cancel", action: () => {} },
-      save: { show: true, label: "Save Changes", action: () => {} },
-      submitForReview: {
-        show: true,
-        label: "Resubmit for Review",
-        action: () => {},
-      },
-    },
-  },
-  "waiting-approval": {
-    modalTitle: "View Policy (Waiting for Approval)",
-    enabledFields: [] as const,
-    actionButtons: {
-      cancel: { show: true, label: "Close", action: () => {} },
-      approve: { show: true, label: "Approve", action: () => {} },
-      reject: { show: true, label: "Request Changes", action: () => {} },
-    },
-  },
-  approved: {
-    modalTitle: "View Policy (Approved)",
-    enabledFields: [] as const,
-    actionButtons: {
-      cancel: { show: true, label: "Close", action: () => {} },
-    },
-  },
+  };
 };
 
 export default function PolicyEditModal({
@@ -147,9 +221,10 @@ export default function PolicyEditModal({
   onSuccess,
   policyId,
   status,
+  userRolesForPolicy,
 }: PolicyEditModalProps) {
-  // Get configuration for current status
-  const config = POLICY_STATUS_CONFIG[status];
+  // Get configuration for current status and role
+  const config = getPolicyConfig(status, userRolesForPolicy);
   const [auth] = useAuthContext();
   const [state] = useGlobalContext();
   const [activeTab, setActiveTab] = useState<string>("tab1");
@@ -173,6 +248,7 @@ export default function PolicyEditModal({
     title: "",
     owner: "",
     reviewer: "",
+    approver: "",
     documentType: "",
     status: "",
     classification: "",
@@ -239,6 +315,7 @@ export default function PolicyEditModal({
         title: "",
         owner: "",
         reviewer: "",
+        approver: "",
         documentType: "",
         status: "",
         classification: "",
@@ -295,6 +372,21 @@ export default function PolicyEditModal({
 
   // Combined reviewer options (teams + users)
   const reviewerOptions: SelectOption[] = useMemo(() => {
+    const teamOptions: SelectOption[] = teams.map((team) => ({
+      value: `team:${team.id}`,
+      label: team.name,
+    }));
+
+    const userOptions: SelectOption[] = users.map((user) => ({
+      value: `user:${user.id}`,
+      label: user.name,
+    }));
+
+    return [...teamOptions, ...userOptions];
+  }, [teams, users]);
+
+  // Combined approver options (teams + users)
+  const approverOptions: SelectOption[] = useMemo(() => {
     const teamOptions: SelectOption[] = teams.map((team) => ({
       value: `team:${team.id}`,
       label: team.name,
@@ -408,6 +500,27 @@ export default function PolicyEditModal({
                   placeholder="Select reviewer"
                   isDisabled={
                     loadingData || !config.enabledFields.includes("reviewer")
+                  }
+                />
+              </div>
+
+              {/* Approver */}
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="approver"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  Approver
+                </label>
+                <CustomSelect
+                  id="approver"
+                  name="approver"
+                  options={approverOptions}
+                  value={formData.approver}
+                  onChange={(value) => handleSelectChange("approver", value)}
+                  placeholder="Select approver"
+                  isDisabled={
+                    loadingData || !config.enabledFields.includes("approver")
                   }
                 />
               </div>
@@ -829,6 +942,17 @@ export default function PolicyEditModal({
         }
       }
 
+      // Parse approver (format: "team:id" or "user:id")
+      let approverTeamId: string | null = null;
+      let approverUserId: string | null = null;
+      if (formData.approver) {
+        if (formData.approver.startsWith("team:")) {
+          approverTeamId = formData.approver.replace("team:", "");
+        } else if (formData.approver.startsWith("user:")) {
+          approverUserId = formData.approver.replace("user:", "");
+        }
+      }
+
       // Convert classification, status, and document type to numbers
       const classificationId = formData.classification
         ? parseInt(formData.classification)
@@ -856,6 +980,13 @@ export default function PolicyEditModal({
         return;
       }
 
+      // Check if created_at exists in the database
+      const { data: currentPolicy } = await supabase
+        .from("policies")
+        .select("created_at")
+        .eq("id", policyId)
+        .single();
+
       // Prepare policy update data using new table structure
       const policyUpdateData: TablesUpdate<"policies"> = {
         title: formData.title.trim(),
@@ -863,6 +994,8 @@ export default function PolicyEditModal({
         policy_owner_user_id: ownerUserId,
         reviewer_team_id: reviewerTeamId,
         reviewer_user_id: reviewerUserId,
+        approver_team_id: approverTeamId,
+        approver_user_id: approverUserId,
         classification_id: classificationId,
         status_id: statusId,
         document_type_id: documentTypeId,
@@ -872,6 +1005,11 @@ export default function PolicyEditModal({
         requirements: formData.requirements.trim() || null,
         next_review_date: formData.nextReviewDate || null,
       };
+
+      // If created_at is not present in database, set it to current date
+      if (!currentPolicy?.created_at) {
+        policyUpdateData.created_at = new Date().toISOString();
+      }
 
       // Update policy
       const { error: policyError } = await supabase
@@ -936,10 +1074,9 @@ export default function PolicyEditModal({
     setLoading(true);
 
     try {
-      // Update status to "under-review"
-      // TODO: Replace with actual status ID from documentLifecycleStatuses
+      // Update status to "under-review" (stored as "under-review" in DB)
       const underReviewStatus = documentLifecycleStatuses.find(
-        (s) => s.name.toLowerCase() === "under review"
+        (s) => s.name === "under-review"
       );
       const { error: statusError } = await supabase
         .from("policies")
@@ -967,6 +1104,91 @@ export default function PolicyEditModal({
       setLoading(false);
     }
   };
+  const handleRequestChanges = async () => {
+    if (!policyId) return;
+
+    setError(null);
+    setLoading(true);
+
+    try {
+      // Update status to "changes-required"
+      const changesRequiredStatus = documentLifecycleStatuses.find(
+        (s) => s.name === "changes-required"
+      );
+      const { error: statusError } = await supabase
+        .from("policies")
+        .update({ status_id: changesRequiredStatus?.id || null })
+        .eq("id", policyId);
+
+      if (statusError) {
+        console.error("Error updating status:", statusError);
+        setError("Failed to request changes");
+        setLoading(false);
+        return;
+      }
+
+      // Call onSuccess to refresh the table
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      // Close modal
+      onClose();
+    } catch (err) {
+      console.error("Error requesting changes:", err);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmitForApproval = async () => {
+    if (!policyId) return;
+
+    setError(null);
+    setLoading(true);
+
+    try {
+      // Check if user is authenticated
+      if (!auth.userData?.id) {
+        setError("User not authenticated");
+        setLoading(false);
+        return;
+      }
+
+      // Update status to "waiting-approval" and set reviewed_by and reviewed_at
+      const waitingApprovalStatus = documentLifecycleStatuses.find(
+        (s) => s.name === "waiting-approval"
+      );
+      const { error: statusError } = await supabase
+        .from("policies")
+        .update({
+          status_id: waitingApprovalStatus?.id || null,
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", policyId);
+
+      if (statusError) {
+        console.error("Error updating status:", statusError);
+        setError("Failed to submit for approval");
+        setLoading(false);
+        return;
+      }
+
+      // Call onSuccess to refresh the table
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      // Close modal
+      onClose();
+    } catch (err) {
+      console.error("Error submitting for approval:", err);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleApprove = async () => {
     if (!policyId) return;
@@ -975,14 +1197,23 @@ export default function PolicyEditModal({
     setLoading(true);
 
     try {
-      // Update status to "approved"
-      // TODO: Replace with actual status ID from documentLifecycleStatuses
+      // Check if user is authenticated
+      if (!auth.userData?.id) {
+        setError("User not authenticated");
+        setLoading(false);
+        return;
+      }
+
+      // Update status to "approved" and set approved_by and approved_at
       const approvedStatus = documentLifecycleStatuses.find(
-        (s) => s.name.toLowerCase() === "approved"
+        (s) => s.name === "approved"
       );
       const { error: statusError } = await supabase
         .from("policies")
-        .update({ status_id: approvedStatus?.id || null })
+        .update({
+          status_id: approvedStatus?.id || null,
+          approved_at: new Date().toISOString(),
+        })
         .eq("id", policyId);
 
       if (statusError) {
@@ -1013,9 +1244,8 @@ export default function PolicyEditModal({
 
     try {
       // Update status to "changes-required"
-      // TODO: Replace with actual status ID from documentLifecycleStatuses
       const changesRequiredStatus = documentLifecycleStatuses.find(
-        (s) => s.name.toLowerCase() === "changes-required"
+        (s) => s.name === "changes-required"
       );
       const { error: statusError } = await supabase
         .from("policies")
@@ -1083,84 +1313,19 @@ export default function PolicyEditModal({
       </div>
 
       {/* Action Buttons - Shared between tabs */}
-      <div className="flex gap-3 pt-6 mt-6 border-t border-border-hr">
-        {config.actionButtons.cancel?.show && (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onClose}
-            className="flex-1"
-          >
-            {config.actionButtons.cancel.label}
-          </Button>
-        )}
-        {config.actionButtons.save?.show && (
-          <Button
-            type="button"
-            variant="primary"
-            onClick={handleSave}
-            disabled={loading || loadingData}
-            className="flex-1"
-          >
-            {loading ? "Saving..." : config.actionButtons.save.label}
-          </Button>
-        )}
-        {config.actionButtons.submitForReview?.show && (
-          <Button
-            type="button"
-            variant="success"
-            onClick={handleSubmitForReview}
-            disabled={loading || loadingData}
-            className="flex-1"
-          >
-            {config.actionButtons.submitForReview.label}
-          </Button>
-        )}
-        {config.actionButtons.requestChanges?.show && (
-          <Button
-            type="button"
-            variant="primary"
-            onClick={handleReject}
-            disabled={loading || loadingData}
-            className="flex-1"
-          >
-            {config.actionButtons.requestChanges.label}
-          </Button>
-        )}
-        {config.actionButtons.submitForApproval?.show && (
-          <Button
-            type="button"
-            variant="success"
-            onClick={handleSubmitForReview}
-            disabled={loading || loadingData}
-            className="flex-1"
-          >
-            {config.actionButtons.submitForApproval.label}
-          </Button>
-        )}
-        {config.actionButtons.approve?.show && (
-          <Button
-            type="button"
-            variant="success"
-            onClick={handleApprove}
-            disabled={loading || loadingData}
-            className="flex-1"
-          >
-            {config.actionButtons.approve.label}
-          </Button>
-        )}
-        {config.actionButtons.reject?.show && (
-          <Button
-            type="button"
-            variant="danger"
-            onClick={handleReject}
-            disabled={loading || loadingData}
-            className="flex-1"
-          >
-            {config.actionButtons.reject.label}
-          </Button>
-        )}
-      </div>
+      <EditModalButtons
+        actionButtons={config.actionButtons}
+        loading={loading}
+        loadingData={loadingData}
+        onClose={onClose}
+        onSave={handleSave}
+        onSubmitForReview={handleSubmitForReview}
+        onRequestChanges={handleRequestChanges}
+        onSubmitForApproval={handleSubmitForApproval}
+        onApprove={handleApprove}
+        onReject={handleReject}
+        saveLabel={config.actionButtons.save?.label}
+      />
     </ModalWrapper>
   );
 }

@@ -36,6 +36,7 @@ export default function CreateNewPolicyModal({
     title: "",
     owner: "",
     reviewer: "",
+    approver: "",
     documentType: "Policy",
     status: "",
     classification: "",
@@ -96,6 +97,7 @@ export default function CreateNewPolicyModal({
         title: "",
         owner: "",
         reviewer: "",
+        approver: "",
         documentType: "",
         status: "",
         classification: "",
@@ -122,7 +124,7 @@ export default function CreateNewPolicyModal({
   useEffect(() => {
     if (isOpen && !formData.status && documentLifecycleStatuses.length > 0) {
       const draftStatus = documentLifecycleStatuses.find(
-        (status) => status.name.toLowerCase() === "draft"
+        (status) => status.name === "draft"
       );
       if (draftStatus) {
         setFormData((prev) => ({
@@ -209,7 +211,7 @@ export default function CreateNewPolicyModal({
       // Set default document type to "Policy" if available
       if (documentTypesResult.data && documentTypesResult.data.length > 0) {
         const policyType = documentTypesResult.data.find(
-          (type) => type.name.toLowerCase() === "policy"
+          (type) => type.name === "Policy"
         );
         if (policyType) {
           setFormData((prev) => ({
@@ -260,6 +262,21 @@ export default function CreateNewPolicyModal({
 
   // Combined reviewer options (teams + users)
   const reviewerOptions: SelectOption[] = useMemo(() => {
+    const teamOptions: SelectOption[] = teams.map((team) => ({
+      value: `team:${team.id}`,
+      label: team.name,
+    }));
+
+    const userOptions: SelectOption[] = users.map((user) => ({
+      value: `user:${user.id}`,
+      label: user.name,
+    }));
+
+    return [...teamOptions, ...userOptions];
+  }, [teams, users]);
+
+  // Combined approver options (teams + users)
+  const approverOptions: SelectOption[] = useMemo(() => {
     const teamOptions: SelectOption[] = teams.map((team) => ({
       value: `team:${team.id}`,
       label: team.name,
@@ -369,6 +386,25 @@ export default function CreateNewPolicyModal({
                   value={formData.reviewer}
                   onChange={(value) => handleSelectChange("reviewer", value)}
                   placeholder="Select reviewer"
+                  isDisabled={loadingData}
+                />
+              </div>
+
+              {/* Approver */}
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="approver"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  Approver
+                </label>
+                <CustomSelect
+                  id="approver"
+                  name="approver"
+                  options={approverOptions}
+                  value={formData.approver}
+                  onChange={(value) => handleSelectChange("approver", value)}
+                  placeholder="Select approver"
                   isDisabled={loadingData}
                 />
               </div>
@@ -803,9 +839,16 @@ export default function CreateNewPolicyModal({
         }
       }
 
-      // Approver is not in the form yet, so set to null
-      const approverTeamId: string | null = null;
-      const approverUserId: string | null = null;
+      // Parse approver (format: "team:id" or "user:id")
+      let approverTeamId: string | null = null;
+      let approverUserId: string | null = null;
+      if (formData.approver) {
+        if (formData.approver.startsWith("team:")) {
+          approverTeamId = formData.approver.replace("team:", "");
+        } else if (formData.approver.startsWith("user:")) {
+          approverUserId = formData.approver.replace("user:", "");
+        }
+      }
 
       // Convert classification, status, and document type to numbers
       const classificationId = formData.classification
@@ -838,6 +881,7 @@ export default function CreateNewPolicyModal({
       const policyData: TablesInsert<"policies"> = {
         title: formData.title.trim(),
         created_by: auth.userData.id,
+        created_at: new Date().toISOString(),
         tenant_id: tenantId,
         policy_owner_team_id: ownerTeamId,
         policy_owner_user_id: ownerUserId,
@@ -899,6 +943,7 @@ export default function CreateNewPolicyModal({
         title: "",
         owner: "",
         reviewer: "",
+        approver: "",
         documentType: "",
         status: "",
         classification: "",
@@ -934,9 +979,206 @@ export default function CreateNewPolicyModal({
     }
   };
 
-  const handleSubmitForReview = () => {
-    // Submit for review logic - to be implemented
-    console.log("Submit for review clicked", formData);
+  const handleSubmitForReview = async () => {
+    setError(null);
+
+    // Validate required fields
+    if (!formData.title.trim()) {
+      setError("Title is required");
+      return;
+    }
+
+    if (!formData.documentType) {
+      setError("Document type is required");
+      return;
+    }
+
+    // Check if user is authenticated
+    if (!auth.userData?.id) {
+      setError("User not authenticated");
+      return;
+    }
+
+    // Determine tenant ID
+    const isSuperAdmin = auth.userData?.role === "superadmin";
+    const tenantId = isSuperAdmin
+      ? state.selectedTenantId
+      : auth.userData?.tenant_id;
+
+    if (!tenantId) {
+      setError(
+        isSuperAdmin ? "Please select a tenant" : "User tenant not found"
+      );
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Parse owner (format: "team:id" or "user:id")
+      let ownerTeamId: string | null = null;
+      let ownerUserId: string | null = null;
+      if (formData.owner) {
+        if (formData.owner.startsWith("team:")) {
+          ownerTeamId = formData.owner.replace("team:", "");
+        } else if (formData.owner.startsWith("user:")) {
+          ownerUserId = formData.owner.replace("user:", "");
+        }
+      }
+
+      // Parse reviewer (format: "team:id" or "user:id")
+      let reviewerTeamId: string | null = null;
+      let reviewerUserId: string | null = null;
+      if (formData.reviewer) {
+        if (formData.reviewer.startsWith("team:")) {
+          reviewerTeamId = formData.reviewer.replace("team:", "");
+        } else if (formData.reviewer.startsWith("user:")) {
+          reviewerUserId = formData.reviewer.replace("user:", "");
+        }
+      }
+
+      // Parse approver (format: "team:id" or "user:id")
+      let approverTeamId: string | null = null;
+      let approverUserId: string | null = null;
+      if (formData.approver) {
+        if (formData.approver.startsWith("team:")) {
+          approverTeamId = formData.approver.replace("team:", "");
+        } else if (formData.approver.startsWith("user:")) {
+          approverUserId = formData.approver.replace("user:", "");
+        }
+      }
+
+      // Convert classification and document type to numbers
+      const classificationId = formData.classification
+        ? parseInt(formData.classification)
+        : null;
+      const documentTypeId = formData.documentType
+        ? parseInt(formData.documentType)
+        : null;
+
+      if (!documentTypeId) {
+        setError("Document type is required");
+        setLoading(false);
+        return;
+      }
+
+      if (!classificationId) {
+        setError("Classification is required");
+        setLoading(false);
+        return;
+      }
+
+      // Find "under-review" status
+      const underReviewStatus = documentLifecycleStatuses.find(
+        (s) => s.name === "under-review"
+      );
+
+      if (!underReviewStatus) {
+        setError("Under-review status not found");
+        setLoading(false);
+        return;
+      }
+
+      // Prepare policy data using new table structure with "under-review" status
+      const policyData: TablesInsert<"policies"> = {
+        title: formData.title.trim(),
+        created_by: auth.userData.id,
+        created_at: new Date().toISOString(),
+        tenant_id: tenantId,
+        policy_owner_team_id: ownerTeamId,
+        policy_owner_user_id: ownerUserId,
+        reviewer_team_id: reviewerTeamId,
+        reviewer_user_id: reviewerUserId,
+        approver_team_id: approverTeamId,
+        approver_user_id: approverUserId,
+        classification_id: classificationId,
+        status_id: underReviewStatus.id,
+        document_type_id: documentTypeId,
+        version: formData.version.trim() || undefined,
+        objective: formData.purpose.trim() || null,
+        scope: formData.scope.trim() || null,
+        requirements: formData.requirements.trim() || null,
+        next_review_date: formData.nextReviewDate || null,
+      };
+
+      // Insert policy
+      const { data: insertedPolicy, error: policyError } = await supabase
+        .from("policies")
+        .insert(policyData)
+        .select()
+        .single();
+
+      if (policyError) {
+        console.error("Error creating policy:", policyError);
+        setError(policyError.message || "Failed to submit for review");
+        setLoading(false);
+        return;
+      }
+
+      if (!insertedPolicy) {
+        setError("Failed to submit for review");
+        setLoading(false);
+        return;
+      }
+
+      // Save comments if any
+      if (comments.length > 0) {
+        const commentsData = comments.map((comment) => ({
+          policy_id: insertedPolicy.id,
+          user_id: comment.user_id,
+          text: comment.text,
+          created_at: comment.created_at,
+        }));
+
+        const { error: commentsError } = await supabase
+          .from("policy_comments")
+          .insert(commentsData);
+
+        if (commentsError) {
+          console.error("Error saving comments:", commentsError);
+          // Don't fail the whole operation if comments fail, just log it
+        }
+      }
+
+      // Reset form
+      setFormData({
+        title: "",
+        owner: "",
+        reviewer: "",
+        approver: "",
+        documentType: "",
+        status: "",
+        classification: "",
+        version: "",
+        createdBy: auth.userData?.name || "",
+        createdOn: "",
+        reviewedBy: "",
+        reviewedOn: "",
+        approvedBy: "",
+        approvedOn: "",
+        effectiveDate: "",
+        nextReviewDate: "",
+        purpose: "",
+        scope: "",
+        requirements: "",
+      });
+      setComments([]);
+      setNewComment("");
+      setError(null);
+
+      // Call onSuccess to refresh the table
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      // Close modal
+      onClose();
+    } catch (err) {
+      console.error("Error submitting for review:", err);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -986,7 +1228,7 @@ export default function CreateNewPolicyModal({
           disabled={loading}
           className="flex-1 py-2.5 px-4 rounded-lg bg-brand text-text-contrast font-medium text-sm hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
-          {loading ? "Saving..." : "Save"}
+          {loading ? "Saving..." : "Save as Draft"}
         </button>
         <button
           type="button"
@@ -1000,4 +1242,3 @@ export default function CreateNewPolicyModal({
     </ModalWrapper>
   );
 }
-

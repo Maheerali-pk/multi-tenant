@@ -17,6 +17,7 @@ export interface PolicyFormData {
   title: string;
   owner: string;
   reviewer: string;
+  approver: string;
   documentType: string;
   status: string;
   classification: string;
@@ -210,6 +211,28 @@ export const usePolicyDetails = (
         creatorName = creator?.name || "";
       }
 
+      // Fetch reviewed by name (if reviewed_at exists, use reviewer_user_id)
+      let reviewedByName = "";
+      if (policy.reviewed_at && policy.reviewer_user_id) {
+        const { data: reviewer } = await supabase
+          .from("users")
+          .select("name")
+          .eq("id", policy.reviewer_user_id)
+          .single();
+        reviewedByName = reviewer?.name || "";
+      }
+
+      // Fetch approved by name (if approved_at exists, use approver_user_id)
+      let approvedByName = "";
+      if (policy.approved_at && policy.approver_user_id) {
+        const { data: approver } = await supabase
+          .from("users")
+          .select("name")
+          .eq("id", policy.approver_user_id)
+          .single();
+        approvedByName = approver?.name || "";
+      }
+
       // Determine owner value
       let ownerValue = "";
       if (policy.policy_owner_team_id) {
@@ -224,6 +247,14 @@ export const usePolicyDetails = (
         reviewerValue = `team:${policy.reviewer_team_id}`;
       } else if (policy.reviewer_user_id) {
         reviewerValue = `user:${policy.reviewer_user_id}`;
+      }
+
+      // Determine approver value
+      let approverValue = "";
+      if (policy.approver_team_id) {
+        approverValue = `team:${policy.approver_team_id}`;
+      } else if (policy.approver_user_id) {
+        approverValue = `user:${policy.approver_user_id}`;
       }
 
       // Format dates
@@ -251,15 +282,16 @@ export const usePolicyDetails = (
         title: policy.title || "",
         owner: ownerValue,
         reviewer: reviewerValue,
+        approver: approverValue,
         documentType: "", // Will be set when documentTypes are loaded
         status: policy.status_id?.toString() || "",
         classification: policy.classification_id?.toString() || "",
         version: policy.version || "",
         createdBy: creatorName,
         createdOn: formatDate(policy.created_at),
-        reviewedBy: "",
+        reviewedBy: reviewedByName,
         reviewedOn: formatDate(policy.reviewed_at),
-        approvedBy: "",
+        approvedBy: approvedByName,
         approvedOn: formatDate(policy.approved_at),
         effectiveDate: formatDateForInput(policy.effective_date),
         nextReviewDate: formatDateForInput(policy.next_review_date),
