@@ -20,6 +20,7 @@ import type {
   PolicyUserRole,
 } from "@/app/types/policy.types";
 import EditModalButtons from "./edit-modal-buttons";
+import { renderStatusBadge } from "@/app/utils/statusBadge";
 
 export type PolicyFormField =
   | "title"
@@ -101,7 +102,7 @@ const getPolicyConfig = (
   // Draft status - same for all roles
   if (status === "draft") {
     return {
-      modalTitle: "Edit Policy (Draft)",
+      modalTitle: "Edit Policy",
       enabledFields: [
         "title",
         "owner",
@@ -149,7 +150,7 @@ const getPolicyConfig = (
 
     // Default for other roles (approver, owner, none)
     return {
-      modalTitle: "View Policy (Under Review)",
+      modalTitle: "View Policy",
       enabledFields: [] as const,
       actionButtons: {
         cancel: { show: true, label: "Close", action: () => {} },
@@ -185,7 +186,7 @@ const getPolicyConfig = (
       };
     }
     return {
-      modalTitle: "View Policy (Changes Required)",
+      modalTitle: "View Policy",
       enabledFields: [] as const,
       actionButtons: {
         cancel: { show: true, label: "Close", action: () => {} },
@@ -213,7 +214,7 @@ const getPolicyConfig = (
 
     // Default for other roles (creator, reviewer, owner, none)
     return {
-      modalTitle: "View Policy (Waiting for Approval)",
+      modalTitle: "View Policy",
       enabledFields: [] as const,
       actionButtons: {
         cancel: { show: true, label: "Close", action: () => {} },
@@ -518,7 +519,7 @@ export default function PolicyEditModal({
               </div>
 
               {/* Second Row: Owner, Approver, Reviewer */}
-              <div className="grid grid-cols-[1fr_1fr_1fr_180px] gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 {/* Owner */}
                 <div className="flex flex-col gap-1">
                   <label
@@ -581,13 +582,10 @@ export default function PolicyEditModal({
                     }
                   />
                 </div>
-
-                {/* Empty space to align with Version column */}
-                <div></div>
               </div>
 
-              {/* Third Row: Document Type, Status, Classification, Version */}
-              <div className="grid grid-cols-[1fr_1fr_1fr_180px] gap-3">
+              {/* Third Row: Document Type, Classification, Version */}
+              <div className="grid grid-cols-3 gap-3">
                 {/* Document Type */}
                 <div className="flex flex-col gap-1">
                   <label
@@ -606,25 +604,6 @@ export default function PolicyEditModal({
                     }
                     placeholder="Select document type"
                     isDisabled={!config.enabledFields.includes("documentType")}
-                  />
-                </div>
-
-                {/* Status */}
-                <div className="flex flex-col gap-1">
-                  <label
-                    htmlFor="status"
-                    className="text-sm font-medium text-text-primary"
-                  >
-                    Status
-                  </label>
-                  <CustomSelect
-                    id="status"
-                    name="status"
-                    options={statusOptions}
-                    value={formData.status}
-                    onChange={(value) => handleSelectChange("status", value)}
-                    placeholder="Select status"
-                    isDisabled={!config.enabledFields.includes("status")}
                   />
                 </div>
 
@@ -672,9 +651,9 @@ export default function PolicyEditModal({
                 </div>
               </div>
 
-              {/* Date fields and Metadata - Aligned with grid above */}
-              <div className="grid grid-cols-[1fr_1fr_1fr_180px] gap-3 pt-1">
-                {/* Effective Date - Aligned with Owner */}
+              {/* Fourth Row: Effective Date, Next Review Date, and Metadata */}
+              <div className="grid grid-cols-3 gap-3 pt-1">
+                {/* Effective Date */}
                 <div className="flex flex-col gap-1">
                   <label
                     htmlFor="effectiveDate"
@@ -691,7 +670,7 @@ export default function PolicyEditModal({
                   />
                 </div>
 
-                {/* Next Review Date - Aligned with Approver */}
+                {/* Next Review Date */}
                 <div className="flex flex-col gap-1">
                   <label
                     htmlFor="nextReviewDate"
@@ -709,8 +688,8 @@ export default function PolicyEditModal({
                   />
                 </div>
 
-                {/* Metadata fields - Spanning remaining columns */}
-                <div className="col-span-2 flex flex-col gap-3 pl-4 border-l border-border-hr">
+                {/* Metadata fields - Spanning remaining column */}
+                <div className="flex flex-col gap-3 pl-4 border-l border-border-hr">
                   {/* First Row: Created and Reviewed */}
                   <div className="grid grid-cols-2 gap-4">
                     {/* Created */}
@@ -1668,9 +1647,23 @@ export default function PolicyEditModal({
       className="flex flex-col w-[80vw]! h-[90vh] max-w-full "
     >
       <div className="flex justify-between items-center mb-3">
-        <h2 className="text-2xl font-semibold text-text-dark">
-          {config.modalTitle}
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-semibold text-text-dark">
+            {config.modalTitle}
+          </h2>
+          {formData.status && documentLifecycleStatuses.length > 0 && (
+            <>
+              {(() => {
+                const currentStatus = documentLifecycleStatuses.find(
+                  (s) => s.id.toString() === formData.status
+                );
+                return currentStatus
+                  ? renderStatusBadge(currentStatus.name, "md")
+                  : null;
+              })()}
+            </>
+          )}
+        </div>
         <button
           onClick={onClose}
           className="p-2 hover:bg-sidebar-sub-item-hover rounded-lg transition-colors cursor-pointer"
