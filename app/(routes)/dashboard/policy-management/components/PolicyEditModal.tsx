@@ -434,16 +434,16 @@ export default function PolicyEditModal({
     switch (activeTab) {
       case "tab1":
         return (
-          <div className="py-4">
+          <div className="">
             {error && (
               <div className="mb-4 p-3 rounded-lg bg-failure-light border border-failure text-failure text-sm">
                 {error}
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
-              {/* Title */}
-              <div className="flex flex-col gap-1.5 col-span-2">
+            <div className="flex flex-col gap-3">
+              {/* First Row: Title */}
+              <div className="flex flex-col gap-1">
                 <label
                   htmlFor="title"
                   className="text-sm font-medium text-text-primary"
@@ -462,285 +462,278 @@ export default function PolicyEditModal({
                 />
               </div>
 
-              {/* Owner */}
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="owner"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Owner
-                </label>
-                <CustomSelect
-                  id="owner"
-                  name="owner"
-                  options={ownerOptions}
-                  value={formData.owner}
-                  onChange={(value) => handleSelectChange("owner", value)}
-                  placeholder="Select owner"
-                  isDisabled={
-                    loadingData || !config.enabledFields.includes("owner")
-                  }
-                />
+              {/* Second Row: Owner, Approver, Reviewer */}
+              <div className="grid grid-cols-[1fr_1fr_1fr_180px] gap-3">
+                {/* Owner */}
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="owner"
+                    className="text-sm font-medium text-text-primary"
+                  >
+                    Owner
+                  </label>
+                  <CustomSelect
+                    id="owner"
+                    name="owner"
+                    options={ownerOptions}
+                    value={formData.owner}
+                    onChange={(value) => handleSelectChange("owner", value)}
+                    placeholder="Select owner"
+                    isDisabled={
+                      loadingData || !config.enabledFields.includes("owner")
+                    }
+                  />
+                </div>
+
+                {/* Approver */}
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="approver"
+                    className="text-sm font-medium text-text-primary"
+                  >
+                    Approver
+                  </label>
+                  <CustomSelect
+                    id="approver"
+                    name="approver"
+                    options={approverOptions}
+                    value={formData.approver}
+                    onChange={(value) => handleSelectChange("approver", value)}
+                    placeholder="Select approver"
+                    isDisabled={
+                      loadingData || !config.enabledFields.includes("approver")
+                    }
+                  />
+                </div>
+
+                {/* Reviewer */}
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="reviewer"
+                    className="text-sm font-medium text-text-primary"
+                  >
+                    Reviewer
+                  </label>
+                  <CustomSelect
+                    id="reviewer"
+                    name="reviewer"
+                    options={reviewerOptions}
+                    value={formData.reviewer}
+                    onChange={(value) => handleSelectChange("reviewer", value)}
+                    placeholder="Select reviewer"
+                    isDisabled={
+                      loadingData || !config.enabledFields.includes("reviewer")
+                    }
+                  />
+                </div>
+
+                {/* Empty space to align with Version column */}
+                <div></div>
               </div>
 
-              {/* Reviewer */}
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="reviewer"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Reviewer
-                </label>
-                <CustomSelect
-                  id="reviewer"
-                  name="reviewer"
-                  options={reviewerOptions}
-                  value={formData.reviewer}
-                  onChange={(value) => handleSelectChange("reviewer", value)}
-                  placeholder="Select reviewer"
-                  isDisabled={
-                    loadingData || !config.enabledFields.includes("reviewer")
-                  }
-                />
+              {/* Third Row: Document Type, Status, Classification, Version */}
+              <div className="grid grid-cols-[1fr_1fr_1fr_180px] gap-3">
+                {/* Document Type */}
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="documentType"
+                    className="text-sm font-medium text-text-primary"
+                  >
+                    Document Type
+                  </label>
+                  <CustomSelect
+                    id="documentType"
+                    name="documentType"
+                    options={documentTypeOptions}
+                    value={formData.documentType}
+                    onChange={(value) =>
+                      handleSelectChange("documentType", value)
+                    }
+                    placeholder="Select document type"
+                    isDisabled={!config.enabledFields.includes("documentType")}
+                  />
+                </div>
+
+                {/* Status */}
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="status"
+                    className="text-sm font-medium text-text-primary"
+                  >
+                    Status
+                  </label>
+                  <CustomSelect
+                    id="status"
+                    name="status"
+                    options={statusOptions}
+                    value={formData.status}
+                    onChange={(value) => handleSelectChange("status", value)}
+                    placeholder="Select status"
+                    isDisabled={!config.enabledFields.includes("status")}
+                  />
+                </div>
+
+                {/* Classification */}
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="classification"
+                    className="text-sm font-medium text-text-primary"
+                  >
+                    Classification
+                  </label>
+                  <CustomSelect
+                    id="classification"
+                    name="classification"
+                    options={classificationOptions}
+                    value={formData.classification}
+                    onChange={(value) =>
+                      handleSelectChange("classification", value)
+                    }
+                    placeholder="Select classification"
+                    isDisabled={
+                      loadingData ||
+                      !config.enabledFields.includes("classification")
+                    }
+                  />
+                </div>
+
+                {/* Version */}
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="version"
+                    className="text-sm font-medium text-text-primary"
+                  >
+                    Version
+                  </label>
+                  <Input
+                    type="text"
+                    id="version"
+                    name="version"
+                    value={formData.version}
+                    onChange={handleChange}
+                    disabled={!config.enabledFields.includes("version")}
+                    placeholder="Enter version"
+                  />
+                </div>
               </div>
 
-              {/* Approver */}
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="approver"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Approver
-                </label>
-                <CustomSelect
-                  id="approver"
-                  name="approver"
-                  options={approverOptions}
-                  value={formData.approver}
-                  onChange={(value) => handleSelectChange("approver", value)}
-                  placeholder="Select approver"
-                  isDisabled={
-                    loadingData || !config.enabledFields.includes("approver")
-                  }
-                />
-              </div>
+              {/* Date fields and Metadata - Aligned with grid above */}
+              <div className="grid grid-cols-[1fr_1fr_1fr_180px] gap-3 pt-1">
+                {/* Effective Date - Aligned with Owner */}
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="effectiveDate"
+                    className="text-sm font-medium text-text-primary"
+                  >
+                    Effective Date
+                  </label>
+                  <Input
+                    type="text"
+                    id="effectiveDate"
+                    name="effectiveDate"
+                    value={formData.effectiveDate}
+                    disabled
+                  />
+                </div>
 
-              {/* Document Type */}
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="documentType"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Document Type
-                </label>
-                <CustomSelect
-                  id="documentType"
-                  name="documentType"
-                  options={documentTypeOptions}
-                  value={formData.documentType}
-                  onChange={(value) =>
-                    handleSelectChange("documentType", value)
-                  }
-                  placeholder="Select document type"
-                  isDisabled={!config.enabledFields.includes("documentType")}
-                />
-              </div>
+                {/* Next Review Date - Aligned with Approver */}
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="nextReviewDate"
+                    className="text-sm font-medium text-text-primary"
+                  >
+                    Next Review Date
+                  </label>
+                  <Input
+                    type="date"
+                    id="nextReviewDate"
+                    name="nextReviewDate"
+                    value={formData.nextReviewDate}
+                    onChange={handleChange}
+                    disabled={!config.enabledFields.includes("nextReviewDate")}
+                  />
+                </div>
 
-              {/* Status */}
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="status"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Status
-                </label>
-                <CustomSelect
-                  id="status"
-                  name="status"
-                  options={statusOptions}
-                  value={formData.status}
-                  onChange={(value) => handleSelectChange("status", value)}
-                  placeholder="Select status"
-                  isDisabled={!config.enabledFields.includes("status")}
-                />
-              </div>
+                {/* Metadata fields - Spanning remaining columns */}
+                <div className="col-span-2 flex flex-col gap-3 pl-4 border-l border-border-hr">
+                  {/* First Row: Created and Reviewed */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Created */}
+                    <div className="flex flex-col gap-1">
+                      <div className="h-5"></div>
+                      <div className="flex items-center gap-2 min-h-[40px]">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-text-primary whitespace-nowrap">
+                              Created By:
+                            </span>
+                            <span className="text-sm text-text-secondary font-normal">
+                              {formData.createdBy || "-"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-text-primary whitespace-nowrap">
+                              Created On:
+                            </span>
+                            <span className="text-sm text-text-secondary font-normal">
+                              {formData.createdOn || "-"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-              {/* Classification */}
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="classification"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Classification
-                </label>
-                <CustomSelect
-                  id="classification"
-                  name="classification"
-                  options={classificationOptions}
-                  value={formData.classification}
-                  onChange={(value) =>
-                    handleSelectChange("classification", value)
-                  }
-                  placeholder="Select classification"
-                  isDisabled={
-                    loadingData ||
-                    !config.enabledFields.includes("classification")
-                  }
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="version"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Version
-                </label>
-                <Input
-                  type="text"
-                  id="version"
-                  name="version"
-                  value={formData.version}
-                  onChange={handleChange}
-                  disabled={!config.enabledFields.includes("version")}
-                  placeholder="Enter version"
-                />
-              </div>
+                    {/* Reviewed */}
+                    <div className="flex flex-col gap-1">
+                      <div className="h-5"></div>
+                      <div className="flex items-center gap-2 min-h-[40px]">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-text-primary whitespace-nowrap">
+                              Reviewed By:
+                            </span>
+                            <span className="text-sm text-text-secondary font-normal">
+                              {formData.reviewedBy || "-"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-text-primary whitespace-nowrap">
+                              Reviewed On:
+                            </span>
+                            <span className="text-sm text-text-secondary font-normal">
+                              {formData.reviewedOn || "-"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-              {/* Created By */}
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="createdBy"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Created By
-                </label>
-                <Input
-                  type="text"
-                  id="createdBy"
-                  name="createdBy"
-                  value={formData.createdBy}
-                  disabled
-                />
-              </div>
-
-              {/* Created On */}
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="createdOn"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Created On
-                </label>
-                <Input
-                  type="text"
-                  id="createdOn"
-                  name="createdOn"
-                  value={formData.createdOn}
-                  disabled
-                />
-              </div>
-
-              {/* Reviewed By */}
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="reviewedBy"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Reviewed By
-                </label>
-                <Input
-                  type="text"
-                  id="reviewedBy"
-                  name="reviewedBy"
-                  value={formData.reviewedBy}
-                  disabled
-                />
-              </div>
-
-              {/* Reviewed On */}
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="reviewedOn"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Reviewed On
-                </label>
-                <Input
-                  type="text"
-                  id="reviewedOn"
-                  name="reviewedOn"
-                  value={formData.reviewedOn}
-                  disabled
-                />
-              </div>
-
-              {/* Approved By */}
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="approvedBy"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Approved By
-                </label>
-                <Input
-                  type="text"
-                  id="approvedBy"
-                  name="approvedBy"
-                  value={formData.approvedBy}
-                  disabled
-                />
-              </div>
-
-              {/* Approved On */}
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="approvedOn"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Approved On
-                </label>
-                <Input
-                  type="text"
-                  id="approvedOn"
-                  name="approvedOn"
-                  value={formData.approvedOn}
-                  disabled
-                />
-              </div>
-
-              {/* Effective Date */}
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="effectiveDate"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Effective Date
-                </label>
-                <Input
-                  type="text"
-                  id="effectiveDate"
-                  name="effectiveDate"
-                  value={formData.effectiveDate}
-                  disabled
-                />
-              </div>
-
-              {/* Next Review Date */}
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="nextReviewDate"
-                  className="text-sm font-medium text-text-primary"
-                >
-                  Next Review Date
-                </label>
-                <Input
-                  type="date"
-                  id="nextReviewDate"
-                  name="nextReviewDate"
-                  value={formData.nextReviewDate}
-                  onChange={handleChange}
-                  disabled={!config.enabledFields.includes("nextReviewDate")}
-                />
+                  {/* Second Row: Approved */}
+                  <div className="flex flex-col gap-1">
+                    <div className="h-5"></div>
+                    <div className="flex items-center gap-2 min-h-[40px]">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-text-primary whitespace-nowrap">
+                            Approved By:
+                          </span>
+                          <span className="text-sm text-text-secondary font-normal">
+                            {formData.approvedBy || "-"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-text-primary whitespace-nowrap">
+                            Approved On:
+                          </span>
+                          <span className="text-sm text-text-secondary font-normal">
+                            {formData.approvedOn || "-"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1276,10 +1269,10 @@ export default function PolicyEditModal({
     <ModalWrapper
       isOpen={isOpen}
       onClose={onClose}
-      maxWidth="4xl"
-      className="flex flex-col h-[80vh]"
+      maxWidth=" "
+      className="flex flex-col !w-[80vw] h-[90vh] max-w-full "
     >
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-3">
         <h2 className="text-2xl font-semibold text-text-dark">
           {config.modalTitle}
         </h2>
