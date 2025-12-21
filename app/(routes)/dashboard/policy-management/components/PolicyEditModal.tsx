@@ -923,21 +923,8 @@ export default function PolicyEditModal({
               <Button
                 type="button"
                 variant="primary"
-                onClick={() => {
-                  if (newComment.trim()) {
-                    const comment = {
-                      id: `temp-${Date.now()}-${Math.random()}`,
-                      text: newComment.trim(),
-                      user_id: auth.userData?.id || "",
-                      user_name: auth.userData?.name || "Unknown User",
-                      created_at: new Date().toISOString(),
-                      isNew: true,
-                    };
-                    setComments((prev) => [...prev, comment]);
-                    setNewComment("");
-                  }
-                }}
-                disabled={!newComment.trim()}
+                onClick={handleAddComment}
+                disabled={!newComment.trim() || loading}
                 className="self-start"
               >
                 Add Comment
@@ -947,6 +934,85 @@ export default function PolicyEditModal({
         );
       default:
         return null;
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+
+    // In create mode, we can't save comments yet (no policy_id)
+    if (isCreateMode) {
+      // Store in local state to save after policy creation
+      const comment = {
+        id: `temp-${Date.now()}-${Math.random()}`,
+        text: newComment.trim(),
+        user_id: auth.userData?.id || "",
+        user_name: auth.userData?.name || "Unknown User",
+        created_at: new Date().toISOString(),
+        isNew: true,
+      };
+      setComments((prev) => [...prev, comment]);
+      setNewComment("");
+      return;
+    }
+
+    // In edit mode, save directly to database
+    if (!policyId) {
+      setError("Policy ID is required to add comment");
+      return;
+    }
+
+    if (!auth.userData?.id) {
+      setError("User not authenticated");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { data: insertedComment, error: commentError } = await supabase
+        .from("policy_comments")
+        .insert({
+          policy_id: policyId,
+          user_id: auth.userData.id,
+          text: newComment.trim(),
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (commentError) {
+        console.error("Error saving comment:", commentError);
+        setError("Failed to add comment");
+        setLoading(false);
+        return;
+      }
+
+      if (insertedComment) {
+        // Fetch user name for the comment
+        const { data: userData } = await supabase
+          .from("users")
+          .select("name")
+          .eq("id", auth.userData.id)
+          .single();
+
+        // Add the new comment to the list
+        const newCommentObj = {
+          id: insertedComment.id,
+          text: insertedComment.text,
+          user_id: insertedComment.user_id,
+          user_name: userData?.name || auth.userData.name || "Unknown User",
+          created_at: insertedComment.created_at,
+        };
+
+        setComments((prev) => [...prev, newCommentObj]);
+        setNewComment("");
+      }
+    } catch (err) {
+      console.error("Error adding comment:", err);
+      setError("An unexpected error occurred while adding comment");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1088,9 +1154,10 @@ export default function PolicyEditModal({
           return;
         }
 
-        // Save comments if any
-        if (comments.length > 0) {
-          const commentsData = comments.map((comment) => ({
+        // Save comments if any (only in create mode, comments are stored locally)
+        const newComments = comments.filter((comment) => comment.isNew);
+        if (newComments.length > 0) {
+          const commentsData = newComments.map((comment) => ({
             policy_id: insertedPolicy.id,
             user_id: comment.user_id,
             text: comment.text,
@@ -1158,25 +1225,8 @@ export default function PolicyEditModal({
           return;
         }
 
-        // Save new comments (only those marked as new)
-        const newComments = comments.filter((comment) => comment.isNew);
-        if (newComments.length > 0) {
-          const commentsData = newComments.map((comment) => ({
-            policy_id: policyId,
-            user_id: comment.user_id,
-            text: comment.text,
-            created_at: comment.created_at,
-          }));
-
-          const { error: commentsError } = await supabase
-            .from("policy_comments")
-            .insert(commentsData);
-
-          if (commentsError) {
-            console.error("Error saving comments:", commentsError);
-            // Don't fail the whole operation if comments fail, just log it
-          }
-        }
+        // In edit mode, comments are already saved when added
+        // No need to save them here
       }
 
       // Reset form
@@ -1359,9 +1409,10 @@ export default function PolicyEditModal({
           return;
         }
 
-        // Save comments if any
-        if (comments.length > 0) {
-          const commentsData = comments.map((comment) => ({
+        // Save comments if any (only in create mode, comments are stored locally)
+        const newComments = comments.filter((comment) => comment.isNew);
+        if (newComments.length > 0) {
+          const commentsData = newComments.map((comment) => ({
             policy_id: insertedPolicy.id,
             user_id: comment.user_id,
             text: comment.text,
@@ -1374,6 +1425,7 @@ export default function PolicyEditModal({
 
           if (commentsError) {
             console.error("Error saving comments:", commentsError);
+            // Don't fail the whole operation if comments fail, just log it
           }
         }
       } else {
@@ -1395,6 +1447,9 @@ export default function PolicyEditModal({
           setLoading(false);
           return;
         }
+
+        // In edit mode, comments are already saved when added
+        // No need to save them here
       }
 
       // Reset form
