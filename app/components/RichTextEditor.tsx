@@ -168,8 +168,10 @@ export default function RichTextEditor({
   }, [placeholder]);
 
   return (
-    <div className={`rich-text-editor ${className}`}>
-      <div className="border border-border-hr rounded-lg rich-text-editor-wrapper relative">
+    <div
+      className={`rich-text-editor flex flex-col flex-1 min-h-0 ${className}`}
+    >
+      <div className="border border-border-hr rounded-lg rich-text-editor-wrapper relative flex flex-col flex-1 min-h-0">
         {!isMounted && (
           <div className="min-h-[200px] px-3 py-2 bg-input text-text-primary text-sm flex items-center justify-center absolute inset-0 z-10 rounded-lg">
             <span className="text-text-secondary">Loading editor...</span>
@@ -177,9 +179,8 @@ export default function RichTextEditor({
         )}
         <div
           ref={editorRef}
-          className="rich-text-content"
+          className="rich-text-content flex-1 min-h-0"
           style={{
-            minHeight: "200px",
             opacity: isMounted ? 1 : 0,
           }}
         />

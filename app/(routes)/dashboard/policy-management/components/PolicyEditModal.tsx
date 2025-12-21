@@ -740,9 +740,9 @@ export default function PolicyEditModal({
         );
       case "tab2":
         return (
-          <div className="py-4 space-y-6">
+          <div className="flex flex-col h-full space-y-6">
             {/* Title - Disabled, synced with tab 1 */}
-            <div className="flex flex-col gap-1.5">
+            {/* <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="title-tab2"
                 className="text-sm font-medium text-text-primary"
@@ -756,58 +756,60 @@ export default function PolicyEditModal({
                 value={formData.title}
                 disabled
               />
-            </div>
+            </div> */}
 
             {/* Purpose */}
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="purpose"
-                className="text-sm font-medium text-text-primary"
-              >
-                Purpose
-              </label>
-              <textarea
-                id="purpose"
-                name="purpose"
-                value={formData.purpose}
-                onChange={handleChange}
-                rows={2}
-                disabled={!config.enabledFields.includes("purpose")}
-                className={`px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none ${
-                  !config.enabledFields.includes("purpose")
-                    ? "opacity-50 cursor-not-allowed"
-                    : ""
-                }`}
-                placeholder="Enter purpose"
-              />
-            </div>
+            <div className="flex gap-1.5 w-full">
+              <div className="flex flex-col gap-1.5 w-full">
+                <label
+                  htmlFor="purpose"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  Purpose
+                </label>
+                <textarea
+                  id="purpose"
+                  name="purpose"
+                  value={formData.purpose}
+                  onChange={handleChange}
+                  rows={2}
+                  disabled={!config.enabledFields.includes("purpose")}
+                  className={`px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none ${
+                    !config.enabledFields.includes("purpose")
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
+                  }`}
+                  placeholder="Enter purpose"
+                />
+              </div>
 
-            {/* Scope */}
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="scope"
-                className="text-sm font-medium text-text-primary"
-              >
-                Scope
-              </label>
-              <textarea
-                id="scope"
-                name="scope"
-                value={formData.scope}
-                onChange={handleChange}
-                rows={2}
-                disabled={!config.enabledFields.includes("scope")}
-                className={`px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none ${
-                  !config.enabledFields.includes("scope")
-                    ? "opacity-50 cursor-not-allowed"
-                    : ""
-                }`}
-                placeholder="Enter scope"
-              />
+              {/* Scope */}
+              <div className="flex flex-col gap-1.5 w-full">
+                <label
+                  htmlFor="scope"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  Scope
+                </label>
+                <textarea
+                  id="scope"
+                  name="scope"
+                  value={formData.scope}
+                  onChange={handleChange}
+                  rows={2}
+                  disabled={!config.enabledFields.includes("scope")}
+                  className={`px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary resize-none ${
+                    !config.enabledFields.includes("scope")
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
+                  }`}
+                  placeholder="Enter scope"
+                />
+              </div>
             </div>
 
             {/* Requirements */}
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 flex-1 min-h-0">
               <label
                 htmlFor="requirements"
                 className="text-sm font-medium text-text-primary"
