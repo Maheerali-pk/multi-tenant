@@ -373,10 +373,12 @@ export const usePolicyDetails = (
 
   // Fetch all data when modal opens
   useEffect(() => {
-    if (isOpen && policyId) {
+    if (isOpen) {
       fetchAllData();
-      fetchPolicyData();
-      fetchComments();
+      if (policyId) {
+        fetchPolicyData();
+        fetchComments();
+      }
     }
   }, [isOpen, policyId, fetchAllData, fetchPolicyData, fetchComments]);
 

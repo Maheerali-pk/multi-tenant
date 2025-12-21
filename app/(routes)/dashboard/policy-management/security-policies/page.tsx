@@ -7,7 +7,6 @@ import PoliciesTable, { PolicyRow } from "../components/PoliciesTable";
 import Search from "@/app/components/Search";
 import TableFilter from "@/app/components/TableFilter";
 import { CreateNewPolicyButton } from "../components/CreateNewPolicyButton";
-import CreateNewPolicyModal from "../components/CreateNewPolicyModal";
 import PolicyEditModal from "../components/PolicyEditModal";
 import DeletePolicy from "../components/DeletePolicy";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
@@ -466,10 +465,11 @@ const SecurityPolicies: React.FC<SecurityPoliciesProps> = () => {
           </div>
         </ContentWrapper>
       </DashboardWrapper>
-      <CreateNewPolicyModal
+      <PolicyEditModal
         isOpen={state.modals.createPolicy || false}
         onClose={() => dispatch({ closeModal: "createPolicy" })}
         onSuccess={handleCreateSuccess}
+        policyId={null}
       />
       <PolicyEditModal
         isOpen={editModalOpen}

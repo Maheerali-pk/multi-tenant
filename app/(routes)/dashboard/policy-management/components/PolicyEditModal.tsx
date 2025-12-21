@@ -8,7 +8,7 @@ import Tabs, { Tab } from "@/app/components/Tabs";
 import { CustomSelect, SelectOption } from "@/app/components/CustomSelect";
 import { useAuthContext } from "@/app/contexts/AuthContext";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
-import type { TablesUpdate } from "@/app/types/database.types";
+import type { TablesUpdate, TablesInsert } from "@/app/types/database.types";
 import PolicyComment from "@/app/(routes)/dashboard/policy-management/components/PolicyComment";
 import RichTextEditor from "@/app/components/RichTextEditor";
 import Input from "@/app/components/Input";
@@ -57,19 +57,48 @@ interface PolicyEditModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   policyId: string | null;
-  status: PolicyModalStatus;
-  userRolesForPolicy: PolicyUserRole[];
+  status?: PolicyModalStatus;
+  userRolesForPolicy?: PolicyUserRole[];
 }
 
 // Function to get policy configuration based on status and user role
 const getPolicyConfig = (
-  status: PolicyModalStatus,
-  userRoles: PolicyUserRole[]
+  status: PolicyModalStatus | undefined,
+  userRoles: PolicyUserRole[] | undefined,
+  isCreateMode: boolean
 ): {
   modalTitle: string;
   enabledFields: readonly PolicyFormField[];
   actionButtons: PolicyActionButtons;
 } => {
+  // Create mode - treat as draft
+  if (isCreateMode || !status) {
+    return {
+      modalTitle: "Create New Policy",
+      enabledFields: [
+        "title",
+        "owner",
+        "reviewer",
+        "approver",
+        "classification",
+        "version",
+        "nextReviewDate",
+        "purpose",
+        "scope",
+        "requirements",
+      ] as const,
+      actionButtons: {
+        cancel: { show: true, label: "Cancel", action: () => {} },
+        save: { show: true, label: "Save as Draft", action: () => {} },
+        submitForReview: {
+          show: true,
+          label: "Submit for Review",
+          action: () => {},
+        },
+      },
+    };
+  }
+
   // Draft status - same for all roles
   if (status === "draft") {
     return {
@@ -100,7 +129,7 @@ const getPolicyConfig = (
 
   // Under-review status - role-specific behavior
   if (status === "under-review") {
-    if (userRoles.includes("reviewer")) {
+    if (userRoles?.includes("reviewer")) {
       return {
         modalTitle: "Review Policy",
         enabledFields: [] as const,
@@ -132,7 +161,7 @@ const getPolicyConfig = (
 
   // Changes-required status - same for all roles
   if (status === "changes-required") {
-    if (userRoles.includes("creator")) {
+    if (userRoles?.includes("creator")) {
       return {
         modalTitle: "Edit Policy",
         enabledFields: [
@@ -168,7 +197,7 @@ const getPolicyConfig = (
 
   // Waiting-approval status - role-specific behavior
   if (status === "waiting-approval") {
-    if (userRoles.includes("approver")) {
+    if (userRoles?.includes("approver")) {
       return {
         modalTitle: "Approve Policy",
         enabledFields: [] as const,
@@ -221,10 +250,13 @@ export default function PolicyEditModal({
   onSuccess,
   policyId,
   status,
-  userRolesForPolicy,
+  userRolesForPolicy = [],
 }: PolicyEditModalProps) {
+  // Determine if we're in create mode
+  const isCreateMode = !policyId;
+
   // Get configuration for current status and role
-  const config = getPolicyConfig(status, userRolesForPolicy);
+  const config = getPolicyConfig(status, userRolesForPolicy, isCreateMode);
   const [auth] = useAuthContext();
   const [state] = useGlobalContext();
   const [activeTab, setActiveTab] = useState<string>("tab1");
@@ -278,14 +310,14 @@ export default function PolicyEditModal({
     { id: "tab3", label: "Comments", icon: <MessageSquare size={16} /> },
   ];
 
-  // Initialize form data when policy data is loaded
+  // Initialize form data when policy data is loaded (only for edit mode)
   useEffect(() => {
-    if (initialFormData) {
+    if (!isCreateMode && initialFormData) {
       setFormData(initialFormData);
     }
-  }, [initialFormData]);
+  }, [initialFormData, isCreateMode]);
 
-  // Set document type to "Policy" when policyTypeId is available
+  // Set document type to "Policy" when policyTypeId is available (for both create and edit)
   useEffect(() => {
     if (policyTypeId && formData.documentType !== policyTypeId) {
       setFormData((prev) => ({
@@ -294,6 +326,31 @@ export default function PolicyEditModal({
       }));
     }
   }, [policyTypeId, formData.documentType]);
+
+  // Set default status to "draft" when in create mode
+  useEffect(() => {
+    if (
+      isCreateMode &&
+      documentLifecycleStatuses.length > 0 &&
+      !formData.status
+    ) {
+      const draftStatus = documentLifecycleStatuses.find(
+        (status) => status.name === "draft"
+      );
+      if (draftStatus) {
+        setFormData((prev) => ({
+          ...prev,
+          status: draftStatus.id.toString(),
+          createdBy: auth.userData?.name || "",
+        }));
+      }
+    }
+  }, [
+    isCreateMode,
+    documentLifecycleStatuses,
+    formData.status,
+    auth.userData?.name,
+  ]);
 
   // Sync comments from hook
   useEffect(() => {
@@ -896,8 +953,6 @@ export default function PolicyEditModal({
   };
 
   const handleSave = async () => {
-    if (!policyId) return;
-
     setError(null);
 
     // Validate required fields
@@ -906,9 +961,27 @@ export default function PolicyEditModal({
       return;
     }
 
+    if (!formData.documentType) {
+      setError("Document type is required");
+      return;
+    }
+
     // Check if user is authenticated
     if (!auth.userData?.id) {
       setError("User not authenticated");
+      return;
+    }
+
+    // Determine tenant ID
+    const isSuperAdmin = auth.userData?.role === "superadmin";
+    const tenantId = isSuperAdmin
+      ? state.selectedTenantId
+      : auth.userData?.tenant_id;
+
+    if (!tenantId) {
+      setError(
+        isSuperAdmin ? "Please select a tenant" : "User tenant not found"
+      );
       return;
     }
 
@@ -975,69 +1048,164 @@ export default function PolicyEditModal({
         return;
       }
 
-      // Check if created_at exists in the database
-      const { data: currentPolicy } = await supabase
-        .from("policies")
-        .select("created_at")
-        .eq("id", policyId)
-        .single();
+      if (isCreateMode) {
+        // Create new policy
+        const policyData: TablesInsert<"policies"> = {
+          title: formData.title.trim(),
+          created_by: auth.userData.id,
+          created_at: new Date().toISOString(),
+          tenant_id: tenantId,
+          policy_owner_team_id: ownerTeamId,
+          policy_owner_user_id: ownerUserId,
+          reviewer_team_id: reviewerTeamId,
+          reviewer_user_id: reviewerUserId,
+          approver_team_id: approverTeamId,
+          approver_user_id: approverUserId,
+          classification_id: classificationId,
+          status_id: statusId,
+          document_type_id: documentTypeId,
+          version: formData.version.trim() || undefined,
+          objective: formData.purpose.trim() || null,
+          scope: formData.scope.trim() || null,
+          requirements: formData.requirements.trim() || null,
+          next_review_date: formData.nextReviewDate || null,
+        };
 
-      // Prepare policy update data using new table structure
-      const policyUpdateData: TablesUpdate<"policies"> = {
-        title: formData.title.trim(),
-        policy_owner_team_id: ownerTeamId,
-        policy_owner_user_id: ownerUserId,
-        reviewer_team_id: reviewerTeamId,
-        reviewer_user_id: reviewerUserId,
-        approver_team_id: approverTeamId,
-        approver_user_id: approverUserId,
-        classification_id: classificationId,
-        status_id: statusId,
-        document_type_id: documentTypeId,
-        version: formData.version.trim() || undefined,
-        objective: formData.purpose.trim() || null,
-        scope: formData.scope.trim() || null,
-        requirements: formData.requirements.trim() || null,
-        next_review_date: formData.nextReviewDate || null,
-      };
+        const { data: insertedPolicy, error: policyError } = await supabase
+          .from("policies")
+          .insert(policyData)
+          .select()
+          .single();
 
-      // If created_at is not present in database, set it to current date
-      if (!currentPolicy?.created_at) {
-        policyUpdateData.created_at = new Date().toISOString();
-      }
+        if (policyError) {
+          console.error("Error creating policy:", policyError);
+          setError(policyError.message || "Failed to create policy");
+          setLoading(false);
+          return;
+        }
 
-      // Update policy
-      const { error: policyError } = await supabase
-        .from("policies")
-        .update(policyUpdateData)
-        .eq("id", policyId);
+        if (!insertedPolicy) {
+          setError("Failed to create policy");
+          setLoading(false);
+          return;
+        }
 
-      if (policyError) {
-        console.error("Error updating policy:", policyError);
-        setError(policyError.message || "Failed to update policy");
-        setLoading(false);
-        return;
-      }
+        // Save comments if any
+        if (comments.length > 0) {
+          const commentsData = comments.map((comment) => ({
+            policy_id: insertedPolicy.id,
+            user_id: comment.user_id,
+            text: comment.text,
+            created_at: comment.created_at,
+          }));
 
-      // Save new comments (only those marked as new)
-      const newComments = comments.filter((comment) => comment.isNew);
-      if (newComments.length > 0) {
-        const commentsData = newComments.map((comment) => ({
-          policy_id: policyId,
-          user_id: comment.user_id,
-          text: comment.text,
-          created_at: comment.created_at,
-        }));
+          const { error: commentsError } = await supabase
+            .from("policy_comments")
+            .insert(commentsData);
 
-        const { error: commentsError } = await supabase
-          .from("policy_comments")
-          .insert(commentsData);
+          if (commentsError) {
+            console.error("Error saving comments:", commentsError);
+            // Don't fail the whole operation if comments fail, just log it
+          }
+        }
+      } else {
+        // Update existing policy
+        if (!policyId) {
+          setError("Policy ID is required for update");
+          setLoading(false);
+          return;
+        }
 
-        if (commentsError) {
-          console.error("Error saving comments:", commentsError);
-          // Don't fail the whole operation if comments fail, just log it
+        // Check if created_at exists in the database
+        const { data: currentPolicy } = await supabase
+          .from("policies")
+          .select("created_at")
+          .eq("id", policyId)
+          .single();
+
+        // Prepare policy update data using new table structure
+        const policyUpdateData: TablesUpdate<"policies"> = {
+          title: formData.title.trim(),
+          policy_owner_team_id: ownerTeamId,
+          policy_owner_user_id: ownerUserId,
+          reviewer_team_id: reviewerTeamId,
+          reviewer_user_id: reviewerUserId,
+          approver_team_id: approverTeamId,
+          approver_user_id: approverUserId,
+          classification_id: classificationId,
+          status_id: statusId,
+          document_type_id: documentTypeId,
+          version: formData.version.trim() || undefined,
+          objective: formData.purpose.trim() || null,
+          scope: formData.scope.trim() || null,
+          requirements: formData.requirements.trim() || null,
+          next_review_date: formData.nextReviewDate || null,
+        };
+
+        // If created_at is not present in database, set it to current date
+        if (!currentPolicy?.created_at) {
+          policyUpdateData.created_at = new Date().toISOString();
+        }
+
+        // Update policy
+        const { error: policyError } = await supabase
+          .from("policies")
+          .update(policyUpdateData)
+          .eq("id", policyId);
+
+        if (policyError) {
+          console.error("Error updating policy:", policyError);
+          setError(policyError.message || "Failed to update policy");
+          setLoading(false);
+          return;
+        }
+
+        // Save new comments (only those marked as new)
+        const newComments = comments.filter((comment) => comment.isNew);
+        if (newComments.length > 0) {
+          const commentsData = newComments.map((comment) => ({
+            policy_id: policyId,
+            user_id: comment.user_id,
+            text: comment.text,
+            created_at: comment.created_at,
+          }));
+
+          const { error: commentsError } = await supabase
+            .from("policy_comments")
+            .insert(commentsData);
+
+          if (commentsError) {
+            console.error("Error saving comments:", commentsError);
+            // Don't fail the whole operation if comments fail, just log it
+          }
         }
       }
+
+      // Reset form
+      setFormData({
+        title: "",
+        owner: "",
+        reviewer: "",
+        approver: "",
+        documentType: "",
+        status: "",
+        classification: "",
+        version: "",
+        createdBy: auth.userData?.name || "",
+        createdOn: "",
+        reviewedBy: "",
+        reviewedOn: "",
+        approvedBy: "",
+        approvedOn: "",
+        effectiveDate: "",
+        nextReviewDate: "",
+        purpose: "",
+        scope: "",
+        requirements: "",
+      });
+      setComments([]);
+      setNewComment("");
+      setError(null);
 
       // Call onSuccess to refresh the table
       if (onSuccess) {
@@ -1047,7 +1215,7 @@ export default function PolicyEditModal({
       // Close modal
       onClose();
     } catch (err) {
-      console.error("Error updating policy:", err);
+      console.error("Error saving policy:", err);
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
@@ -1055,9 +1223,6 @@ export default function PolicyEditModal({
   };
 
   const handleSubmitForReview = async () => {
-    // Submit for review logic
-    if (!policyId) return;
-
     setError(null);
 
     // Validate required fields
@@ -1066,24 +1231,199 @@ export default function PolicyEditModal({
       return;
     }
 
+    if (!formData.documentType) {
+      setError("Document type is required");
+      return;
+    }
+
+    // Check if user is authenticated
+    if (!auth.userData?.id) {
+      setError("User not authenticated");
+      return;
+    }
+
+    // Determine tenant ID
+    const isSuperAdmin = auth.userData?.role === "superadmin";
+    const tenantId = isSuperAdmin
+      ? state.selectedTenantId
+      : auth.userData?.tenant_id;
+
+    if (!tenantId) {
+      setError(
+        isSuperAdmin ? "Please select a tenant" : "User tenant not found"
+      );
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Update status to "under-review" (stored as "under-review" in DB)
+      // Find "under-review" status
       const underReviewStatus = documentLifecycleStatuses.find(
         (s) => s.name === "under-review"
       );
-      const { error: statusError } = await supabase
-        .from("policies")
-        .update({ status_id: underReviewStatus?.id || null })
-        .eq("id", policyId);
 
-      if (statusError) {
-        console.error("Error updating status:", statusError);
-        setError("Failed to submit for review");
+      if (!underReviewStatus) {
+        setError("Under-review status not found");
         setLoading(false);
         return;
       }
+
+      if (isCreateMode) {
+        // Parse owner, reviewer, approver
+        let ownerTeamId: string | null = null;
+        let ownerUserId: string | null = null;
+        if (formData.owner) {
+          if (formData.owner.startsWith("team:")) {
+            ownerTeamId = formData.owner.replace("team:", "");
+          } else if (formData.owner.startsWith("user:")) {
+            ownerUserId = formData.owner.replace("user:", "");
+          }
+        }
+
+        let reviewerTeamId: string | null = null;
+        let reviewerUserId: string | null = null;
+        if (formData.reviewer) {
+          if (formData.reviewer.startsWith("team:")) {
+            reviewerTeamId = formData.reviewer.replace("team:", "");
+          } else if (formData.reviewer.startsWith("user:")) {
+            reviewerUserId = formData.reviewer.replace("user:", "");
+          }
+        }
+
+        let approverTeamId: string | null = null;
+        let approverUserId: string | null = null;
+        if (formData.approver) {
+          if (formData.approver.startsWith("team:")) {
+            approverTeamId = formData.approver.replace("team:", "");
+          } else if (formData.approver.startsWith("user:")) {
+            approverUserId = formData.approver.replace("user:", "");
+          }
+        }
+
+        const classificationId = formData.classification
+          ? parseInt(formData.classification)
+          : null;
+        const documentTypeId = formData.documentType
+          ? parseInt(formData.documentType)
+          : null;
+
+        if (!documentTypeId) {
+          setError("Document type is required");
+          setLoading(false);
+          return;
+        }
+
+        if (!classificationId) {
+          setError("Classification is required");
+          setLoading(false);
+          return;
+        }
+
+        // Create policy with "under-review" status
+        const policyData: TablesInsert<"policies"> = {
+          title: formData.title.trim(),
+          created_by: auth.userData.id,
+          created_at: new Date().toISOString(),
+          tenant_id: tenantId,
+          policy_owner_team_id: ownerTeamId,
+          policy_owner_user_id: ownerUserId,
+          reviewer_team_id: reviewerTeamId,
+          reviewer_user_id: reviewerUserId,
+          approver_team_id: approverTeamId,
+          approver_user_id: approverUserId,
+          classification_id: classificationId,
+          status_id: underReviewStatus.id,
+          document_type_id: documentTypeId,
+          version: formData.version.trim() || undefined,
+          objective: formData.purpose.trim() || null,
+          scope: formData.scope.trim() || null,
+          requirements: formData.requirements.trim() || null,
+          next_review_date: formData.nextReviewDate || null,
+        };
+
+        const { data: insertedPolicy, error: policyError } = await supabase
+          .from("policies")
+          .insert(policyData)
+          .select()
+          .single();
+
+        if (policyError) {
+          console.error("Error creating policy:", policyError);
+          setError(policyError.message || "Failed to submit for review");
+          setLoading(false);
+          return;
+        }
+
+        if (!insertedPolicy) {
+          setError("Failed to submit for review");
+          setLoading(false);
+          return;
+        }
+
+        // Save comments if any
+        if (comments.length > 0) {
+          const commentsData = comments.map((comment) => ({
+            policy_id: insertedPolicy.id,
+            user_id: comment.user_id,
+            text: comment.text,
+            created_at: comment.created_at,
+          }));
+
+          const { error: commentsError } = await supabase
+            .from("policy_comments")
+            .insert(commentsData);
+
+          if (commentsError) {
+            console.error("Error saving comments:", commentsError);
+          }
+        }
+      } else {
+        // Update existing policy status to "under-review"
+        if (!policyId) {
+          setError("Policy ID is required for update");
+          setLoading(false);
+          return;
+        }
+
+        const { error: statusError } = await supabase
+          .from("policies")
+          .update({ status_id: underReviewStatus.id })
+          .eq("id", policyId);
+
+        if (statusError) {
+          console.error("Error updating status:", statusError);
+          setError("Failed to submit for review");
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Reset form
+      setFormData({
+        title: "",
+        owner: "",
+        reviewer: "",
+        approver: "",
+        documentType: "",
+        status: "",
+        classification: "",
+        version: "",
+        createdBy: auth.userData?.name || "",
+        createdOn: "",
+        reviewedBy: "",
+        reviewedOn: "",
+        approvedBy: "",
+        approvedOn: "",
+        effectiveDate: "",
+        nextReviewDate: "",
+        purpose: "",
+        scope: "",
+        requirements: "",
+      });
+      setComments([]);
+      setNewComment("");
+      setError(null);
 
       // Call onSuccess to refresh the table
       if (onSuccess) {
@@ -1272,7 +1612,7 @@ export default function PolicyEditModal({
       isOpen={isOpen}
       onClose={onClose}
       maxWidth=" "
-      className="flex flex-col !w-[80vw] h-[90vh] max-w-full "
+      className="flex flex-col w-[80vw]! h-[90vh] max-w-full "
     >
       <div className="flex justify-between items-center mb-3">
         <h2 className="text-2xl font-semibold text-text-dark">
