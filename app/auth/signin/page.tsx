@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -70,6 +71,18 @@ export default function SignInPage() {
     <div className="min-h-screen flex items-center justify-center bg-bg-outer p-4">
       <div className="w-full max-w-md">
         <div className="bg-bg-inner rounded-3xl p-8 shadow-lg">
+          {/* Logo */}
+          <div className="flex justify-center mb-6">
+            <Image
+              src="/images/logo.png"
+              alt="CyberPen.io Logo"
+              width={200}
+              height={60}
+              priority
+              className="object-contain"
+            />
+          </div>
+
           <h1 className="text-2xl font-semibold text-text-dark mb-2">
             Sign in to your account
           </h1>
