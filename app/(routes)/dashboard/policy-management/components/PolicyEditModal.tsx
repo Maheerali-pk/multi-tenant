@@ -998,14 +998,9 @@ export default function PolicyEditModal({
   const handleSave = async () => {
     setError(null);
 
-    // Validate required fields
+    // For "Save as Draft", only title is mandatory
     if (!formData.title.trim()) {
       setError("Title is required");
-      return;
-    }
-
-    if (!formData.documentType) {
-      setError("Document type is required");
       return;
     }
 
@@ -1065,6 +1060,7 @@ export default function PolicyEditModal({
       }
 
       // Convert classification, status, and document type to numbers
+      // For draft save, these are optional but we need defaults for database requirements
       const classificationId = formData.classification
         ? parseInt(formData.classification)
         : null;
@@ -1073,26 +1069,34 @@ export default function PolicyEditModal({
         ? parseInt(formData.documentType)
         : null;
 
-      if (!documentTypeId) {
-        setError("Document type is required");
-        setLoading(false);
-        return;
-      }
-
-      if (!statusId) {
-        setError("Status is required");
-        setLoading(false);
-        return;
-      }
-
-      if (!classificationId) {
-        setError("Classification is required");
-        setLoading(false);
-        return;
-      }
-
       if (isCreateMode) {
         // Create new policy
+        // For draft, we need at least document_type_id, status_id, and classification_id (required in schema)
+        // If not provided, use defaults or get from policyTypeId
+        const finalDocumentTypeId =
+          documentTypeId || (policyTypeId ? parseInt(policyTypeId) : null);
+        const finalStatusId =
+          statusId ||
+          (() => {
+            const draftStatus = documentLifecycleStatuses.find(
+              (s) => s.name === "draft"
+            );
+            return draftStatus?.id || null;
+          })();
+        const finalClassificationId = classificationId || 1; // Default to 1 if not provided
+
+        if (!finalDocumentTypeId) {
+          setError("Document type is required");
+          setLoading(false);
+          return;
+        }
+
+        if (!finalStatusId) {
+          setError("Status is required");
+          setLoading(false);
+          return;
+        }
+
         const policyData: TablesInsert<"policies"> = {
           title: formData.title.trim(),
           created_by: auth.userData.id,
@@ -1104,13 +1108,13 @@ export default function PolicyEditModal({
           reviewer_user_id: reviewerUserId,
           approver_team_id: approverTeamId,
           approver_user_id: approverUserId,
-          classification_id: classificationId,
-          status_id: statusId,
-          document_type_id: documentTypeId,
+          classification_id: finalClassificationId,
+          status_id: finalStatusId,
+          document_type_id: finalDocumentTypeId,
           version: formData.version.trim() || undefined,
           objective: formData.purpose.trim() || null,
           scope: formData.scope.trim() || null,
-          requirements: formData.requirements.trim() || null,
+          requirements: formData.requirements.trim() || "",
           next_review_date: formData.nextReviewDate || null,
         };
 
@@ -1163,11 +1167,12 @@ export default function PolicyEditModal({
         // Check if created_at exists in the database
         const { data: currentPolicy } = await supabase
           .from("policies")
-          .select("created_at")
+          .select("created_at, document_type_id, status_id, classification_id")
           .eq("id", policyId)
           .single();
 
         // Prepare policy update data using new table structure
+        // For draft save, preserve existing values if not provided
         const policyUpdateData: TablesUpdate<"policies"> = {
           title: formData.title.trim(),
           policy_owner_team_id: ownerTeamId,
@@ -1176,13 +1181,15 @@ export default function PolicyEditModal({
           reviewer_user_id: reviewerUserId,
           approver_team_id: approverTeamId,
           approver_user_id: approverUserId,
-          classification_id: classificationId,
-          status_id: statusId,
-          document_type_id: documentTypeId,
+          classification_id:
+            classificationId ?? currentPolicy?.classification_id ?? undefined,
+          status_id: statusId ?? currentPolicy?.status_id ?? undefined,
+          document_type_id:
+            documentTypeId ?? currentPolicy?.document_type_id ?? undefined,
           version: formData.version.trim() || undefined,
           objective: formData.purpose.trim() || null,
           scope: formData.scope.trim() || null,
-          requirements: formData.requirements.trim() || null,
+          requirements: formData.requirements.trim() || "",
           next_review_date: formData.nextReviewDate || null,
         };
 
@@ -1249,12 +1256,63 @@ export default function PolicyEditModal({
     }
   };
 
+  // Helper function to strip HTML tags and get text length
+  const getTextLength = (html: string): number => {
+    if (!html) return 0;
+    // Create a temporary div to parse HTML and get text content
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = html;
+    return tempDiv.textContent?.trim().length || 0;
+  };
+
   const handleSubmitForReview = async () => {
     setError(null);
 
-    // Validate required fields
+    // Validate all required fields for submit for review
     if (!formData.title.trim()) {
       setError("Title is required");
+      return;
+    }
+
+    if (!formData.owner) {
+      setError("Owner is required");
+      return;
+    }
+
+    if (!formData.approver) {
+      setError("Approver is required");
+      return;
+    }
+
+    if (!formData.reviewer) {
+      setError("Reviewer is required");
+      return;
+    }
+
+    if (!formData.classification) {
+      setError("Classification is required");
+      return;
+    }
+
+    if (!formData.version.trim()) {
+      setError("Version is required");
+      return;
+    }
+
+    if (!formData.purpose.trim()) {
+      setError("Purpose is required");
+      return;
+    }
+
+    if (!formData.scope.trim()) {
+      setError("Scope is required");
+      return;
+    }
+
+    // Validate requirements - must have minimum 4 characters (excluding HTML tags)
+    const requirementsTextLength = getTextLength(formData.requirements);
+    if (requirementsTextLength < 4) {
+      setError("Requirements must have at least 4 characters");
       return;
     }
 
@@ -1365,7 +1423,7 @@ export default function PolicyEditModal({
           version: formData.version.trim() || undefined,
           objective: formData.purpose.trim() || null,
           scope: formData.scope.trim() || null,
-          requirements: formData.requirements.trim() || null,
+          requirements: formData.requirements.trim() || "",
           next_review_date: formData.nextReviewDate || null,
         };
 
@@ -1408,20 +1466,89 @@ export default function PolicyEditModal({
           }
         }
       } else {
-        // Update existing policy status to "under-review"
+        // Update existing policy with all fields and set status to "under-review"
         if (!policyId) {
           setError("Policy ID is required for update");
           setLoading(false);
           return;
         }
 
-        const { error: statusError } = await supabase
+        // Parse owner, reviewer, approver
+        let ownerTeamId: string | null = null;
+        let ownerUserId: string | null = null;
+        if (formData.owner) {
+          if (formData.owner.startsWith("team:")) {
+            ownerTeamId = formData.owner.replace("team:", "");
+          } else if (formData.owner.startsWith("user:")) {
+            ownerUserId = formData.owner.replace("user:", "");
+          }
+        }
+
+        let reviewerTeamId: string | null = null;
+        let reviewerUserId: string | null = null;
+        if (formData.reviewer) {
+          if (formData.reviewer.startsWith("team:")) {
+            reviewerTeamId = formData.reviewer.replace("team:", "");
+          } else if (formData.reviewer.startsWith("user:")) {
+            reviewerUserId = formData.reviewer.replace("user:", "");
+          }
+        }
+
+        let approverTeamId: string | null = null;
+        let approverUserId: string | null = null;
+        if (formData.approver) {
+          if (formData.approver.startsWith("team:")) {
+            approverTeamId = formData.approver.replace("team:", "");
+          } else if (formData.approver.startsWith("user:")) {
+            approverUserId = formData.approver.replace("user:", "");
+          }
+        }
+
+        const classificationId = formData.classification
+          ? parseInt(formData.classification)
+          : null;
+        const documentTypeId = formData.documentType
+          ? parseInt(formData.documentType)
+          : null;
+
+        if (!documentTypeId) {
+          setError("Document type is required");
+          setLoading(false);
+          return;
+        }
+
+        if (!classificationId) {
+          setError("Classification is required");
+          setLoading(false);
+          return;
+        }
+
+        // Prepare policy update data with all fields
+        const policyUpdateData: TablesUpdate<"policies"> = {
+          title: formData.title.trim(),
+          policy_owner_team_id: ownerTeamId,
+          policy_owner_user_id: ownerUserId,
+          reviewer_team_id: reviewerTeamId,
+          reviewer_user_id: reviewerUserId,
+          approver_team_id: approverTeamId,
+          approver_user_id: approverUserId,
+          classification_id: classificationId,
+          status_id: underReviewStatus.id,
+          document_type_id: documentTypeId,
+          version: formData.version.trim() || undefined,
+          objective: formData.purpose.trim() || null,
+          scope: formData.scope.trim() || null,
+          requirements: formData.requirements.trim() || "",
+          next_review_date: formData.nextReviewDate || null,
+        };
+
+        const { error: updateError } = await supabase
           .from("policies")
-          .update({ status_id: underReviewStatus.id })
+          .update(policyUpdateData)
           .eq("id", policyId);
 
-        if (statusError) {
-          console.error("Error updating status:", statusError);
+        if (updateError) {
+          console.error("Error updating policy:", updateError);
           setError("Failed to submit for review");
           setLoading(false);
           return;
