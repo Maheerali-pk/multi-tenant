@@ -518,7 +518,7 @@ export default function PolicyEditModal({
                 />
               </div>
 
-              {/* Second Row: Owner, Approver, Reviewer */}
+              {/* Second Row: Owner, Reviewer, Approver */}
               <div className="grid grid-cols-3 gap-3">
                 {/* Owner */}
                 <div className="flex flex-col gap-1">
@@ -541,27 +541,6 @@ export default function PolicyEditModal({
                   />
                 </div>
 
-                {/* Approver */}
-                <div className="flex flex-col gap-1">
-                  <label
-                    htmlFor="approver"
-                    className="text-sm font-medium text-text-primary"
-                  >
-                    Approver
-                  </label>
-                  <CustomSelect
-                    id="approver"
-                    name="approver"
-                    options={approverOptions}
-                    value={formData.approver}
-                    onChange={(value) => handleSelectChange("approver", value)}
-                    placeholder="Select approver"
-                    isDisabled={
-                      loadingData || !config.enabledFields.includes("approver")
-                    }
-                  />
-                </div>
-
                 {/* Reviewer */}
                 <div className="flex flex-col gap-1">
                   <label
@@ -579,6 +558,27 @@ export default function PolicyEditModal({
                     placeholder="Select reviewer"
                     isDisabled={
                       loadingData || !config.enabledFields.includes("reviewer")
+                    }
+                  />
+                </div>
+
+                {/* Approver */}
+                <div className="flex flex-col gap-1">
+                  <label
+                    htmlFor="approver"
+                    className="text-sm font-medium text-text-primary"
+                  >
+                    Approver
+                  </label>
+                  <CustomSelect
+                    id="approver"
+                    name="approver"
+                    options={approverOptions}
+                    value={formData.approver}
+                    onChange={(value) => handleSelectChange("approver", value)}
+                    placeholder="Select approver"
+                    isDisabled={
+                      loadingData || !config.enabledFields.includes("approver")
                     }
                   />
                 </div>
