@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { Copy } from "lucide-react";
 import Table, { TableColumn } from "@/app/components/Table";
 import { FilterValues } from "@/app/components/TableFilter";
 import {
@@ -35,6 +36,7 @@ interface PoliciesTableProps {
   filterValues?: FilterValues;
   onEditClick?: (policyId: string) => void;
   onDeleteClick?: (policy: PolicyRow) => void;
+  onClone?: (policy: PolicyRow) => void;
 }
 
 const PoliciesTable: React.FC<PoliciesTableProps> = ({
@@ -47,6 +49,7 @@ const PoliciesTable: React.FC<PoliciesTableProps> = ({
   onDelete,
   onEditClick,
   onDeleteClick,
+  onClone,
 }) => {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "-";
@@ -177,6 +180,28 @@ const PoliciesTable: React.FC<PoliciesTableProps> = ({
       onDelete(row);
     }
   };
+  const handleClone = (row: PolicyRow) => {
+    if (onClone) {
+      onClone(row);
+    }
+  };
+
+  // Custom actions renderer for clone button
+  const renderCustomActions = (row: PolicyRow) => {
+    return (
+      <>
+        {onClone && (
+          <button
+            onClick={() => handleClone(row)}
+            className="p-1.5 cursor-pointer rounded-lg hover:bg-blue-light transition-colors text-brand hover:text-brand"
+            aria-label="Clone"
+          >
+            <Copy size={16} />
+          </button>
+        )}
+      </>
+    );
+  };
 
   if (loading) {
     return (
@@ -200,6 +225,7 @@ const PoliciesTable: React.FC<PoliciesTableProps> = ({
       rows={filteredData}
       onEdit={handleEdit}
       onDelete={handleDelete}
+      customActions={renderCustomActions}
       getRowKey={(row) => row.id}
       itemsPerPage={10}
     />

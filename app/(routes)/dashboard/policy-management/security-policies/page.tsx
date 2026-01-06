@@ -21,7 +21,7 @@ import type {
   PolicyModalStatus,
   PolicyUserRole,
 } from "@/app/types/policy.types";
-import { Tables } from "@/app/types/database.types";
+import { Tables, TablesInsert } from "@/app/types/database.types";
 
 type Policy = Tables<"policies">;
 
@@ -427,6 +427,126 @@ const SecurityPolicies: React.FC<SecurityPoliciesProps> = () => {
     dispatch,
     state.refreshTrigger,
   ]);
+
+  const handleClone = useCallback(
+    async (policy: PolicyRow) => {
+      try {
+        setLoading(true);
+
+        // Check if user is authenticated
+        if (!auth.userData?.id) {
+          toast.error("User not authenticated");
+          setLoading(false);
+          return;
+        }
+
+        // Determine tenant ID
+        const isSuperAdmin = auth.userData?.role === "superadmin";
+        const tenantId = isSuperAdmin
+          ? state.selectedTenantId
+          : auth.userData?.tenant_id;
+
+        if (!tenantId) {
+          toast.error(
+            isSuperAdmin ? "Please select a tenant" : "User tenant not found"
+          );
+          setLoading(false);
+          return;
+        }
+
+        // Fetch full policy data including content fields
+        const { data: fullPolicy, error: fetchError } = await supabase
+          .from("policies")
+          .select("*")
+          .eq("id", policy.id)
+          .single();
+
+        if (fetchError || !fullPolicy) {
+          console.error("Error fetching policy:", fetchError);
+          toast.error("Failed to fetch policy data");
+          setLoading(false);
+          return;
+        }
+
+        // Find draft status ID
+        const { data: draftStatus, error: statusError } = await supabase
+          .from("document_lifecycle_statuses")
+          .select("id")
+          .eq("name", "draft")
+          .single();
+
+        if (statusError || !draftStatus) {
+          console.error("Error fetching draft status:", statusError);
+          toast.error("Failed to find draft status");
+          setLoading(false);
+          return;
+        }
+
+        // Prepare cloned policy data
+        const clonedPolicyData: TablesInsert<"policies"> = {
+          title: `Copy of ${fullPolicy.title}`,
+          created_by: auth.userData.id,
+          created_at: new Date().toISOString(),
+          tenant_id: tenantId,
+          policy_owner_team_id: fullPolicy.policy_owner_team_id,
+          policy_owner_user_id: fullPolicy.policy_owner_user_id,
+          reviewer_team_id: fullPolicy.reviewer_team_id,
+          reviewer_user_id: fullPolicy.reviewer_user_id,
+          approver_team_id: fullPolicy.approver_team_id,
+          approver_user_id: fullPolicy.approver_user_id,
+          classification_id: fullPolicy.classification_id,
+          status_id: draftStatus.id,
+          document_type_id: fullPolicy.document_type_id,
+          version: "1.0",
+          objective: fullPolicy.objective,
+          scope: fullPolicy.scope,
+          requirements: fullPolicy.requirements,
+          // Set these to null/empty as per requirements
+          reviewed_at: null,
+          approved_at: null,
+          effective_date: null,
+          next_review_date: null,
+        };
+
+        // Insert the cloned policy
+        const { data: clonedPolicy, error: insertError } = await supabase
+          .from("policies")
+          .insert(clonedPolicyData)
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error("Error cloning policy:", insertError);
+          toast.error(insertError.message || "Failed to clone policy");
+          setLoading(false);
+          return;
+        }
+
+        // Show success toast
+        toast.success(`Policy "${policy.title}" has been cloned successfully`);
+
+        // Refresh policies table by incrementing refreshTrigger
+        dispatch({
+          setState: {
+            refreshTrigger: (state.refreshTrigger || 0) + 1,
+          },
+        });
+      } catch (err) {
+        console.error("Error cloning policy:", err);
+        toast.error("An unexpected error occurred while cloning policy");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [
+      auth.userData?.id,
+      auth.userData?.role,
+      auth.userData?.tenant_id,
+      state.selectedTenantId,
+      dispatch,
+      state.refreshTrigger,
+    ]
+  );
   const editModalStatus = useMemo(() => {
     return selectedPolicyId
       ? mapStatusToModalStatus(
@@ -491,6 +611,7 @@ const SecurityPolicies: React.FC<SecurityPoliciesProps> = () => {
                 filterValues={filterValues}
                 onEditClick={handleEditClick}
                 onDeleteClick={handleDeleteClick}
+                onClone={handleClone}
               />
             </div>
           </div>
