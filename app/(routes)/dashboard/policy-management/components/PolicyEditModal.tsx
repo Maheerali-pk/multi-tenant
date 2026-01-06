@@ -491,12 +491,6 @@ export default function PolicyEditModal({
       case "tab1":
         return (
           <div className="">
-            {error && (
-              <div className="mb-4 p-3 rounded-lg bg-failure-light border border-failure text-failure text-sm">
-                {error}
-              </div>
-            )}
-
             <div className="flex flex-col gap-3">
               {/* First Row: Title */}
               <div className="flex flex-col gap-1">
