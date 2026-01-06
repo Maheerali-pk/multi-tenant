@@ -2,6 +2,7 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import type { NextRequest } from 'next/server'
 import { InviteFromSuperAdminRequest } from '@/app/types/api.types'
+import { formatUserRole } from '@/app/helpers/utils'
 
 export async function POST(req: NextRequest) {
 	const { email, full_name, tenant_id, role, title }: InviteFromSuperAdminRequest = await req.json()
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
 					tenant_id: tenant_id || null,
 					tenant_name: tenantName,
 					title: title || null,
+					user_role: formatUserRole(role),
 				},
 				redirectTo,
 			}
