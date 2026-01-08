@@ -1273,16 +1273,15 @@ export default function PolicyEditModal({
       return;
     }
 
-    if (!formData.approver) {
-      setError("Approver is required");
-      return;
-    }
-
     if (!formData.reviewer) {
       setError("Reviewer is required");
       return;
     }
 
+    if (!formData.approver) {
+      setError("Approver is required");
+      return;
+    }
     if (!formData.classification) {
       setError("Classification is required");
       return;
