@@ -25,6 +25,8 @@ export default function EditUserModal({
   user,
 }: EditUserModalProps) {
   const [formData, setFormData] = useState({
+    name: "",
+    email: "",
     title: "",
     tenant_id: "",
     role: "",
@@ -91,6 +93,8 @@ export default function EditUserModal({
 
       if (userData) {
         setFormData({
+          name: userData.name || "",
+          email: userData.email || "",
           title: userData.title || "",
           tenant_id: userData.tenant_id || "",
           role: userData.role || "",
@@ -130,10 +134,27 @@ export default function EditUserModal({
       return;
     }
 
+    if (!formData.name.trim()) {
+      setError("Name is required");
+      return;
+    }
+
+    if (!formData.role) {
+      setError("Role is required");
+      return;
+    }
+
+    // If role is tenant_admin, tenant is required
+    if (formData.role === "tenant_admin" && !formData.tenant_id) {
+      setError("Tenant is required for Tenant Admin role");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const userData: UserUpdate = {
+        name: formData.name.trim(),
         title: formData.title.trim() || null,
         tenant_id: formData.tenant_id || null,
         role: formData.role || "",
@@ -163,7 +184,9 @@ export default function EditUserModal({
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -171,10 +194,27 @@ export default function EditUserModal({
     }));
   };
 
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData((prev) => {
+      // If role is changed to "superadmin", clear tenant_id
+      if (name === "role" && value === "superadmin") {
+        return {
+          ...prev,
+          [name]: value,
+          tenant_id: "",
+        };
+      }
+      return {
+        ...prev,
+        [name]: value,
+      };
+    });
+  };
+
   return (
     <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="2xl">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-text-dark">Edit User</h2>
+        <h2 className="text-2xl font-semibold text-text-dark">Edit User</h2>
         <button
           onClick={onClose}
           disabled={loading}
@@ -190,14 +230,55 @@ export default function EditUserModal({
           <div className="text-text-secondary">Loading user data...</div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="p-3 rounded-lg bg-failure-light border border-failure text-failure text-sm">
+            <div className="mb-4 p-3 rounded-lg bg-failure-light border border-failure text-failure text-sm">
               {error}
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-6">
+            {/* Name Field */}
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="name"
+                className="text-sm font-medium text-text-primary"
+              >
+                Name <span className="text-failure">*</span>
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary"
+                placeholder="Enter user name"
+              />
+            </div>
+
+            {/* Email Field */}
+            <div className="flex flex-col gap-1.5">
+              <label
+                htmlFor="email"
+                className="text-sm font-medium text-text-primary"
+              >
+                Email <span className="text-failure">*</span>
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                disabled
+                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary disabled:opacity-60 disabled:cursor-not-allowed"
+                placeholder="Enter email address"
+              />
+            </div>
+
+            {/* Title Field */}
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="title"
@@ -211,51 +292,58 @@ export default function EditUserModal({
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
-                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors"
-                placeholder="Enter title"
+                className="px-3 py-2 rounded-lg border border-border-hr bg-input text-text-primary text-sm outline-none focus:border-brand transition-colors placeholder:text-text-secondary"
+                placeholder="Enter title (optional)"
               />
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="tenant_id"
-                className="text-sm font-medium text-text-primary"
-              >
-                Tenant
-              </label>
-              <CustomSelect
-                id="tenant_id"
-                name="tenant_id"
-                options={tenantOptions}
-                value={formData.tenant_id}
-                onChange={(value) =>
-                  setFormData((prev) => ({ ...prev, tenant_id: value }))
-                }
-                placeholder={
-                  loadingTenants ? "Loading tenants..." : "Select tenant"
-                }
-                isDisabled={loadingTenants}
-              />
-            </div>
-
+            {/* Role Field */}
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="role"
                 className="text-sm font-medium text-text-primary"
               >
-                Role
+                Role <span className="text-failure">*</span>
               </label>
               <CustomSelect
                 id="role"
                 name="role"
                 options={roleOptions}
                 value={formData.role}
-                onChange={(value) =>
-                  setFormData((prev) => ({ ...prev, role: value }))
-                }
+                onChange={(value) => handleSelectChange("role", value)}
                 placeholder="Select role"
               />
             </div>
+
+            {/* Tenant Field - Only show if role is not "superadmin" */}
+            {formData.role !== "superadmin" && (
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="tenant_id"
+                  className="text-sm font-medium text-text-primary"
+                >
+                  Tenant
+                  {formData.role === "tenant_admin" && (
+                    <span className="text-failure"> *</span>
+                  )}
+                </label>
+                <CustomSelect
+                  id="tenant_id"
+                  name="tenant_id"
+                  options={tenantOptions}
+                  value={formData.tenant_id}
+                  onChange={(value) => handleSelectChange("tenant_id", value)}
+                  placeholder={
+                    loadingTenants
+                      ? "Loading tenants..."
+                      : formData.role === "tenant_admin"
+                      ? "Select tenant (required)"
+                      : "Select tenant (optional)"
+                  }
+                  isDisabled={loadingTenants}
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex gap-3 pt-4">
@@ -269,7 +357,7 @@ export default function EditUserModal({
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || loadingTenants}
               className="flex-1 py-2.5 px-4 rounded-lg bg-brand text-text-contrast font-medium text-sm hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? "Updating..." : "Update User"}
