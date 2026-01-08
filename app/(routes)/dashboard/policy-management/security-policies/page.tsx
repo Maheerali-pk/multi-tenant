@@ -482,9 +482,70 @@ const SecurityPolicies: React.FC<SecurityPoliciesProps> = () => {
           return;
         }
 
+        // Generate unique copy name
+        const baseTitle = fullPolicy.title;
+        let copyTitle = `Copy of ${baseTitle}`;
+
+        // Check for existing copies in the same tenant
+        const { data: existingCopies, error: copiesError } = await supabase
+          .from("policies")
+          .select("title")
+          .eq("tenant_id", tenantId)
+          .like("title", `Copy%of ${baseTitle}`);
+
+        if (!copiesError && existingCopies && existingCopies.length > 0) {
+          // Extract numbers from existing copy titles
+          const copyNumbers: number[] = [];
+          const copyPattern = /^Copy(?: (\d+))? of (.+)$/;
+
+          existingCopies.forEach((copy) => {
+            const match = copy.title.match(copyPattern);
+            if (match) {
+              const number = match[1] ? parseInt(match[1], 10) : 1;
+              const originalTitle = match[2];
+              // Only consider copies of the same base title
+              if (originalTitle === baseTitle) {
+                copyNumbers.push(number);
+              }
+            }
+          });
+
+          // Determine the next copy number
+          if (copyNumbers.length > 0) {
+            // Check if "Copy of" (number 1) exists
+            const hasCopyOf = copyNumbers.includes(1);
+            
+            if (hasCopyOf) {
+              // "Copy of" exists, find the next available number starting from 2
+              const numberedCopies = copyNumbers.filter(n => n >= 2).sort((a, b) => a - b);
+              
+              if (numberedCopies.length === 0) {
+                // No numbered copies exist, use 2
+                copyTitle = `Copy 2 of ${baseTitle}`;
+              } else {
+                // Find the first gap or use the highest number + 1
+                let nextNumber = 2;
+                for (let i = 0; i < numberedCopies.length; i++) {
+                  const expectedNumber = i + 2; // Start from 2
+                  if (numberedCopies[i] !== expectedNumber) {
+                    nextNumber = expectedNumber;
+                    break;
+                  }
+                  // If we've reached the end, use the highest number + 1
+                  if (i === numberedCopies.length - 1) {
+                    nextNumber = numberedCopies[i] + 1;
+                  }
+                }
+                copyTitle = `Copy ${nextNumber} of ${baseTitle}`;
+              }
+            }
+            // If "Copy of" doesn't exist, we can use it (copyTitle already set)
+          }
+        }
+
         // Prepare cloned policy data
         const clonedPolicyData: TablesInsert<"policies"> = {
-          title: `Copy of ${fullPolicy.title}`,
+          title: copyTitle,
           created_by: auth.userData.id,
           created_at: new Date().toISOString(),
           tenant_id: tenantId,
