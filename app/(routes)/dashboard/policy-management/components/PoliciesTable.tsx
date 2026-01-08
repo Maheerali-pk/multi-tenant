@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { Copy } from "lucide-react";
 import Table, { TableColumn } from "@/app/components/Table";
 import { FilterValues } from "@/app/components/TableFilter";
+import Tooltip from "@/app/components/Tooltip";
 import {
   formatStatusForDisplay,
   renderStatusBadge,
@@ -191,13 +192,15 @@ const PoliciesTable: React.FC<PoliciesTableProps> = ({
     return (
       <>
         {onClone && (
-          <button
-            onClick={() => handleClone(row)}
-            className="p-1.5 cursor-pointer rounded-lg hover:bg-blue-light transition-colors text-brand hover:text-brand"
-            aria-label="Clone"
-          >
-            <Copy size={16} />
-          </button>
+          <Tooltip text="Clone" position="top">
+            <button
+              onClick={() => handleClone(row)}
+              className="p-1.5 cursor-pointer rounded-lg hover:bg-blue-light transition-colors text-brand hover:text-brand"
+              aria-label="Clone"
+            >
+              <Copy size={16} />
+            </button>
+          </Tooltip>
         )}
       </>
     );

@@ -9,6 +9,7 @@ import {
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
+import Tooltip from "./Tooltip";
 
 export interface TableColumn<T = any> {
   key: string;
@@ -457,22 +458,26 @@ function Table<T extends Record<string, any>>({
                     >
                       <div className="flex items-center gap-2">
                         {onEdit && (
-                          <button
-                            onClick={() => onEdit(row)}
-                            className="p-1.5 cursor-pointer rounded-lg hover:bg-blue-light transition-colors text-brand hover:text-brand"
-                            aria-label="Edit"
-                          >
-                            <Edit2 size={16} />
-                          </button>
+                          <Tooltip text="Edit" position="top">
+                            <button
+                              onClick={() => onEdit(row)}
+                              className="p-1.5 cursor-pointer rounded-lg hover:bg-blue-light transition-colors text-brand hover:text-brand"
+                              aria-label="Edit"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                          </Tooltip>
                         )}
                         {onDelete && (
-                          <button
-                            onClick={() => onDelete(row)}
-                            className="p-1.5 cursor-pointer rounded-lg hover:bg-failure-light transition-colors text-failure hover:text-failure"
-                            aria-label="Delete"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          <Tooltip text="Delete" position="top">
+                            <button
+                              onClick={() => onDelete(row)}
+                              className="p-1.5 cursor-pointer rounded-lg hover:bg-failure-light transition-colors text-failure hover:text-failure"
+                              aria-label="Delete"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </Tooltip>
                         )}
                         {customActions && customActions(row)}
                       </div>
