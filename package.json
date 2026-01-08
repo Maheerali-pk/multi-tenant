@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "get-db-types": "npx supabase gen types typescript --project-id \"cgxaskbgijafkghjgnxq\" --schema public > app/types/database.types.ts"
   },
   "dependencies": {
     "@lexical/html": "^0.39.0",

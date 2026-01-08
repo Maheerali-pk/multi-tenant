@@ -341,7 +341,7 @@ export type Database = {
 					approved_at: string | null
 					approver_team_id: string | null
 					approver_user_id: string | null
-					classification_id: number
+					classification_id: number | null
 					created_at: string
 					created_by: string | null
 					document_type_id: number
@@ -361,13 +361,13 @@ export type Database = {
 					tenant_id: string
 					title: string
 					updated_at: string
-					version: string
+					version: string | null
 				}
 				Insert: {
 					approved_at?: string | null
 					approver_team_id?: string | null
 					approver_user_id?: string | null
-					classification_id: number
+					classification_id?: number | null
 					created_at?: string
 					created_by?: string | null
 					document_type_id: number
@@ -387,13 +387,13 @@ export type Database = {
 					tenant_id: string
 					title: string
 					updated_at?: string
-					version?: string
+					version?: string | null
 				}
 				Update: {
 					approved_at?: string | null
 					approver_team_id?: string | null
 					approver_user_id?: string | null
-					classification_id?: number
+					classification_id?: number | null
 					created_at?: string
 					created_by?: string | null
 					document_type_id?: number
@@ -413,7 +413,7 @@ export type Database = {
 					tenant_id?: string
 					title?: string
 					updated_at?: string
-					version?: string
+					version?: string | null
 				}
 				Relationships: [
 					{
@@ -495,140 +495,6 @@ export type Database = {
 					},
 				]
 			}
-			policies_toDelete: {
-				Row: {
-					approver_team_id: string | null
-					approver_user_id: string | null
-					classification_id: number | null
-					created_at: string
-					creator_id: string | null
-					id: string
-					name: string
-					next_review_date: string | null
-					owner_team_id: string | null
-					owner_user_id: string | null
-					purpose: string | null
-					requirements: string | null
-					reviewer_team_id: string | null
-					reviewer_user_id: string | null
-					scope: string | null
-					status: number | null
-					tenant_id: string
-					version: string | null
-				}
-				Insert: {
-					approver_team_id?: string | null
-					approver_user_id?: string | null
-					classification_id?: number | null
-					created_at?: string
-					creator_id?: string | null
-					id?: string
-					name: string
-					next_review_date?: string | null
-					owner_team_id?: string | null
-					owner_user_id?: string | null
-					purpose?: string | null
-					requirements?: string | null
-					reviewer_team_id?: string | null
-					reviewer_user_id?: string | null
-					scope?: string | null
-					status?: number | null
-					tenant_id: string
-					version?: string | null
-				}
-				Update: {
-					approver_team_id?: string | null
-					approver_user_id?: string | null
-					classification_id?: number | null
-					created_at?: string
-					creator_id?: string | null
-					id?: string
-					name?: string
-					next_review_date?: string | null
-					owner_team_id?: string | null
-					owner_user_id?: string | null
-					purpose?: string | null
-					requirements?: string | null
-					reviewer_team_id?: string | null
-					reviewer_user_id?: string | null
-					scope?: string | null
-					status?: number | null
-					tenant_id?: string
-					version?: string | null
-				}
-				Relationships: [
-					{
-						foreignKeyName: "policies_approver_team_id_fkey"
-						columns: ["approver_team_id"]
-						isOneToOne: false
-						referencedRelation: "teams"
-						referencedColumns: ["id"]
-					},
-					{
-						foreignKeyName: "policies_approver_user_id_fkey"
-						columns: ["approver_user_id"]
-						isOneToOne: false
-						referencedRelation: "users"
-						referencedColumns: ["id"]
-					},
-					{
-						foreignKeyName: "policies_classification_id_fkey"
-						columns: ["classification_id"]
-						isOneToOne: false
-						referencedRelation: "asset_classifications"
-						referencedColumns: ["id"]
-					},
-					{
-						foreignKeyName: "policies_creator_id_fkey"
-						columns: ["creator_id"]
-						isOneToOne: false
-						referencedRelation: "users"
-						referencedColumns: ["id"]
-					},
-					{
-						foreignKeyName: "policies_owner_team_id_fkey"
-						columns: ["owner_team_id"]
-						isOneToOne: false
-						referencedRelation: "teams"
-						referencedColumns: ["id"]
-					},
-					{
-						foreignKeyName: "policies_owner_user_id_fkey"
-						columns: ["owner_user_id"]
-						isOneToOne: false
-						referencedRelation: "users"
-						referencedColumns: ["id"]
-					},
-					{
-						foreignKeyName: "policies_reviewer_team_id_fkey"
-						columns: ["reviewer_team_id"]
-						isOneToOne: false
-						referencedRelation: "teams"
-						referencedColumns: ["id"]
-					},
-					{
-						foreignKeyName: "policies_reviewer_user_id_fkey"
-						columns: ["reviewer_user_id"]
-						isOneToOne: false
-						referencedRelation: "users"
-						referencedColumns: ["id"]
-					},
-					{
-						foreignKeyName: "policies_status_fkey"
-						columns: ["status"]
-						isOneToOne: false
-						referencedRelation: "policy_lifecycle_statuses_todelete"
-						referencedColumns: ["id"]
-					},
-					{
-						foreignKeyName: "policies_tenant_id_fkey"
-						columns: ["tenant_id"]
-						isOneToOne: false
-						referencedRelation: "tenants"
-						referencedColumns: ["id"]
-					},
-				]
-			}
 			policy_comments: {
 				Row: {
 					created_at: string
@@ -650,13 +516,6 @@ export type Database = {
 				}
 				Relationships: [
 					{
-						foreignKeyName: "policy_comments_policy_id_fkey"
-						columns: ["policy_id"]
-						isOneToOne: false
-						referencedRelation: "policies_toDelete"
-						referencedColumns: ["id"]
-					},
-					{
 						foreignKeyName: "policy_comments_user_id_fkey"
 						columns: ["user_id"]
 						isOneToOne: false
@@ -664,24 +523,6 @@ export type Database = {
 						referencedColumns: ["id"]
 					},
 				]
-			}
-			policy_lifecycle_statuses_todelete: {
-				Row: {
-					created_at: string
-					id: number
-					name: string
-				}
-				Insert: {
-					created_at?: string
-					id?: number
-					name: string
-				}
-				Update: {
-					created_at?: string
-					id?: number
-					name?: string
-				}
-				Relationships: []
 			}
 			roles_todelete: {
 				Row: {
@@ -789,36 +630,6 @@ export type Database = {
 					updated_at?: string | null
 				}
 				Relationships: []
-			}
-			user_roles_todelete: {
-				Row: {
-					role_id: string
-					user_id: string
-				}
-				Insert: {
-					role_id: string
-					user_id: string
-				}
-				Update: {
-					role_id?: string
-					user_id?: string
-				}
-				Relationships: [
-					{
-						foreignKeyName: "user_roles_role_id_fkey"
-						columns: ["role_id"]
-						isOneToOne: false
-						referencedRelation: "roles_todelete"
-						referencedColumns: ["id"]
-					},
-					{
-						foreignKeyName: "user_roles_user_id_fkey"
-						columns: ["user_id"]
-						isOneToOne: false
-						referencedRelation: "users"
-						referencedColumns: ["id"]
-					},
-				]
 			}
 			user_teams: {
 				Row: {

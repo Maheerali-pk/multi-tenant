@@ -1077,7 +1077,7 @@ export default function PolicyEditModal({
             );
             return draftStatus?.id || null;
           })();
-        const finalClassificationId = classificationId || 1; // Default to 1 if not provided
+        const finalClassificationId = classificationId; // Default to 1 if not provided
 
         if (!finalDocumentTypeId) {
           setError("Document type is required");
