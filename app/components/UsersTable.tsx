@@ -13,6 +13,7 @@ import { FilterValues } from "./TableFilter";
 import { toast } from "react-toastify";
 import { useAuthContext } from "@/app/contexts/AuthContext";
 import { Settings, Users, Mail } from "lucide-react";
+import Tooltip from "./Tooltip";
 import TenantListModal from "./TenantListModal";
 import TeamListModal from "./ManageUserTeamsModal";
 import TeamsListModal from "./TeamsListModal";
@@ -684,30 +685,38 @@ const UsersTable: React.FC<UsersTableProps> = ({
       // Show manage tenants button for superadmin users when mode is superadmin
       if (mode === "superadmin" && row.role === "superadmin") {
         actions.push(
-          <button
-            key="manage-tenants"
-            onClick={() => handleManageTenantsClick(row)}
-            className="p-1.5 cursor-pointer rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/20 transition-colors text-[#7c3aed] hover:text-[#6d28d9]"
-            aria-label="Manage Tenants"
-            title="Manage Tenants"
+          <Tooltip
+            key="manage-tenants-tooltip"
+            text="Manage Tenants"
+            position="top"
           >
-            <Settings size={16} />
-          </button>
+            <button
+              onClick={() => handleManageTenantsClick(row)}
+              className="p-1.5 cursor-pointer rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/20 transition-colors text-[#7c3aed] hover:text-[#6d28d9]"
+              aria-label="Manage Tenants"
+            >
+              <Settings size={16} />
+            </button>
+          </Tooltip>
         );
       }
 
       // Show manage teams button for tenant_admin mode when role is superadmin or tenant_admin
       if (mode === "tenant_admin") {
         actions.push(
-          <button
-            key="manage-teams"
-            onClick={() => handleManageTeamsClick(row)}
-            className="p-1.5 cursor-pointer rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors text-[#7c3aed] hover:text-[#6d28d9]"
-            aria-label="Manage Teams"
-            title="Manage Teams"
+          <Tooltip
+            key="manage-teams-tooltip"
+            text="Manage Teams"
+            position="top"
           >
-            <Settings size={16} />
-          </button>
+            <button
+              onClick={() => handleManageTeamsClick(row)}
+              className="p-1.5 cursor-pointer rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors text-[#7c3aed] hover:text-[#6d28d9]"
+              aria-label="Manage Teams"
+            >
+              <Settings size={16} />
+            </button>
+          </Tooltip>
         );
       }
 
@@ -715,15 +724,19 @@ const UsersTable: React.FC<UsersTableProps> = ({
       // Don't show for tenant_employee as they don't have auth accounts
       if (row.invitation_pending === true && row.role !== "tenant_employee") {
         actions.push(
-          <button
-            key="invite-user"
-            onClick={() => handleInviteUserClick(row)}
-            className="p-1.5 cursor-pointer rounded-lg hover:bg-[rgba(16,185,129,0.15)] transition-colors text-[#059669] hover:text-[#047857]"
-            aria-label="Send Invitation"
-            title="Send Invitation"
+          <Tooltip
+            key="invite-user-tooltip"
+            text="Send Invitation"
+            position="top"
           >
-            <Mail size={16} />
-          </button>
+            <button
+              onClick={() => handleInviteUserClick(row)}
+              className="p-1.5 cursor-pointer rounded-lg hover:bg-[rgba(16,185,129,0.15)] transition-colors text-[#059669] hover:text-[#047857]"
+              aria-label="Send Invitation"
+            >
+              <Mail size={16} />
+            </button>
+          </Tooltip>
         );
       }
 
