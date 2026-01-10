@@ -8,6 +8,38 @@ export async function POST(req: NextRequest) {
 	const { email, full_name, tenant_id, role, title, sendInvitation = true }: InviteFromSuperAdminRequest = await req.json()
 
 	try {
+		// tenant_employee role doesn't require auth account - create directly in database
+		if (role === 'tenant_employee') {
+			// Validate tenant_id is required for tenant_employee
+			if (!tenant_id) {
+				return new Response(JSON.stringify({ error: 'Tenant ID is required for tenant employee' }), { status: 400 })
+			}
+
+			// Generate a unique ID for the user (since no auth account)
+			const { randomUUID } = await import('crypto')
+			const userId = randomUUID()
+
+			// Insert directly into users table without auth account
+			const { error: profileError } = await supabaseAdmin
+				.from('users')
+				.insert({
+					id: userId,
+					auth_user_id: null, // No auth account for tenant_employee
+					email,
+					name: full_name,
+					role,
+					tenant_id: tenant_id,
+					title: title || null,
+					invitation_pending: null // No invitations for tenant_employee
+				})
+
+			if (profileError) {
+				return new Response(JSON.stringify({ error: profileError.message }), { status: 500 })
+			}
+
+			return new Response(JSON.stringify({ ok: true, userId }), { status: 200 })
+		}
+
 		// Get the base URL for redirect
 		// Priority: NEXT_PUBLIC_APP_URL > VERCEL_URL > hardcoded production URL
 		let baseUrl = process.env.NEXT_PUBLIC_APP_URL

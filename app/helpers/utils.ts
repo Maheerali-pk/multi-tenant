@@ -8,6 +8,8 @@ export const formatUserRole = (role: UserRole | ""): string => {
 			return "Tenant Admin";
 		case "tenant_user":
 			return "Tenant User";
+		case "tenant_employee":
+			return "Tenant Employee";
 		default:
 			return role;
 	}

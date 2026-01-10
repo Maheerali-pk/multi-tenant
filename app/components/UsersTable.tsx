@@ -100,7 +100,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
         }
         query = query
           .eq("tenant_id", tenantId)
-          .in("role", ["tenant_admin", "tenant_user"]);
+          .in("role", ["tenant_admin", "tenant_user", "tenant_employee"]);
       }
 
       const { data: usersData, error: usersError } = await query.order(
@@ -294,6 +294,11 @@ const UsersTable: React.FC<UsersTableProps> = ({
         return {
           backgroundColor: "rgba(16, 185, 129, 0.15)",
           color: "#059669",
+        };
+      case "tenant_employee":
+        return {
+          backgroundColor: "rgba(245, 158, 11, 0.15)",
+          color: "#d97706",
         };
       default:
         return {
@@ -707,7 +712,8 @@ const UsersTable: React.FC<UsersTableProps> = ({
       }
 
       // Show invite user button if invitation is pending (at the end, after settings icon)
-      if (row.invitation_pending === true) {
+      // Don't show for tenant_employee as they don't have auth accounts
+      if (row.invitation_pending === true && row.role !== "tenant_employee") {
         actions.push(
           <button
             key="invite-user"
