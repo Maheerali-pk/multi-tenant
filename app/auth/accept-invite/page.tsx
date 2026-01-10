@@ -208,9 +208,36 @@ export default function AcceptInvitePage() {
           .eq("id", user.id);
 
         if (updatePendingError) {
-          console.error("Error updating invitation status:", updatePendingError);
+          console.error(
+            "Error updating invitation status:",
+            updatePendingError
+          );
           // Don't block the flow, just log the error
         }
+      }
+
+      // Update last logged in timestamp
+      try {
+        const { data: userData, error: userError } = await supabase
+          .from("users")
+          .select("id")
+          .eq("id", user.id)
+          .single();
+
+        if (!userError && userData) {
+          await fetch("/api/update-last-login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              userId: userData.id,
+            }),
+          });
+        }
+      } catch (err) {
+        // Don't block redirect if update fails
+        console.error("Error updating last login:", err);
       }
 
       // Success! Redirect to dashboard

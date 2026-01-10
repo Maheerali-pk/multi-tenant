@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useReducer, useMemo } from "react";
+import { useEffect, useReducer, useMemo, useRef } from "react";
 import { createContext, useContext } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { AuthUser, UserData } from "@/app/types/user.types";
@@ -75,6 +75,9 @@ const AuthManager: React.FC = () => {
 
   // Create Supabase client instance (memoized to avoid recreating on every render)
   const supabase = useMemo(() => createClient(), []);
+
+  // Track if we've updated last login for this session to prevent duplicates
+  const hasUpdatedLastLoginRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -235,7 +238,7 @@ const AuthManager: React.FC = () => {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       const user = session?.user ?? null;
 
@@ -250,10 +253,15 @@ const AuthManager: React.FC = () => {
         },
       });
 
+      // Reset last login flag when user signs out
+      if (event === "SIGNED_OUT") {
+        hasUpdatedLastLoginRef.current = false;
+      }
+
       // Fetch user data asynchronously (non-blocking)
       if (user) {
         fetchUserData(user.id, supabase)
-          .then((userData) => {
+          .then(async (userData) => {
             if (mounted) {
               dispatch({
                 type: "SET_STATE",
@@ -261,6 +269,29 @@ const AuthManager: React.FC = () => {
                   userData: userData,
                 },
               });
+
+              // Update last logged in timestamp when user signs in (only once per session)
+              if (
+                event === "SIGNED_IN" &&
+                userData &&
+                !hasUpdatedLastLoginRef.current
+              ) {
+                hasUpdatedLastLoginRef.current = true;
+                try {
+                  await fetch("/api/update-last-login", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      userId: userData.id,
+                    }),
+                  });
+                } catch (err) {
+                  // Don't block auth flow if update fails
+                  console.error("Error updating last login:", err);
+                }
+              }
             }
           })
           .catch((err) => {

@@ -668,6 +668,7 @@ export type Database = {
 					email: string
 					id: string
 					invitation_pending: boolean | null
+					last_loggedin_at: string | null
 					name: string
 					role: string
 					tenant_id: string | null
@@ -679,6 +680,7 @@ export type Database = {
 					email: string
 					id: string
 					invitation_pending?: boolean | null
+					last_loggedin_at?: string | null
 					name: string
 					role?: string
 					tenant_id?: string | null
@@ -690,6 +692,7 @@ export type Database = {
 					email?: string
 					id?: string
 					invitation_pending?: boolean | null
+					last_loggedin_at?: string | null
 					name?: string
 					role?: string
 					tenant_id?: string | null

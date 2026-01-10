@@ -119,9 +119,10 @@ export default function CreateUserModalForTenantAdmin({
       }
 
       // Show success toast
-      const successMessage = formData.role === "tenant_employee"
-        ? `Tenant employee ${formData.email.trim()} has been created successfully.`
-        : `User ${formData.email.trim()} has been created successfully. You can send an invitation later.`;
+      const successMessage =
+        formData.role === "tenant_employee"
+          ? `Tenant employee ${formData.email.trim()} has been created successfully.`
+          : `User ${formData.email.trim()} has been created successfully. You can send an invitation later.`;
       toast.success(successMessage);
 
       if (onSuccess) {

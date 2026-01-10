@@ -12,12 +12,18 @@ export default function Dashboard() {
   const [state] = useGlobalContext();
 
   useEffect(() => {
-    if (!auth.initialized || auth.loading) {
+    // Wait for auth to initialize and userData to be loaded
+    if (!auth.initialized || auth.loading || !auth.user) {
+      return;
+    }
+
+    // Wait for userData to be loaded before making redirect decisions
+    if (!auth.userData) {
       return;
     }
 
     // If user is a super admin and no tenant is selected, redirect to users management
-    if (auth.userData?.role === "superadmin" && !state.selectedTenantId) {
+    if (auth.userData.role === "superadmin" && !state.selectedTenantId) {
       router.push("/dashboard/settings/superadmin/users-and-access" as IRoute);
     } else {
       router.push("/dashboard/asset-management/applications" as IRoute);
@@ -25,7 +31,8 @@ export default function Dashboard() {
   }, [
     auth.initialized,
     auth.loading,
-    auth.userData?.role,
+    auth.user,
+    auth.userData,
     state.selectedTenantId,
     router,
   ]);

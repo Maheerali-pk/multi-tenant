@@ -18,6 +18,7 @@ import TenantListModal from "./TenantListModal";
 import TeamListModal from "./ManageUserTeamsModal";
 import TeamsListModal from "./TeamsListModal";
 import { useGlobalContext } from "../contexts/GlobalContext";
+import { formatRelativeTime } from "../helpers/formatRelativeTime";
 
 type User = Tables<"users">;
 type Tenant = Tables<"tenants">;
@@ -533,7 +534,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
       key: "name",
       header: "Name",
       sortable: true,
-      width: mode === "tenant_admin" ? "20%" : "20%",
+      width: mode === "tenant_admin" ? "15%" : "15%",
     },
     {
       key: "email",
@@ -545,15 +546,22 @@ const UsersTable: React.FC<UsersTableProps> = ({
       key: "title",
       header: "Title",
       sortable: true,
-      width: mode === "tenant_admin" ? "15%" : "15%",
+      width: mode === "tenant_admin" ? "12%" : "12%",
       render: (row) => row.title || "-",
     },
     {
       key: "role",
       header: "Role",
       sortable: true,
-      width: mode === "tenant_admin" ? "15%" : "15%",
+      width: mode === "tenant_admin" ? "13%" : "13%",
       render: (row) => renderRoleBadge(row.role),
+    },
+    {
+      key: "last_loggedin_at",
+      header: "Last Logged In",
+      sortable: true,
+      width: mode === "tenant_admin" ? "15%" : "15%",
+      render: (row) => formatRelativeTime(row.last_loggedin_at),
     },
     // Tenant column only shown in superadmin mode
     ...(mode === "superadmin"
@@ -562,7 +570,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
             key: "tenant_name",
             header: "Tenant",
             sortable: true,
-            width: "20%",
+            width: "15%",
             render: (row) => {
               // For superadmin users, show list of tenants
               if (row.role === "superadmin" && row.tenant_names) {
