@@ -76,6 +76,11 @@ const getCustomStyles = (
     boxShadow:
       "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
     zIndex: 9999,
+    marginTop: "0.25rem",
+  }),
+  menuPortal: (baseStyles) => ({
+    ...baseStyles,
+    zIndex: 9999,
   }),
   option: (baseStyles, state) => ({
     ...baseStyles,
@@ -169,6 +174,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       isClearable={!isRequired}
       styles={getCustomStyles(isDisabled)}
       classNamePrefix="custom-select"
+      menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+      menuPosition="fixed"
     />
   );
 };

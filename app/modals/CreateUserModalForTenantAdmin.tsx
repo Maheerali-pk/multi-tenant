@@ -175,7 +175,7 @@ export default function CreateUserModalForTenantAdmin({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6 pb-4">
         {/* Grid Layout for Form Fields */}
         <div className="grid grid-cols-1 gap-6">
           {/* Name Field */}
