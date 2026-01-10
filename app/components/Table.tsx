@@ -401,9 +401,9 @@ function Table<T extends Record<string, any>>({
               {hasActions && (
                 <th
                   style={{
-                    width: "120px",
-                    minWidth: "120px",
-                    maxWidth: "120px",
+                    width: "180px",
+                    minWidth: "180px",
+                    maxWidth: "180px",
                   }}
                   className="px-3 py-1 text-left text-sm font-normal text-text-secondary bg-table-header"
                 >
@@ -450,9 +450,9 @@ function Table<T extends Record<string, any>>({
                   {hasActions && (
                     <td
                       style={{
-                        width: "120px",
-                        minWidth: "120px",
-                        maxWidth: "120px",
+                        width: "180px",
+                        minWidth: "180px",
+                        maxWidth: "180px",
                       }}
                       className="px-3 py-1"
                     >
