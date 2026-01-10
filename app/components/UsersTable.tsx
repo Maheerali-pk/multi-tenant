@@ -718,7 +718,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
           <button
             key="invite-user"
             onClick={() => handleInviteUserClick(row)}
-            className="p-1.5 cursor-pointer rounded-lg hover:bg-brand/10 transition-colors text-brand hover:text-brand/80"
+            className="p-1.5 cursor-pointer rounded-lg hover:bg-[rgba(16,185,129,0.15)] transition-colors text-[#059669] hover:text-[#047857]"
             aria-label="Send Invitation"
             title="Send Invitation"
           >
