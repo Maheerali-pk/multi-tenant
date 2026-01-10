@@ -5,7 +5,7 @@ import { InviteFromSuperAdminRequest } from '@/app/types/api.types'
 import { formatUserRole } from '@/app/helpers/utils'
 
 export async function POST(req: NextRequest) {
-	const { email, full_name, tenant_id, role, title }: InviteFromSuperAdminRequest = await req.json()
+	const { email, full_name, tenant_id, role, title, sendInvitation = true }: InviteFromSuperAdminRequest = await req.json()
 
 	try {
 		// Get the base URL for redirect
@@ -33,11 +33,42 @@ export async function POST(req: NextRequest) {
 			}
 		}
 
-		// 1) Invite user via Supabase - this creates the user and sends invitation email
-		const { data: userData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-			email,
-			{
-				data: {
+		let userData: { user: { id: string } | null } | null = null
+		let userId: string
+
+		if (sendInvitation) {
+			// 1) Invite user via Supabase - this creates the user and sends invitation email
+			const { data, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+				email,
+				{
+					data: {
+						full_name,
+						role,
+						tenant_id: tenant_id || null,
+						tenant_name: tenantName,
+						title: title || null,
+						user_role: formatUserRole(role),
+					},
+					redirectTo,
+				}
+			)
+
+			if (inviteError) {
+				return new Response(JSON.stringify({ error: inviteError.message }), { status: 400 })
+			}
+
+			if (!data.user) {
+				return new Response(JSON.stringify({ error: 'Failed to invite user' }), { status: 500 })
+			}
+
+			userData = data
+			userId = data.user.id
+		} else {
+			// Create user without sending invitation email
+			const { data, error: createError } = await supabaseAdmin.auth.admin.createUser({
+				email,
+				email_confirm: false, // User needs to confirm via invitation later
+				user_metadata: {
 					full_name,
 					role,
 					tenant_id: tenant_id || null,
@@ -45,19 +76,19 @@ export async function POST(req: NextRequest) {
 					title: title || null,
 					user_role: formatUserRole(role),
 				},
-				redirectTo,
+			})
+
+			if (createError) {
+				return new Response(JSON.stringify({ error: createError.message }), { status: 400 })
 			}
-		)
 
-		if (inviteError) {
-			return new Response(JSON.stringify({ error: inviteError.message }), { status: 400 })
+			if (!data.user) {
+				return new Response(JSON.stringify({ error: 'Failed to create user' }), { status: 500 })
+			}
+
+			userData = data
+			userId = data.user.id
 		}
-
-		if (!userData.user) {
-			return new Response(JSON.stringify({ error: 'Failed to invite user' }), { status: 500 })
-		}
-
-		const userId = userData.user.id
 
 		// 2) Insert profile mapping role & tenant in users table
 		const { error: profileError } = await supabaseAdmin
@@ -69,7 +100,8 @@ export async function POST(req: NextRequest) {
 				name: full_name,
 				role,
 				tenant_id: tenant_id || null,
-				title: title || null
+				title: title || null,
+				invitation_pending: !sendInvitation // Set to true if we didn't send invitation
 			})
 
 		if (profileError) {

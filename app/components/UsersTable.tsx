@@ -7,11 +7,12 @@ import { Tables } from "@/app/types/database.types";
 import EditUserModal from "@/app/modals/EditUserModal";
 import EditUserModalForTenantAdmin from "@/app/modals/EditUserModalForTenantAdmin";
 import DeleteUser from "@/app/modals/DeleteUser";
+import InviteUser from "@/app/modals/InviteUser";
 import ManageSuperAdminTenantsModals from "@/app/modals/ManageSuperAdminTenantsModals";
 import { FilterValues } from "./TableFilter";
 import { toast } from "react-toastify";
 import { useAuthContext } from "@/app/contexts/AuthContext";
-import { Settings, Users } from "lucide-react";
+import { Settings, Users, Mail } from "lucide-react";
 import TenantListModal from "./TenantListModal";
 import TeamListModal from "./ManageUserTeamsModal";
 import TeamsListModal from "./TeamsListModal";
@@ -66,6 +67,10 @@ const UsersTable: React.FC<UsersTableProps> = ({
     useState<UserRow | null>(null);
   const [teamsListModalOpen, setTeamsListModalOpen] = useState(false);
   const [teamsToShow, setTeamsToShow] = useState<string[]>([]);
+  const [inviteUserDialogOpen, setInviteUserDialogOpen] = useState(false);
+  const [selectedUserForInvite, setSelectedUserForInvite] =
+    useState<UserRow | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
   const [state] = useGlobalContext();
 
   const fetchUsers = useCallback(async () => {
@@ -418,6 +423,58 @@ const UsersTable: React.FC<UsersTableProps> = ({
     await fetchUsers();
   }, [fetchUsers]);
 
+  const handleInviteUserClick = useCallback((row: UserRow) => {
+    setSelectedUserForInvite(row);
+    setInviteUserDialogOpen(true);
+  }, []);
+
+  const handleInviteUserCancel = useCallback(() => {
+    setInviteUserDialogOpen(false);
+    setSelectedUserForInvite(null);
+  }, []);
+
+  const handleInviteUserConfirm = useCallback(async () => {
+    if (!selectedUserForInvite) return;
+
+    setInviteLoading(true);
+    try {
+      // Call API route to send invitation
+      const response = await fetch("/api/send-invitation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: selectedUserForInvite.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Error sending invitation:", data);
+        setError(data.error || "Failed to send invitation");
+        setInviteLoading(false);
+        return;
+      }
+
+      // Show success toast
+      const userName =
+        selectedUserForInvite.name || selectedUserForInvite.email || "User";
+      toast.success(`Invitation email sent to ${userName} successfully`);
+
+      // Close dialog and refresh users
+      setInviteUserDialogOpen(false);
+      setSelectedUserForInvite(null);
+      await fetchUsers();
+    } catch (err) {
+      console.error("Error sending invitation:", err);
+      setError("Failed to send invitation");
+    } finally {
+      setInviteLoading(false);
+    }
+  }, [selectedUserForInvite, fetchUsers]);
+
   // Apply search and filter values
   const filteredData = useMemo(() => {
     let result = [...users];
@@ -649,9 +706,29 @@ const UsersTable: React.FC<UsersTableProps> = ({
         );
       }
 
+      // Show invite user button if invitation is pending (at the end, after settings icon)
+      if (row.invitation_pending === true) {
+        actions.push(
+          <button
+            key="invite-user"
+            onClick={() => handleInviteUserClick(row)}
+            className="p-1.5 cursor-pointer rounded-lg hover:bg-brand/10 transition-colors text-brand hover:text-brand/80"
+            aria-label="Send Invitation"
+            title="Send Invitation"
+          >
+            <Mail size={16} />
+          </button>
+        );
+      }
+
       return actions.length > 0 ? <>{actions}</> : null;
     },
-    [mode, handleManageTenantsClick, handleManageTeamsClick]
+    [
+      mode,
+      handleManageTenantsClick,
+      handleManageTeamsClick,
+      handleInviteUserClick,
+    ]
   );
 
   if (loading) {
@@ -724,6 +801,13 @@ const UsersTable: React.FC<UsersTableProps> = ({
         isOpen={teamsListModalOpen}
         onClose={() => setTeamsListModalOpen(false)}
         teams={teamsToShow}
+      />
+      <InviteUser
+        isOpen={inviteUserDialogOpen}
+        onClose={handleInviteUserCancel}
+        onConfirm={handleInviteUserConfirm}
+        user={selectedUserForInvite}
+        loading={inviteLoading}
       />
     </>
   );

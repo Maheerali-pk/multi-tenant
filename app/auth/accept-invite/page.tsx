@@ -185,6 +185,7 @@ export default function AcceptInvitePage() {
           role: role,
           tenant_id: tenantId,
           title: title,
+          invitation_pending: false, // User has accepted invitation
         });
 
         if (profileError) {
@@ -198,6 +199,17 @@ export default function AcceptInvitePage() {
             setLoading(false);
             return;
           }
+        }
+      } else {
+        // Update invitation_pending to false since user has accepted
+        const { error: updatePendingError } = await supabase
+          .from("users")
+          .update({ invitation_pending: false })
+          .eq("id", user.id);
+
+        if (updatePendingError) {
+          console.error("Error updating invitation status:", updatePendingError);
+          // Don't block the flow, just log the error
         }
       }
 
