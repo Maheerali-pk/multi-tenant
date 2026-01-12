@@ -12,7 +12,7 @@ import ManageSuperAdminTenantsModals from "@/app/modals/ManageSuperAdminTenantsM
 import { FilterValues } from "./TableFilter";
 import { toast } from "react-toastify";
 import { useAuthContext } from "@/app/contexts/AuthContext";
-import { Settings, Users, Mail, ChevronRight, Building2 } from "lucide-react";
+import { Settings, Users, Mail, MailCheck, ChevronRight, Building2 } from "lucide-react";
 import Tooltip from "./Tooltip";
 import TenantListModal from "./TenantListModal";
 import TeamListModal from "./ManageUserTeamsModal";
@@ -748,18 +748,23 @@ const UsersTable: React.FC<UsersTableProps> = ({
       // Don't show for tenant_employee as they don't have auth accounts
       // Don't show if auth_created is true (user has already accepted invitation)
       if (row.role !== "tenant_employee" && row.auth_created === false) {
+        const invitationStatus = getInvitationStatus(row.invitation);
+        const isPending = invitationStatus === "pending";
+        const Icon = isPending ? MailCheck : Mail;
+        const tooltipText = isPending ? "Invitation Pending" : "Send Invitation";
+        
         actions.push(
           <Tooltip
             key="invite-user-tooltip"
-            text="Send Invitation"
+            text={tooltipText}
             position="top"
           >
             <button
               onClick={() => handleInviteUserClick(row)}
               className="p-1.5 cursor-pointer rounded-lg hover:bg-[rgba(16,185,129,0.15)] transition-colors text-[#059669] hover:text-[#047857]"
-              aria-label="Send Invitation"
+              aria-label={tooltipText}
             >
-              <Mail size={16} />
+              <Icon size={16} />
             </button>
           </Tooltip>
         );
