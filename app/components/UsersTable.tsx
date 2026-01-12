@@ -19,6 +19,10 @@ import TeamListModal from "./ManageUserTeamsModal";
 import TeamsListModal from "./TeamsListModal";
 import { useGlobalContext } from "../contexts/GlobalContext";
 import { formatRelativeTime } from "../helpers/formatRelativeTime";
+import {
+  getInvitationStatus,
+  type InvitationData,
+} from "../helpers/invitationStatus";
 
 type User = Tables<"users">;
 type Tenant = Tables<"tenants">;
@@ -27,6 +31,7 @@ export interface UserRow extends User {
   tenant_name?: string | null;
   tenant_names?: string[]; // For superadmin users - list of tenant names
   team_names?: string[]; // For tenant_admin mode - list of team names
+  invitation?: InvitationData | null; // Invitation data from user_invites table
 }
 
 type UserTableMode = "superadmin" | "tenant_admin";
@@ -235,8 +240,31 @@ const UsersTable: React.FC<UsersTableProps> = ({
         }
       }
 
-      // Combine user data with tenant names and team names
+      // Fetch invitation data for all users (only for users with auth accounts)
+      const userEmails = usersData
+        .filter((user) => user.role !== "tenant_employee" && user.email)
+        .map((user) => user.email);
+      let invitationsMap = new Map<string, InvitationData>();
+
+      if (userEmails.length > 0) {
+        const { data: invitationsData, error: invitationsError } = await supabase
+          .from("user_invites")
+          .select("*")
+          .in("email", userEmails);
+
+        if (!invitationsError && invitationsData) {
+          invitationsData.forEach((invitation) => {
+            invitationsMap.set(invitation.email, invitation);
+          });
+        }
+      }
+
+      // Combine user data with tenant names, team names, and invitation data
       const usersWithTenants: UserRow[] = usersData.map((user) => {
+        const invitation = user.email
+          ? invitationsMap.get(user.email) || null
+          : null;
+
         if (user.role === "superadmin") {
           const tenantNames = superadminTenantsMap.get(user.id) || [];
           return {
@@ -244,6 +272,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
             tenant_name: null,
             tenant_names: tenantNames,
             team_names: undefined,
+            invitation,
           };
         } else {
           const teamNames = userTeamsMap.get(user.id) || [];
@@ -254,6 +283,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
               : null,
             tenant_names: undefined,
             team_names: teamNames,
+            invitation,
           };
         }
       });
@@ -728,9 +758,10 @@ const UsersTable: React.FC<UsersTableProps> = ({
         );
       }
 
-      // Show invite user button if invitation is pending (at the end, after settings icon)
+      // Show invite user button if auth_created is false (at the end, after settings icon)
       // Don't show for tenant_employee as they don't have auth accounts
-      if (row.invitation_pending === true && row.role !== "tenant_employee") {
+      // Don't show if auth_created is true (user has already accepted invitation)
+      if (row.role !== "tenant_employee" && row.auth_created === false) {
         actions.push(
           <Tooltip
             key="invite-user-tooltip"

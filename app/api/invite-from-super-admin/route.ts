@@ -6,6 +6,7 @@ import { formatUserRole } from '@/app/helpers/utils'
 
 export async function POST(req: NextRequest) {
 	const { email, full_name, tenant_id, role, title, sendInvitation = true }: InviteFromSuperAdminRequest = await req.json()
+	console.log("Invite from super admin request:", { email, full_name, tenant_id, role, title, sendInvitation })
 
 	try {
 		// tenant_employee role doesn't require auth account - create directly in database
@@ -30,7 +31,6 @@ export async function POST(req: NextRequest) {
 					role,
 					tenant_id: tenant_id,
 					title: title || null,
-					invitation_pending: null // No invitations for tenant_employee
 				})
 
 			if (profileError) {
@@ -133,13 +133,31 @@ export async function POST(req: NextRequest) {
 				role,
 				tenant_id: tenant_id || null,
 				title: title || null,
-				invitation_pending: !sendInvitation // Set to true if we didn't send invitation
+				auth_created: false, // Set to false by default, will be true when invitation is accepted
 			})
 
 		if (profileError) {
 			// If profile creation fails, try to delete the auth user
 			await supabaseAdmin.auth.admin.deleteUser(userId)
 			return new Response(JSON.stringify({ error: profileError.message }), { status: 500 })
+		}
+
+		// 3) Create user_invites entry if invitation was sent
+		if (sendInvitation) {
+			const { error: inviteError } = await supabaseAdmin
+				.from('user_invites')
+				.upsert({
+					email,
+					invited_at: new Date().toISOString(),
+					accepted_at: null,
+				}, {
+					onConflict: 'email',
+				})
+
+			if (inviteError) {
+				console.error('Error creating user_invites entry:', inviteError)
+				// Don't fail the request if invite tracking fails, but log it
+			}
 		}
 
 		return new Response(JSON.stringify({ ok: true, userId }), { status: 200 })

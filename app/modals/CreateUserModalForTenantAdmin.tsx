@@ -105,7 +105,7 @@ export default function CreateUserModalForTenantAdmin({
           title: formData.title.trim() || undefined,
           tenant_id: tenantId, // Use tenant_id from auth context
           role: formData.role,
-          sendInvitation: false, // Don't send invitation email, set invitation_pending=true
+          sendInvitation: false, // Don't send invitation email, user will be created without invitation
         }),
       });
 

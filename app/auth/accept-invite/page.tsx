@@ -185,7 +185,7 @@ export default function AcceptInvitePage() {
           role: role,
           tenant_id: tenantId,
           title: title,
-          invitation_pending: false, // User has accepted invitation
+          auth_created: true, // User has accepted invitation and created auth account
         });
 
         if (profileError) {
@@ -201,17 +201,27 @@ export default function AcceptInvitePage() {
           }
         }
       } else {
-        // Update invitation_pending to false since user has accepted
-        const { error: updatePendingError } = await supabase
+        // Update auth_created to true since user has accepted invitation
+        const { error: updateAuthCreatedError } = await supabase
           .from("users")
-          .update({ invitation_pending: false })
+          .update({ auth_created: true })
           .eq("id", user.id);
 
-        if (updatePendingError) {
-          console.error(
-            "Error updating invitation status:",
-            updatePendingError
-          );
+        if (updateAuthCreatedError) {
+          console.error("Error updating auth_created:", updateAuthCreatedError);
+          // Don't block the flow, just log the error
+        }
+      }
+
+      // Update user_invites table to set accepted_at
+      if (user.email) {
+        const { error: inviteUpdateError } = await supabase
+          .from("user_invites")
+          .update({ accepted_at: new Date().toISOString() })
+          .eq("email", user.email);
+
+        if (inviteUpdateError) {
+          console.error("Error updating user_invites:", inviteUpdateError);
           // Don't block the flow, just log the error
         }
       }

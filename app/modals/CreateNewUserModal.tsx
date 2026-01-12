@@ -128,6 +128,10 @@ export default function CreateNewUserModal({
     setLoading(true);
 
     try {
+      // For tenant_admin, don't send invitation directly (same as CreateUserModalForTenantAdmin)
+      // For superadmin, send invitation directly
+      const sendInvitation = formData.role === "superadmin";
+
       // Call the invite API endpoint
       const response = await fetch("/api/invite-from-super-admin", {
         method: "POST",
@@ -140,6 +144,7 @@ export default function CreateNewUserModal({
           title: formData.title.trim() || undefined,
           tenant_id: formData.tenant_id || undefined,
           role: formData.role,
+          sendInvitation: sendInvitation,
         }),
       });
 
@@ -153,9 +158,10 @@ export default function CreateNewUserModal({
       }
 
       // Show success toast
-      toast.success(
-        `User added and invitation email sent to user ${formData.email.trim()}`
-      );
+      const successMessage = sendInvitation
+        ? `User added and invitation email sent to user ${formData.email.trim()}`
+        : `User ${formData.email.trim()} has been created successfully. You can send an invitation later.`;
+      toast.success(successMessage);
 
       if (onSuccess) {
         onSuccess();

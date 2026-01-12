@@ -17,9 +17,9 @@ export async function POST(req: NextRequest) {
 			return new Response(JSON.stringify({ error: 'User not found' }), { status: 404 })
 		}
 
-		// Check if user already has invitation_pending set to false
-		if (!userData.invitation_pending) {
-			return new Response(JSON.stringify({ error: 'User invitation has already been sent' }), { status: 400 })
+		// Check if auth_created is true (user has already accepted invitation)
+		if (userData.auth_created === true) {
+			return new Response(JSON.stringify({ error: 'User has already accepted the invitation' }), { status: 400 })
 		}
 
 		// Get the base URL for redirect
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
 		if (existingAuthUserId) {
 			// Check if user has set a password (meaning they've accepted invitation)
 			const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(existingAuthUserId)
-			
+
 			if (!authError && authUser?.user) {
 				// If user has confirmed email or has metadata, they might have started the process
 				// For safety, we'll delete and recreate to ensure a fresh invitation
@@ -95,12 +95,11 @@ export async function POST(req: NextRequest) {
 
 		const newAuthUserId = inviteData.user.id
 
-		// Update users table with new auth_user_id and set invitation_pending to false
+		// Update users table with new auth_user_id
 		const { error: updateError } = await supabaseAdmin
 			.from('users')
 			.update({
 				auth_user_id: newAuthUserId,
-				invitation_pending: false,
 			})
 			.eq('id', userId)
 
@@ -108,6 +107,22 @@ export async function POST(req: NextRequest) {
 			// If update fails, try to delete the newly created auth user
 			await supabaseAdmin.auth.admin.deleteUser(newAuthUserId)
 			return new Response(JSON.stringify({ error: updateError.message }), { status: 500 })
+		}
+
+		// Upsert user_invites table (insert or update with new invited_at timestamp)
+		const { error: inviteUpsertError } = await supabaseAdmin
+			.from('user_invites')
+			.upsert({
+				email: userData.email,
+				invited_at: new Date().toISOString(),
+				accepted_at: null, // Reset accepted_at when resending
+			}, {
+				onConflict: 'email',
+			})
+
+		if (inviteUpsertError) {
+			console.error('Error upserting user_invites:', inviteUpsertError)
+			// Don't fail the request if invite tracking fails, but log it
 		}
 
 		return new Response(JSON.stringify({ ok: true, userId }), { status: 200 })

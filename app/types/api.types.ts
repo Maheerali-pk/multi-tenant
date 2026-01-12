@@ -6,5 +6,5 @@ export interface InviteFromSuperAdminRequest {
 	title?: string;
 	tenant_id?: string;
 	role: UserRole;
-	sendInvitation?: boolean; // If false, creates user without sending email and sets invitation_pending=true
+	sendInvitation?: boolean; // If false, creates user without sending email (no user_invites entry created)
 }

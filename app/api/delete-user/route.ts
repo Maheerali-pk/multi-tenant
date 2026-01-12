@@ -9,6 +9,18 @@ export async function DELETE(req: NextRequest) {
 			return new Response(JSON.stringify({ error: 'User ID is required' }), { status: 400 })
 		}
 
+		// Get user email before deletion (needed for user_invites deletion)
+		const { data: userData, error: userFetchError } = await supabaseAdmin
+			.from('users')
+			.select('email')
+			.eq('id', userId)
+			.single()
+
+		if (userFetchError) {
+			console.error('Error fetching user email:', userFetchError)
+			// Continue with deletion even if we can't get email
+		}
+
 		// Delete user's comments from policy_comments table first
 		const { error: commentsDeleteError } = await supabaseAdmin
 			.from('policy_comments')
@@ -18,6 +30,19 @@ export async function DELETE(req: NextRequest) {
 		if (commentsDeleteError) {
 			console.error('Error deleting user comments:', commentsDeleteError)
 			// Continue with user deletion even if comments deletion fails
+		}
+
+		// Delete from user_invites table by email (if email exists)
+		if (userData?.email) {
+			const { error: invitesDeleteError } = await supabaseAdmin
+				.from('user_invites')
+				.delete()
+				.eq('email', userData.email)
+
+			if (invitesDeleteError) {
+				console.error('Error deleting user from user_invites:', invitesDeleteError)
+				// Continue with user deletion even if user_invites deletion fails
+			}
 		}
 
 		// Delete from users table
