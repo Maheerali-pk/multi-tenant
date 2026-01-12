@@ -247,10 +247,11 @@ const UsersTable: React.FC<UsersTableProps> = ({
       let invitationsMap = new Map<string, InvitationData>();
 
       if (userEmails.length > 0) {
-        const { data: invitationsData, error: invitationsError } = await supabase
-          .from("user_invites")
-          .select("*")
-          .in("email", userEmails);
+        const { data: invitationsData, error: invitationsError } =
+          await supabase
+            .from("user_invites")
+            .select("*")
+            .in("email", userEmails);
 
         if (!invitationsError && invitationsData) {
           invitationsData.forEach((invitation) => {
@@ -583,14 +584,14 @@ const UsersTable: React.FC<UsersTableProps> = ({
       key: "role",
       header: "Role",
       sortable: true,
-      width: "12%",
+      width: "140px",
       render: (row) => renderRoleBadge(row.role),
     },
     {
       key: "last_loggedin_at",
       header: "Last Logged In",
       sortable: true,
-      width: "13%",
+      width: "150px",
       render: (row) => formatRelativeTime(row.last_loggedin_at),
     },
     // Tenant column only shown in superadmin mode
@@ -616,17 +617,26 @@ const UsersTable: React.FC<UsersTableProps> = ({
 
                 return (
                   <Tooltip
-                    text={`View ${row.tenant_names.length} tenant${row.tenant_names.length !== 1 ? 's' : ''}`}
+                    text={`View ${row.tenant_names.length} tenant${
+                      row.tenant_names.length !== 1 ? "s" : ""
+                    }`}
                     position="top"
                   >
                     <button
                       onClick={handleShowTenants}
                       className="group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-brand/10 text-brand font-semibold text-sm hover:bg-brand/20 hover:shadow-sm transition-all cursor-pointer border border-brand/20 hover:border-brand/40"
-                      aria-label={`View ${row.tenant_names.length} tenant${row.tenant_names.length !== 1 ? 's' : ''}`}
+                      aria-label={`View ${row.tenant_names.length} tenant${
+                        row.tenant_names.length !== 1 ? "s" : ""
+                      }`}
                     >
                       <Building2 size={14} className="text-brand" />
-                      <span className="min-w-[1.25rem] text-center">{row.tenant_names.length}</span>
-                      <ChevronRight size={12} className="text-brand/60 group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
+                      <span className="min-w-[1.25rem] text-center">
+                        {row.tenant_names.length}
+                      </span>
+                      <ChevronRight
+                        size={12}
+                        className="text-brand/60 group-hover:text-brand group-hover:translate-x-0.5 transition-all"
+                      />
                     </button>
                   </Tooltip>
                 );
@@ -656,17 +666,26 @@ const UsersTable: React.FC<UsersTableProps> = ({
 
                 return (
                   <Tooltip
-                    text={`View ${row.team_names.length} team${row.team_names.length !== 1 ? 's' : ''}`}
+                    text={`View ${row.team_names.length} team${
+                      row.team_names.length !== 1 ? "s" : ""
+                    }`}
                     position="top"
                   >
                     <button
                       onClick={handleShowTeams}
                       className="group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-brand/10 text-brand font-semibold text-sm hover:bg-brand/20 hover:shadow-sm transition-all cursor-pointer border border-brand/20 hover:border-brand/40"
-                      aria-label={`View ${row.team_names.length} team${row.team_names.length !== 1 ? 's' : ''}`}
+                      aria-label={`View ${row.team_names.length} team${
+                        row.team_names.length !== 1 ? "s" : ""
+                      }`}
                     >
                       <Users size={14} className="text-brand" />
-                      <span className="min-w-[1.25rem] text-center">{row.team_names.length}</span>
-                      <ChevronRight size={12} className="text-brand/60 group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
+                      <span className="min-w-[1.25rem] text-center">
+                        {row.team_names.length}
+                      </span>
+                      <ChevronRight
+                        size={12}
+                        className="text-brand/60 group-hover:text-brand group-hover:translate-x-0.5 transition-all"
+                      />
                     </button>
                   </Tooltip>
                 );
