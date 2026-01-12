@@ -12,7 +12,7 @@ import ManageSuperAdminTenantsModals from "@/app/modals/ManageSuperAdminTenantsM
 import { FilterValues } from "./TableFilter";
 import { toast } from "react-toastify";
 import { useAuthContext } from "@/app/contexts/AuthContext";
-import { Settings, Users, Mail } from "lucide-react";
+import { Settings, Users, Mail, ChevronRight, Building2 } from "lucide-react";
 import Tooltip from "./Tooltip";
 import TenantListModal from "./TenantListModal";
 import TeamListModal from "./ManageUserTeamsModal";
@@ -564,33 +564,33 @@ const UsersTable: React.FC<UsersTableProps> = ({
       key: "name",
       header: "Name",
       sortable: true,
-      width: mode === "tenant_admin" ? "15%" : "15%",
+      width: "15%",
     },
     {
       key: "email",
       header: "Email",
       sortable: true,
-      width: mode === "tenant_admin" ? "20%" : "20%",
+      width: "20%",
     },
     {
       key: "title",
       header: "Title",
       sortable: true,
-      width: mode === "tenant_admin" ? "12%" : "12%",
+      width: "20%",
       render: (row) => row.title || "-",
     },
     {
       key: "role",
       header: "Role",
       sortable: true,
-      width: mode === "tenant_admin" ? "13%" : "13%",
+      width: "12%",
       render: (row) => renderRoleBadge(row.role),
     },
     {
       key: "last_loggedin_at",
       header: "Last Logged In",
       sortable: true,
-      width: mode === "tenant_admin" ? "15%" : "15%",
+      width: "13%",
       render: (row) => formatRelativeTime(row.last_loggedin_at),
     },
     // Tenant column only shown in superadmin mode
@@ -600,36 +600,35 @@ const UsersTable: React.FC<UsersTableProps> = ({
             key: "tenant_name",
             header: "Tenant",
             sortable: true,
-            width: "15%",
+            width: "10%",
             render: (row) => {
-              // For superadmin users, show list of tenants
+              // For superadmin users, show badge with count
               if (row.role === "superadmin" && row.tenant_names) {
                 if (row.tenant_names.length === 0) {
                   return "-";
                 }
 
-                const displayTenants = row.tenant_names.slice(0, 3);
-                const remainingCount = row.tenant_names.length - 3;
-
-                const handleShowMore = (e: React.MouseEvent) => {
+                const handleShowTenants = (e: React.MouseEvent) => {
                   e.stopPropagation();
                   setTenantsToShow(row.tenant_names || []);
                   setTenantListModalOpen(true);
                 };
 
                 return (
-                  <span>
-                    {displayTenants.join(", ")}
-                    {remainingCount > 0 && (
-                      <button
-                        onClick={handleShowMore}
-                        className="ml-1 text-brand font-semibold  transition-colors cursor-pointer"
-                        aria-label={`Show ${remainingCount} more tenants`}
-                      >
-                        + {remainingCount} more
-                      </button>
-                    )}
-                  </span>
+                  <Tooltip
+                    text={`View ${row.tenant_names.length} tenant${row.tenant_names.length !== 1 ? 's' : ''}`}
+                    position="top"
+                  >
+                    <button
+                      onClick={handleShowTenants}
+                      className="group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-brand/10 text-brand font-semibold text-sm hover:bg-brand/20 hover:shadow-sm transition-all cursor-pointer border border-brand/20 hover:border-brand/40"
+                      aria-label={`View ${row.tenant_names.length} tenant${row.tenant_names.length !== 1 ? 's' : ''}`}
+                    >
+                      <Building2 size={14} className="text-brand" />
+                      <span className="min-w-[1.25rem] text-center">{row.tenant_names.length}</span>
+                      <ChevronRight size={12} className="text-brand/60 group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
+                    </button>
+                  </Tooltip>
                 );
               }
 
@@ -646,62 +645,30 @@ const UsersTable: React.FC<UsersTableProps> = ({
             key: "team_names",
             header: "Teams",
             sortable: false,
-            width: "20%",
+            width: "10%",
             render: (row: UserRow) => {
               if (row.team_names && row.team_names.length > 0) {
-                const maxLength = 20;
-                const allTeamsText = row.team_names.join(", ");
-
-                const handleShowMore = (e: React.MouseEvent) => {
+                const handleShowTeams = (e: React.MouseEvent) => {
                   e.stopPropagation();
                   setTeamsToShow(row.team_names || []);
                   setTeamsListModalOpen(true);
                 };
 
-                // If all teams fit within 30 characters, show all
-                if (allTeamsText.length <= maxLength) {
-                  return <span>{allTeamsText}</span>;
-                }
-
-                // Truncate to exactly 30 characters (can cut team names in the middle)
-                const displayText = allTeamsText.substring(0, maxLength);
-
-                // Count remaining teams by checking how many teams are fully displayed
-                let teamsDisplayed = 0;
-                let currentLength = 0;
-
-                for (let i = 0; i < row.team_names.length; i++) {
-                  const teamName = row.team_names[i];
-                  const separator = i > 0 ? ", " : "";
-                  const potentialLength =
-                    currentLength + separator.length + teamName.length;
-
-                  if (potentialLength <= maxLength) {
-                    teamsDisplayed++;
-                    currentLength = potentialLength;
-                  } else {
-                    break;
-                  }
-                }
-
-                const remainingCount = row.team_names.length - teamsDisplayed;
-
                 return (
-                  <span>
-                    {displayText}
-                    {remainingCount > 0 && (
-                      <>
-                        ...
-                        <button
-                          onClick={handleShowMore}
-                          className="ml-1 text-brand font-semibold transition-colors cursor-pointer hover:underline"
-                          aria-label={`Show ${remainingCount} more teams`}
-                        >
-                          Show {remainingCount} more
-                        </button>
-                      </>
-                    )}
-                  </span>
+                  <Tooltip
+                    text={`View ${row.team_names.length} team${row.team_names.length !== 1 ? 's' : ''}`}
+                    position="top"
+                  >
+                    <button
+                      onClick={handleShowTeams}
+                      className="group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-brand/10 text-brand font-semibold text-sm hover:bg-brand/20 hover:shadow-sm transition-all cursor-pointer border border-brand/20 hover:border-brand/40"
+                      aria-label={`View ${row.team_names.length} team${row.team_names.length !== 1 ? 's' : ''}`}
+                    >
+                      <Users size={14} className="text-brand" />
+                      <span className="min-w-[1.25rem] text-center">{row.team_names.length}</span>
+                      <ChevronRight size={12} className="text-brand/60 group-hover:text-brand group-hover:translate-x-0.5 transition-all" />
+                    </button>
+                  </Tooltip>
                 );
               }
               return "-";

@@ -285,3 +285,24 @@ select.disabled {
   opacity: 0.5;
   pointer-events: none;
 }
+
+@media screen and (max-width: 1900px) {
+  html,
+  body {
+    font-size: 100%;
+  }
+}
+
+@media screen and (max-width: 1700px) {
+  html,
+  body {
+    font-size: 90%;
+  }
+}
+
+@media screen and (max-width: 1500px) {
+  html,
+  body {
+    font-size: 80%;
+  }
+}
