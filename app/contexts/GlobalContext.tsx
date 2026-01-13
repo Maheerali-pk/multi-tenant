@@ -10,7 +10,8 @@ type ModalType =
   | "createUser"
   | "createUserForTenant"
   | "createTeam"
-  | "createPolicy";
+  | "createPolicy"
+  | "createAssessment";
 interface IGlobalState {
   isSidebarOpen: boolean;
   tableSearchValue: string;
@@ -75,6 +76,7 @@ const initialState: IGlobalState = {
     createUserForTenant: false,
     createTeam: false,
     createPolicy: false,
+    createAssessment: false,
   },
   createAssetCategoryId: undefined,
   selectedTenantId: storedState?.selectedTenantId ?? null,

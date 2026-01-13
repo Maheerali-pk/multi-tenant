@@ -9,6 +9,7 @@ import {
   Users2,
   Building,
   Building2,
+  FileText,
 } from "lucide-react";
 import { SidebarItems } from "../helpers/data";
 import { allIcons } from "../helpers/icons";
@@ -156,6 +157,11 @@ const Sidebar: React.FC<SidebarProps> = () => {
                   name: "Users and Access",
                   href: "/dashboard/settings/superadmin/users-and-access",
                   icon: <KeyRound size={20} />,
+                },
+                {
+                  name: "Assessments",
+                  href: "/dashboard/settings/superadmin/assessments",
+                  icon: <FileText size={20} />,
                 },
               ],
             }}

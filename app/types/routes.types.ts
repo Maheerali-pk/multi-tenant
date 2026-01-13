@@ -28,7 +28,7 @@ type AwarenessSubRoute = "training" | "resources" | "videos";
 
 type AwarenessRoute = `/dashboard/awareness/${AwarenessSubRoute}`;
 
-type SuperAdminSubRoute = "tenant-management" | "users-and-access";
+type SuperAdminSubRoute = "tenant-management" | "users-and-access" | "assessents";
 type ISuperAdminRoutes = `/dashboard/settings/superadmin/${SuperAdminSubRoute}`;
 
 type TenantAdminSubRoute = "company-profile" | "users-and-access" | "teams-management";

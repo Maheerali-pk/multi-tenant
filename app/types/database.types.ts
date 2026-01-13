@@ -17,38 +17,55 @@ export type Database = {
       assessment_catalog: {
         Row: {
           created_at: string
+          created_by: string
           description: string | null
           id: string
           name: string
           notes: string | null
-          status: string
+          status: number
           tenant_id: string | null
           updated_at: string
           version: string
         }
         Insert: {
           created_at?: string
+          created_by: string
           description?: string | null
           id?: string
           name: string
           notes?: string | null
-          status: string
+          status: number
           tenant_id?: string | null
           updated_at?: string
           version: string
         }
         Update: {
           created_at?: string
+          created_by?: string
           description?: string | null
           id?: string
           name?: string
           notes?: string | null
-          status?: string
+          status?: number
           tenant_id?: string | null
           updated_at?: string
           version?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "assessment_catalog_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_catalog_status_fkey"
+            columns: ["status"]
+            isOneToOne: false
+            referencedRelation: "assessment_statuses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "assessment_catalog_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -125,6 +142,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      assessment_statuses: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+        }
+        Relationships: []
       }
       asset_categories: {
         Row: {
