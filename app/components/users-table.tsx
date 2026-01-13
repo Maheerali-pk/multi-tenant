@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import Tooltip from "./tooltip";
 import TenantListModal from "./tenant-list-modal";
+import TenantListTooltip from "./tenant-list-tooltip";
 import TeamListModal from "./manage-user-teams-modal";
 import TeamsListModal from "./teams-list-modal";
 import { useGlobalContext } from "../contexts/GlobalContext";
@@ -639,11 +640,10 @@ const UsersTable: React.FC<UsersTableProps> = ({
                       </span>
                     ))}
                     {remainingCount > 0 && (
-                      <Tooltip
-                        text={`View ${remainingCount} more tenant${
-                          remainingCount !== 1 ? "s" : ""
-                        }`}
+                      <TenantListTooltip
+                        tenants={row.tenant_names || []}
                         position="top"
+                        delay={200}
                       >
                         <button
                           onClick={handleShowTenants}
@@ -656,7 +656,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
                             <span className="text-xs">{remainingCount}</span>
                           </span>
                         </button>
-                      </Tooltip>
+                      </TenantListTooltip>
                     )}
                   </div>
                 );
