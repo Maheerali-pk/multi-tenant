@@ -12,7 +12,15 @@ import ManageSuperAdminTenantsModals from "@/app/modals/manage-super-admin-tenan
 import { FilterValues } from "./table-filter";
 import { toast } from "react-toastify";
 import { useAuthContext } from "@/app/contexts/AuthContext";
-import { Settings, Users, Mail, MailCheck, ChevronRight, Building2 } from "lucide-react";
+import {
+  Settings,
+  Users,
+  Mail,
+  MailCheck,
+  ChevronRight,
+  Building2,
+  Plus,
+} from "lucide-react";
 import Tooltip from "./tooltip";
 import TenantListModal from "./tenant-list-modal";
 import TeamListModal from "./manage-user-teams-modal";
@@ -603,7 +611,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
             sortable: true,
             width: "10%",
             render: (row) => {
-              // For superadmin users, show badge with count
+              // For superadmin users, show tenant names with "+n" badge
               if (row.role === "superadmin" && row.tenant_names) {
                 if (row.tenant_names.length === 0) {
                   return "-";
@@ -615,30 +623,42 @@ const UsersTable: React.FC<UsersTableProps> = ({
                   setTenantListModalOpen(true);
                 };
 
+                // Show up to 1 tenant name to ensure it fits completely, then show "+n" badge
+                const maxVisible = 1;
+                const visibleTenants = row.tenant_names.slice(0, maxVisible);
+                const remainingCount = row.tenant_names.length - maxVisible;
+
                 return (
-                  <Tooltip
-                    text={`View ${row.tenant_names.length} tenant${
-                      row.tenant_names.length !== 1 ? "s" : ""
-                    }`}
-                    position="top"
-                  >
-                    <button
-                      onClick={handleShowTenants}
-                      className="group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-brand/10 text-brand font-semibold text-sm hover:bg-brand/20 hover:shadow-sm transition-all cursor-pointer border border-brand/20 hover:border-brand/40"
-                      aria-label={`View ${row.tenant_names.length} tenant${
-                        row.tenant_names.length !== 1 ? "s" : ""
-                      }`}
-                    >
-                      <Building2 size={14} className="text-brand" />
-                      <span className="min-w-[1.25rem] text-center">
-                        {row.tenant_names.length}
+                  <div className="flex items-center gap-1.5 flex-nowrap overflow-hidden">
+                    {visibleTenants.map((tenantName, index) => (
+                      <span
+                        key={index}
+                        className="text-sm text-text-primary whitespace-nowrap"
+                      >
+                        {tenantName}
                       </span>
-                      <ChevronRight
-                        size={12}
-                        className="text-brand/60 group-hover:text-brand group-hover:translate-x-0.5 transition-all"
-                      />
-                    </button>
-                  </Tooltip>
+                    ))}
+                    {remainingCount > 0 && (
+                      <Tooltip
+                        text={`View ${remainingCount} more tenant${
+                          remainingCount !== 1 ? "s" : ""
+                        }`}
+                        position="top"
+                      >
+                        <button
+                          onClick={handleShowTenants}
+                          className="flex relative items-center justify-center w-7 h-7 rounded-full bg-brand/10 text-brand font-semibold hover:bg-brand/20 transition-all cursor-pointer border border-brand/20 hover:border-brand/40 shrink-0 aspect-square"
+                          aria-label={`View ${remainingCount} more tenant${
+                            remainingCount !== 1 ? "s" : ""
+                          }`}
+                        >
+                          <span className="flex items-baseline justify-center  relative leading-none gap-px">
+                            <span className="text-xs">{remainingCount}</span>
+                          </span>
+                        </button>
+                      </Tooltip>
+                    )}
+                  </div>
                 );
               }
 
@@ -751,14 +771,12 @@ const UsersTable: React.FC<UsersTableProps> = ({
         const invitationStatus = getInvitationStatus(row.invitation);
         const isPending = invitationStatus === "pending";
         const Icon = isPending ? MailCheck : Mail;
-        const tooltipText = isPending ? "Invitation Pending" : "Send Invitation";
-        
+        const tooltipText = isPending
+          ? "Invitation Pending"
+          : "Send Invitation";
+
         actions.push(
-          <Tooltip
-            key="invite-user-tooltip"
-            text={tooltipText}
-            position="top"
-          >
+          <Tooltip key="invite-user-tooltip" text={tooltipText} position="top">
             <button
               onClick={() => handleInviteUserClick(row)}
               className="p-1.5 cursor-pointer rounded-lg hover:bg-[rgba(16,185,129,0.15)] transition-colors text-[#059669] hover:text-[#047857]"
