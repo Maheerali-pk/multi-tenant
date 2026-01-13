@@ -8,7 +8,7 @@ import type { TablesInsert, Tables } from "@/app/types/database.types";
 import { CustomSelect, SelectOption } from "@/app/components/custom-select";
 import { useAuthContext } from "@/app/contexts/AuthContext";
 import { toast } from "react-toastify";
-import { capitalizeString } from "../helpers/utils";
+import { capitalizeString } from "../../../../../../helpers/utils";
 
 type AssessmentInsert = TablesInsert<"assessment_catalog">;
 type AssessmentStatus = Tables<"assessment_statuses">;

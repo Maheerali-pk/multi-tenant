@@ -1,16 +1,16 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import Table, { TableColumn } from "./table";
+import Table, { TableColumn } from "../../../../../../components/table";
 import { supabase } from "@/lib/supabase";
 import { Tables } from "@/app/types/database.types";
-import { FilterValues } from "./table-filter";
+import { FilterValues } from "../../../../../../components/table-filter";
 import { formatStatusForDisplay } from "@/app/utils/statusBadge";
-import EditAssessmentModal from "@/app/modals/edit-assessment-modal";
-import DeleteAssessment from "@/app/modals/delete-assessment";
+import EditAssessmentModal from "@/app/(routes)/dashboard/settings/superadmin/assessments/components/edit-assessment-modal";
+import DeleteAssessment from "@/app/(routes)/dashboard/settings/superadmin/assessments/components/delete-assessment";
 import { toast } from "react-toastify";
 import { Settings } from "lucide-react";
-import Tooltip from "./tooltip";
+import Tooltip from "../../../../../../components/tooltip";
 
 type AssessmentCatalog = Tables<"assessment_catalog">;
 type AssessmentStatus = Tables<"assessment_statuses">;

@@ -3,11 +3,11 @@
 import { useState, useCallback } from "react";
 import ContentWrapper from "@/app/components/content-wrapper";
 import DashboardWrapper from "@/app/components/dashboard-wrapper";
-import AssessmentsTable from "@/app/components/assessments-table";
+import AssessmentsTable from "./components/assessments-table";
 import Search from "@/app/components/search";
 import TableFilter from "@/app/components/table-filter";
-import { CreateNewAssessmentButton } from "@/app/components/create-new-assessment-button";
-import CreateNewAssessmentModal from "@/app/modals/create-new-assessment-modal";
+import { CreateNewAssessmentButton } from "./components/create-new-assessment-button";
+import CreateNewAssessmentModal from "./components/create-new-assessment-modal";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import { useAssessmentFilters } from "@/app/hooks/useAssessmentFilters";
 import { getRouteTitle } from "@/app/helpers/data";

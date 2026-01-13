@@ -6,9 +6,9 @@ import { supabase } from "@/lib/supabase";
 import ModalWrapper from "@/app/components/modal-wrapper";
 import type { TablesUpdate, Tables } from "@/app/types/database.types";
 import { CustomSelect, SelectOption } from "@/app/components/custom-select";
-import type { AssessmentRow } from "@/app/components/assessments-table";
+import type { AssessmentRow } from "@/app/(routes)/dashboard/settings/superadmin/assessments/components/assessments-table";
 import { toast } from "react-toastify";
-import { capitalizeString } from "../helpers/utils";
+import { capitalizeString } from "../../../../../../helpers/utils";
 
 type AssessmentUpdate = TablesUpdate<"assessment_catalog">;
 type AssessmentStatus = Tables<"assessment_statuses">;

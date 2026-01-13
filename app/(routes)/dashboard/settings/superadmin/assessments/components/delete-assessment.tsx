@@ -1,7 +1,7 @@
 "use client";
 
 import { X, AlertTriangle } from "lucide-react";
-import type { AssessmentRow } from "@/app/components/assessments-table";
+import type { AssessmentRow } from "@/app/(routes)/dashboard/settings/superadmin/assessments/components/assessments-table";
 import ModalWrapper from "@/app/components/modal-wrapper";
 
 interface DeleteAssessmentProps {

@@ -69,29 +69,29 @@ export async function POST(req: NextRequest) {
 		let userId: string
 
 		if (sendInvitation) {
-			// 1) Invite user via Supabase - this creates the user and sends invitation email
+		// 1) Invite user via Supabase - this creates the user and sends invitation email
 			const { data, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-				email,
-				{
-					data: {
-						full_name,
-						role,
-						tenant_id: tenant_id || null,
-						tenant_name: tenantName,
-						title: title || null,
-						user_role: formatUserRole(role),
-					},
-					redirectTo,
-				}
-			)
-
-			if (inviteError) {
-				return new Response(JSON.stringify({ error: inviteError.message }), { status: 400 })
+			email,
+			{
+				data: {
+					full_name,
+					role,
+					tenant_id: tenant_id || null,
+					tenant_name: tenantName,
+					title: title || null,
+					user_role: formatUserRole(role),
+				},
+				redirectTo,
 			}
+		)
+
+		if (inviteError) {
+			return new Response(JSON.stringify({ error: inviteError.message }), { status: 400 })
+		}
 
 			if (!data.user) {
-				return new Response(JSON.stringify({ error: 'Failed to invite user' }), { status: 500 })
-			}
+			return new Response(JSON.stringify({ error: 'Failed to invite user' }), { status: 500 })
+		}
 
 			userData = data
 			userId = data.user.id
