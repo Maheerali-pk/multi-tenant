@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import ContentWrapper from "@/app/components/ContentWrapper";
-import DashboardWrapper from "@/app/components/DashboardWrapper";
+import ContentWrapper from "@/app/components/content-wrapper";
+import DashboardWrapper from "@/app/components/dashboard-wrapper";
 import { useAuthContext } from "@/app/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 

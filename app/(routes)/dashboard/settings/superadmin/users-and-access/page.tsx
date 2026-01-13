@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import ContentWrapper from "@/app/components/ContentWrapper";
-import DashboardWrapper from "@/app/components/DashboardWrapper";
-import UsersTable from "@/app/components/UsersTable";
-import Search from "@/app/components/Search";
-import TableFilter from "@/app/components/TableFilter";
-import { CreateNewUserButton } from "@/app/components/CreateNewUserButton";
-import CreateNewUserModal from "@/app/modals/CreateNewUserModal";
+import ContentWrapper from "@/app/components/content-wrapper";
+import DashboardWrapper from "@/app/components/dashboard-wrapper";
+import UsersTable from "@/app/components/users-table";
+import Search from "@/app/components/search";
+import TableFilter from "@/app/components/table-filter";
+import { CreateNewUserButton } from "@/app/components/create-new-user-button";
+import CreateNewUserModal from "@/app/modals/create-new-user-modal";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import { useUserFilters } from "@/app/hooks/useUserFilters";
 import { getRouteTitle } from "@/app/helpers/data";

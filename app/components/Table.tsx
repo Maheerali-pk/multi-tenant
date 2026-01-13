@@ -9,7 +9,7 @@ import {
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
-import Tooltip from "./Tooltip";
+import Tooltip from "./tooltip";
 
 export interface TableColumn<T = any> {
   key: string;

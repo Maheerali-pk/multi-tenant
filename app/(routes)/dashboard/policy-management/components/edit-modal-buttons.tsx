@@ -1,7 +1,7 @@
 "use client";
 
-import Button from "@/app/components/Button";
-import type { PolicyActionButtons } from "./PolicyEditModal";
+import Button from "@/app/components/button";
+import type { PolicyActionButtons } from "./policy-edit-modal";
 
 interface EditModalButtonsProps {
   actionButtons: PolicyActionButtons;

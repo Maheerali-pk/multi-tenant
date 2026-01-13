@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import ContentWrapper from "@/app/components/ContentWrapper";
-import DashboardWrapper from "@/app/components/DashboardWrapper";
-import TenantsTable from "@/app/components/TenantsTable";
-import { CreateNewTenantButton } from "@/app/components/CreateNewTenantButton";
-import CreateTenant from "@/app/modals/CreateTenant";
-import Search from "@/app/components/Search";
-import TableFilter from "@/app/components/TableFilter";
+import ContentWrapper from "@/app/components/content-wrapper";
+import DashboardWrapper from "@/app/components/dashboard-wrapper";
+import TenantsTable from "@/app/components/tenants-table";
+import { CreateNewTenantButton } from "@/app/components/create-new-tenant-button";
+import CreateTenant from "@/app/modals/create-tenant";
+import Search from "@/app/components/search";
+import TableFilter from "@/app/components/table-filter";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import { useTenantFilters } from "@/app/hooks/useTenantFilters";
 import { getRouteTitle } from "@/app/helpers/data";

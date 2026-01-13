@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import ContentWrapper from "@/app/components/ContentWrapper";
-import DashboardWrapper from "@/app/components/DashboardWrapper";
-import TeamsTable from "@/app/components/TeamsTable";
-import Search from "@/app/components/Search";
-import TableFilter from "@/app/components/TableFilter";
-import { CreateNewTeamButton } from "@/app/components/CreateNewTeamButton";
-import CreateTeam from "@/app/modals/CreateTeam";
+import ContentWrapper from "@/app/components/content-wrapper";
+import DashboardWrapper from "@/app/components/dashboard-wrapper";
+import TeamsTable from "@/app/components/teams-table";
+import Search from "@/app/components/search";
+import TableFilter from "@/app/components/table-filter";
+import { CreateNewTeamButton } from "@/app/components/create-new-team-button";
+import CreateTeam from "@/app/modals/create-team";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import { useTeamFilters } from "@/app/hooks/useTeamFilters";
 import { getRouteTitle } from "@/app/helpers/data";

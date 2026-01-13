@@ -3,7 +3,7 @@ import { Geist, Geist_Mono, Poppins } from "next/font/google";
 import "./globals.css";
 import { GlobalContextProvider } from "@/app/contexts/GlobalContext";
 import { AuthContextProvider } from "@/app/contexts/AuthContext";
-import AuthGuard from "./components/AuthGuard";
+import AuthGuard from "./components/auth-guard";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 

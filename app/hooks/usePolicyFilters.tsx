@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { FilterOption, FilterValues } from "@/app/components/TableFilter";
+import { FilterOption, FilterValues } from "@/app/components/table-filter";
 import { supabase } from "@/lib/supabase";
 import { useAuthContext } from "@/app/contexts/AuthContext";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";

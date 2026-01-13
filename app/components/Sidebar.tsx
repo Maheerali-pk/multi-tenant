@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { SidebarItems } from "../helpers/data";
 import { allIcons } from "../helpers/icons";
-import SidebarItemMain from "./SidebarItemMain";
+import SidebarItemMain from "./sidebar-item-main";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import Image from "next/image";
 import classNames from "classnames";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { FilterOption, FilterValues } from "@/app/components/TableFilter";
+import { FilterOption, FilterValues } from "@/app/components/table-filter";
 import { countries } from "@/app/helpers/countries";
 
 interface UseTenantFiltersOptions {

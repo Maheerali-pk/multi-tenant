@@ -1,13 +1,13 @@
 "use client";
 
 import { Bell, Menu, Moon } from "lucide-react";
-import Search from "./Search";
-import UserDropdown from "./UserDropdown";
+import Search from "./search";
+import UserDropdown from "./user-dropdown";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuthContext } from "@/app/contexts/AuthContext";
-import CustomSelect, { SelectOption } from "./CustomSelect";
+import CustomSelect, { SelectOption } from "./custom-select";
 import type { Tables } from "@/app/types/database.types";
 import { useRouter } from "next/navigation";
 

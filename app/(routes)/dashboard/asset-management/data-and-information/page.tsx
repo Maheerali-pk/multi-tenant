@@ -1,13 +1,13 @@
 "use client";
-import AssetsTable from "@/app/components/AssetsTable";
-import ContentWrapper from "@/app/components/ContentWrapper";
-import Search from "@/app/components/Search";
-import TableFilter from "@/app/components/TableFilter";
+import AssetsTable from "@/app/components/assets-table";
+import ContentWrapper from "@/app/components/content-wrapper";
+import Search from "@/app/components/search";
+import TableFilter from "@/app/components/table-filter";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import { useAssetFilters } from "@/app/hooks/useAssetFilters";
 import { commonAssetFields, getRouteTitle } from "@/app/helpers/data";
-import { CreateNewAssetButton } from "@/app/components/CreateNewAssetButton";
-import DashboardWrapper from "@/app/components/DashboardWrapper";
+import { CreateNewAssetButton } from "@/app/components/create-new-asset-button";
+import DashboardWrapper from "@/app/components/dashboard-wrapper";
 import { IRoute } from "@/app/types/routes.types";
 import { usePathname } from "next/navigation";
 

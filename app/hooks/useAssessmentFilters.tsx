@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { FilterValues, FilterOption } from "@/app/components/TableFilter";
+import { FilterValues, FilterOption } from "@/app/components/table-filter";
 import { Tables } from "@/app/types/database.types";
 
-type AssessmentStatus = Tables<"assesment_statuses">;
+type AssessmentStatus = Tables<"assessment_statuses">;
 type Tenant = Tables<"tenants">;
 
 interface UseAssessmentFiltersProps {
@@ -36,7 +36,7 @@ export const useAssessmentFilters = ({
   // Fetch status options
   const fetchStatusOptions = useCallback(async () => {
     const { data, error } = await supabase
-      .from("assesment_statuses")
+      .from("assessment_statuses")
       .select("id, name")
       .order("name");
 
@@ -84,7 +84,12 @@ export const useAssessmentFilters = ({
     if (includeFilters.tenant) {
       fetchTenantOptions();
     }
-  }, [includeFilters.status, includeFilters.tenant, fetchStatusOptions, fetchTenantOptions]);
+  }, [
+    includeFilters.status,
+    includeFilters.tenant,
+    fetchStatusOptions,
+    fetchTenantOptions,
+  ]);
 
   const filterOptions: FilterOption[] = [];
 

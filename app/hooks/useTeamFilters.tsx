@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { FilterOption, FilterValues } from "@/app/components/TableFilter";
+import { FilterOption, FilterValues } from "@/app/components/table-filter";
 
 interface UseTeamFiltersOptions {
   includeFilters?: {

@@ -1,15 +1,15 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import ContentWrapper from "@/app/components/ContentWrapper";
-import DashboardWrapper from "@/app/components/DashboardWrapper";
+import ContentWrapper from "@/app/components/content-wrapper";
+import DashboardWrapper from "@/app/components/dashboard-wrapper";
 import { getRouteTitle } from "@/app/helpers/data";
 import { IRoute } from "@/app/types/routes.types";
 import { usePathname } from "next/navigation";
 import { useAuthContext } from "@/app/contexts/AuthContext";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import { supabase } from "@/lib/supabase";
-import { CustomSelect, SelectOption } from "@/app/components/CustomSelect";
+import { CustomSelect, SelectOption } from "@/app/components/custom-select";
 import { countries } from "@/app/helpers/countries";
 import type { TablesUpdate } from "@/app/types/database.types";
 

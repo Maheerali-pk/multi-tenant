@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useCallback, useMemo, useEffect } from "react";
-import ContentWrapper from "@/app/components/ContentWrapper";
-import DashboardWrapper from "@/app/components/DashboardWrapper";
-import PoliciesTable, { PolicyRow } from "../components/PoliciesTable";
-import Search from "@/app/components/Search";
-import TableFilter from "@/app/components/TableFilter";
-import { CreateNewPolicyButton } from "../components/CreateNewPolicyButton";
-import PolicyEditModal from "../components/PolicyEditModal";
-import DeletePolicy from "../components/DeletePolicy";
+import ContentWrapper from "@/app/components/content-wrapper";
+import DashboardWrapper from "@/app/components/dashboard-wrapper";
+import PoliciesTable, { PolicyRow } from "../components/policies-table";
+import Search from "@/app/components/search";
+import TableFilter from "@/app/components/table-filter";
+import { CreateNewPolicyButton } from "../components/create-new-policy-button";
+import PolicyEditModal from "../components/policy-edit-modal";
+import DeletePolicy from "../components/delete-policy";
 import { useGlobalContext } from "@/app/contexts/GlobalContext";
 import { useAuthContext } from "@/app/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
