@@ -9,8 +9,9 @@ import { formatStatusForDisplay } from "@/app/utils/statusBadge";
 import EditAssessmentModal from "@/app/(routes)/dashboard/settings/superadmin/assessments/components/edit-assessment-modal";
 import DeleteAssessment from "@/app/(routes)/dashboard/settings/superadmin/assessments/components/delete-assessment";
 import { toast } from "react-toastify";
-import { Settings } from "lucide-react";
+import { Settings, Info } from "lucide-react";
 import Tooltip from "../../../../../../components/tooltip";
+import AssessmentsTableDrawer from "./assessments-table-drawer";
 
 type AssessmentCatalog = Tables<"assessment_catalog">;
 type AssessmentStatus = Tables<"assessment_statuses">;
@@ -47,6 +48,9 @@ const AssessmentsTable: React.FC<AssessmentsTableProps> = ({
   const [selectedAssessmentForDelete, setSelectedAssessmentForDelete] =
     useState<AssessmentRow | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedAssessmentForView, setSelectedAssessmentForView] =
+    useState<AssessmentRow | null>(null);
 
   // Helper function to get assessment status badge styles
   const getAssessmentStatusBadgeStyles = (
@@ -380,23 +384,47 @@ const AssessmentsTable: React.FC<AssessmentsTableProps> = ({
   const handleEdit = onEdit || handleEditClick;
   const handleDelete = onDelete || handleDeleteClick;
 
-  // Custom actions renderer for settings icon
-  const renderCustomActions = useCallback((row: AssessmentRow) => {
-    return (
-      <Tooltip text="Settings" position="top">
-        <button
-          onClick={() => {
-            // Dummy action - can be implemented later
-            console.log("Settings clicked for assessment:", row.id);
-          }}
-          className="p-1.5 cursor-pointer rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/20 transition-colors text-[#7c3aed] hover:text-[#6d28d9]"
-          aria-label="Settings"
-        >
-          <Settings size={16} />
-        </button>
-      </Tooltip>
-    );
+  const handleViewDetails = useCallback((row: AssessmentRow) => {
+    setSelectedAssessmentForView(row);
+    setDrawerOpen(true);
   }, []);
+
+  const handleDrawerClose = useCallback(() => {
+    setDrawerOpen(false);
+    setSelectedAssessmentForView(null);
+  }, []);
+
+  // Custom actions renderer for settings and view details icons
+  const renderCustomActions = useCallback(
+    (row: AssessmentRow) => {
+      return (
+        <>
+          <Tooltip text="Settings" position="top">
+            <button
+              onClick={() => {
+                // Dummy action - can be implemented later
+                console.log("Settings clicked for assessment:", row.id);
+              }}
+              className="p-1.5 cursor-pointer rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/20 transition-colors text-[#7c3aed] hover:text-[#6d28d9]"
+              aria-label="Settings"
+            >
+              <Settings size={16} />
+            </button>
+          </Tooltip>
+          <Tooltip text="View Details" position="top">
+            <button
+              onClick={() => handleViewDetails(row)}
+              className="p-1.5 cursor-pointer rounded-lg hover:bg-blue-light transition-colors text-brand hover:text-brand"
+              aria-label="View Details"
+            >
+              <Info size={16} />
+            </button>
+          </Tooltip>
+        </>
+      );
+    },
+    [handleViewDetails]
+  );
 
   if (loading) {
     return (
@@ -437,6 +465,11 @@ const AssessmentsTable: React.FC<AssessmentsTableProps> = ({
         onConfirm={handleDeleteConfirm}
         assessment={selectedAssessmentForDelete}
         loading={deleteLoading}
+      />
+      <AssessmentsTableDrawer
+        isOpen={drawerOpen}
+        onClose={handleDrawerClose}
+        assessment={selectedAssessmentForView}
       />
     </>
   );
