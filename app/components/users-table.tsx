@@ -26,6 +26,7 @@ import TenantListModal from "./tenant-list-modal";
 import TenantListTooltip from "./tenant-list-tooltip";
 import TeamListModal from "./manage-user-teams-modal";
 import TeamsListModal from "./teams-list-modal";
+import TeamListTooltip from "./team-list-tooltip";
 import { useGlobalContext } from "../contexts/GlobalContext";
 import { formatRelativeTime } from "../helpers/formatRelativeTime";
 import {
@@ -653,7 +654,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
                           }`}
                         >
                           <span className="flex items-baseline justify-center  relative leading-none gap-px">
-                            <span className="text-xs">{remainingCount}</span>
+                            <span className="text-xs">+{remainingCount}</span>
                           </span>
                         </button>
                       </TenantListTooltip>
@@ -685,29 +686,23 @@ const UsersTable: React.FC<UsersTableProps> = ({
                 };
 
                 return (
-                  <Tooltip
-                    text={`View ${row.team_names.length} team${
-                      row.team_names.length !== 1 ? "s" : ""
-                    }`}
+                  <TeamListTooltip
+                    teams={row.team_names || []}
                     position="top"
+                    delay={200}
                   >
                     <button
                       onClick={handleShowTeams}
-                      className="group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-brand/10 text-brand font-semibold text-sm hover:bg-brand/20 hover:shadow-sm transition-all cursor-pointer border border-brand/20 hover:border-brand/40"
+                      className="flex relative items-center justify-center w-7 h-7 rounded-full bg-brand/10 text-brand font-semibold hover:bg-brand/20 transition-all cursor-pointer border border-brand/20 hover:border-brand/40 shrink-0 aspect-square"
                       aria-label={`View ${row.team_names.length} team${
                         row.team_names.length !== 1 ? "s" : ""
                       }`}
                     >
-                      <Users size={14} className="text-brand" />
-                      <span className="min-w-[1.25rem] text-center">
-                        {row.team_names.length}
+                      <span className="flex items-baseline justify-center relative leading-none">
+                        <span className="text-xs">{row.team_names.length}</span>
                       </span>
-                      <ChevronRight
-                        size={12}
-                        className="text-brand/60 group-hover:text-brand group-hover:translate-x-0.5 transition-all"
-                      />
                     </button>
-                  </Tooltip>
+                  </TeamListTooltip>
                 );
               }
               return "-";
