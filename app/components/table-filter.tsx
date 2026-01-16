@@ -19,7 +19,10 @@ export type AssetFilterKey =
   | "email"
   | "creator"
   | "approver"
-  | "version";
+  | "version"
+  | "category"
+  | "required"
+  | "is_active";
 
 export interface FilterOption {
   key: AssetFilterKey;
@@ -46,6 +49,9 @@ export interface FilterValues {
   creator?: string;
   approver?: string;
   version?: string;
+  category?: string;
+  required?: string;
+  is_active?: string;
 }
 
 interface TableFilterProps {
@@ -86,6 +92,9 @@ function TableFilter({ filters, values, onChange, onClear }: TableFilterProps) {
       creator: "",
       approver: "",
       version: "",
+      category: "",
+      required: "",
+      is_active: "",
     };
     onChange(clearedValues);
     onClear?.();

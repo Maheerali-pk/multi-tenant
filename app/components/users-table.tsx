@@ -643,20 +643,20 @@ const UsersTable: React.FC<UsersTableProps> = ({
                     {remainingCount > 0 && (
                       <TenantListTooltip
                         tenants={row.tenant_names || []}
-                        position="top"
+                    position="top"
                         delay={200}
-                      >
-                        <button
-                          onClick={handleShowTenants}
+                  >
+                    <button
+                      onClick={handleShowTenants}
                           className="flex relative items-center justify-center w-7 h-7 rounded-full bg-brand/10 text-brand font-semibold hover:bg-brand/20 transition-all cursor-pointer border border-brand/20 hover:border-brand/40 shrink-0 aspect-square"
                           aria-label={`View ${remainingCount} more tenant${
                             remainingCount !== 1 ? "s" : ""
-                          }`}
-                        >
+                      }`}
+                    >
                           <span className="flex items-baseline justify-center  relative leading-none gap-px">
                             <span className="text-xs">+{remainingCount}</span>
-                          </span>
-                        </button>
+                      </span>
+                    </button>
                       </TenantListTooltip>
                     )}
                   </div>
@@ -769,7 +769,7 @@ const UsersTable: React.FC<UsersTableProps> = ({
         const tooltipText = isPending
           ? "Invitation Pending"
           : "Send Invitation";
-
+        
         actions.push(
           <Tooltip key="invite-user-tooltip" text={tooltipText} position="top">
             <button

@@ -11,20 +11,24 @@ interface SidebarSubItemProps {
 const SidebarSubItem: FunctionComponent<SidebarSubItemProps> = ({ data }) => {
   const pathname = usePathname();
 
+  // Check if pathname matches exactly or is a nested route
+  const isActive =
+    pathname === data.href || pathname.startsWith(data.href + "/");
+
   return (
     <Link href={data.href}>
       <div
         className={classNames("w-full border-l-3 pl-2.5 ", {
-          "border-l-brand": pathname === data.href,
-          "border-l-transparent": pathname !== data.href,
+          "border-l-brand": isActive,
+          "border-l-transparent": !isActive,
         })}
       >
         <div
           className={classNames(
             "flex cursor-pointer text-text-secondary   items-center justify-between w-full p-2 rounded-xl hover:bg-sidebar-sub-item-hover transition-all duration-300",
             {
-              "bg-sidebar-sub-item-hover": pathname === data.href,
-              "bg-transparent": pathname !== data.href,
+              "bg-sidebar-sub-item-hover": isActive,
+              "bg-transparent": !isActive,
             }
           )}
         >

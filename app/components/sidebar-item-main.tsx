@@ -18,9 +18,10 @@ const SidebarItemMain: React.FC<SidebarItemMainProps> = ({
 }) => {
   const pathname = usePathname();
 
-  // Check if any sub-item is active
+  // Check if any sub-item is active (exact match or nested route)
   const hasActiveSubItem = data.subItems.some(
-    (subItem) => pathname === subItem.href
+    (subItem) =>
+      pathname === subItem.href || pathname.startsWith(subItem.href + "/")
   );
 
   const [isOpen, setIsOpen] = useState(hasActiveSubItem);
@@ -28,7 +29,8 @@ const SidebarItemMain: React.FC<SidebarItemMainProps> = ({
   // Update isOpen when pathname changes
   useEffect(() => {
     const hasActive = data.subItems.some(
-      (subItem) => pathname === subItem.href
+      (subItem) =>
+        pathname === subItem.href || pathname.startsWith(subItem.href + "/")
     );
     if (hasActive) {
       setIsOpen(true);

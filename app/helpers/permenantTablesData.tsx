@@ -26,3 +26,15 @@ export const policyLifecycleStatuses = [
     name: "Archived",
   },
 ];
+
+export const checkMethodOptions = [
+  { value: "manual", label: "Manual" },
+  { value: "attestation", label: "Attestation" },
+  { value: "automated", label: "Automated" },
+];
+
+export const importanceOptions = [
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+];

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Table, { TableColumn } from "../../../../../../components/table";
 import { supabase } from "@/lib/supabase";
 import { Tables } from "@/app/types/database.types";
@@ -9,7 +10,7 @@ import { formatStatusForDisplay } from "@/app/utils/statusBadge";
 import EditAssessmentModal from "@/app/(routes)/dashboard/settings/superadmin/assessments/components/edit-assessment-modal";
 import DeleteAssessment from "@/app/(routes)/dashboard/settings/superadmin/assessments/components/delete-assessment";
 import { toast } from "react-toastify";
-import { Settings, Info } from "lucide-react";
+import { Info, ChevronRight } from "lucide-react";
 import Tooltip from "../../../../../../components/tooltip";
 import AssessmentsTableDrawer from "./assessments-table-drawer";
 
@@ -38,6 +39,7 @@ const AssessmentsTable: React.FC<AssessmentsTableProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const router = useRouter();
   const [assessments, setAssessments] = useState<AssessmentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -276,45 +278,52 @@ const AssessmentsTable: React.FC<AssessmentsTableProps> = ({
     return result;
   }, [assessments, searchValue, filterValues]);
 
+  const handleViewAssessmentItems = useCallback(
+    (row: AssessmentRow) => {
+      router.push(`/dashboard/settings/superadmin/assessments/${row.id}`);
+    },
+    [router]
+  );
+
   const columns: TableColumn<AssessmentRow>[] = [
     {
       key: "name",
       header: "Name",
       sortable: true,
-      width: "20%",
+      width: "18%",
     },
     {
       key: "description",
       header: "Description",
       sortable: true,
-      width: "25%",
+      width: "23%",
       render: (row) => row.description || "-",
     },
     {
       key: "version",
       header: "Version",
       sortable: true,
-      width: "12%",
+      width: "11%",
     },
     {
       key: "status_name",
       header: "Status",
       sortable: true,
-      width: "15%",
+      width: "13%",
       render: (row) => renderAssessmentStatusBadge(row.status_name),
     },
     {
       key: "tenant_name",
       header: "Tenant",
       sortable: true,
-      width: "15%",
+      width: "13%",
       render: (row) => row.tenant_name || "-",
     },
     {
       key: "created_by_name",
       header: "Created By",
       sortable: true,
-      width: "15%",
+      width: "13%",
       render: (row) => row.created_by_name || "-",
     },
   ];
@@ -394,23 +403,11 @@ const AssessmentsTable: React.FC<AssessmentsTableProps> = ({
     setSelectedAssessmentForView(null);
   }, []);
 
-  // Custom actions renderer for settings and view details icons
+  // Custom actions renderer for view details and view assessment items icons
   const renderCustomActions = useCallback(
     (row: AssessmentRow) => {
       return (
         <>
-          <Tooltip text="Settings" position="top">
-            <button
-              onClick={() => {
-                // Dummy action - can be implemented later
-                console.log("Settings clicked for assessment:", row.id);
-              }}
-              className="p-1.5 cursor-pointer rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/20 transition-colors text-[#7c3aed] hover:text-[#6d28d9]"
-              aria-label="Settings"
-            >
-              <Settings size={16} />
-            </button>
-          </Tooltip>
           <Tooltip text="View Details" position="top">
             <button
               onClick={() => handleViewDetails(row)}
@@ -420,10 +417,19 @@ const AssessmentsTable: React.FC<AssessmentsTableProps> = ({
               <Info size={16} />
             </button>
           </Tooltip>
+          <Tooltip text="View Assessment Items" position="top">
+            <button
+              onClick={() => handleViewAssessmentItems(row)}
+              className="p-1.5 cursor-pointer rounded-lg hover:bg-blue-light transition-colors text-brand hover:text-brand"
+              aria-label="View Assessment Items"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </Tooltip>
         </>
       );
     },
-    [handleViewDetails]
+    [handleViewDetails, handleViewAssessmentItems]
   );
 
   if (loading) {

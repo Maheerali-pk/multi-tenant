@@ -104,18 +104,18 @@ const AssessmentsTableDrawer: React.FC<AssessmentsTableDrawerProps> = ({
             <div className="space-y-6">
               {/* Name */}
               <div>
-                <h3 className="text-sm font-medium text-text-secondary mb-2">
+                <h3 className="text-sm font-semibold text-text-primary mb-2">
                   Name
                 </h3>
-                <p className="text-base text-text-primary">{assessment.name}</p>
+                <p className="text-base text-text-secondary">{assessment.name}</p>
               </div>
 
               {/* Version */}
               <div>
-                <h3 className="text-sm font-medium text-text-secondary mb-2">
+                <h3 className="text-sm font-semibold text-text-primary mb-2">
                   Version
                 </h3>
-                <p className="text-base text-text-primary">
+                <p className="text-base text-text-secondary">
                   {assessment.version}
                 </p>
               </div>
@@ -123,7 +123,7 @@ const AssessmentsTableDrawer: React.FC<AssessmentsTableDrawerProps> = ({
               {/* Status */}
               {assessment.status_name && (
                 <div>
-                  <h3 className="text-sm font-medium text-text-secondary mb-2">
+                  <h3 className="text-sm font-semibold text-text-primary mb-2">
                     Status
                   </h3>
                   <span
@@ -155,10 +155,10 @@ const AssessmentsTableDrawer: React.FC<AssessmentsTableDrawerProps> = ({
               {/* Tenant */}
               {assessment.tenant_name && (
                 <div>
-                  <h3 className="text-sm font-medium text-text-secondary mb-2">
+                  <h3 className="text-sm font-semibold text-text-primary mb-2">
                     Tenant
                   </h3>
-                  <p className="text-base text-text-primary">
+                  <p className="text-base text-text-secondary">
                     {assessment.tenant_name}
                   </p>
                 </div>
@@ -167,10 +167,10 @@ const AssessmentsTableDrawer: React.FC<AssessmentsTableDrawerProps> = ({
               {/* Created By */}
               {assessment.created_by_name && (
                 <div>
-                  <h3 className="text-sm font-medium text-text-secondary mb-2">
+                  <h3 className="text-sm font-semibold text-text-primary mb-2">
                     Created By
                   </h3>
-                  <p className="text-base text-text-primary">
+                  <p className="text-base text-text-secondary">
                     {assessment.created_by_name}
                   </p>
                 </div>
@@ -178,10 +178,10 @@ const AssessmentsTableDrawer: React.FC<AssessmentsTableDrawerProps> = ({
 
               {/* Description */}
               <div>
-                <h3 className="text-sm font-medium text-text-secondary mb-2">
+                <h3 className="text-sm font-semibold text-text-primary mb-2">
                   Description
                 </h3>
-                <p className="text-base text-text-primary whitespace-pre-wrap">
+                <p className="text-base text-text-secondary whitespace-pre-wrap">
                   {assessment.description || (
                     <span className="text-text-secondary italic">
                       No description provided
@@ -192,10 +192,10 @@ const AssessmentsTableDrawer: React.FC<AssessmentsTableDrawerProps> = ({
 
               {/* Notes */}
               <div>
-                <h3 className="text-sm font-medium text-text-secondary mb-2">
+                <h3 className="text-sm font-semibold text-text-primary mb-2">
                   Notes
                 </h3>
-                <p className="text-base text-text-primary whitespace-pre-wrap">
+                <p className="text-base text-text-secondary whitespace-pre-wrap">
                   {assessment.notes || (
                     <span className="text-text-secondary italic">
                       No notes provided
